@@ -1,0 +1,19 @@
+installsupport() { #make sure all of the functions necessary to run pullsync are installed
+	ec yellow "Installing supporting functions..."
+	# dialog, csv, screen, whois, git, virt-what, bh
+	[ ! `which dialog 2> /dev/null` ] || [ ! `which git 2> /dev/null` ] || [ ! `which csvtool 2> /dev/null` ] || [ ! `which screen 2> /dev/null` ] || [ ! `which whois 2> /dev/null` ] || [ ! `which virt-what 2> /dev/null` ] || [ ! `which bc 2> /dev/null` ] && ec yellow " RPMs..." && yum -y install dialog screen jwhois whois ocaml-csv git virt-what bc 2>&1 | stderrlogit 3
+	chmod 755 /var/run/screen
+	# parallel
+	install_parallel
+	# this line ensures that cpan default settings are in place when running cpan -l
+	true | cpan -v 2>&1 > /dev/null
+	if ! cpan -l 2> /dev/null | grep -q URI\:\:Escape; then
+		# uri::escape not installed
+		ec yellow " URI::Escape..."
+		/usr/local/cpanel/bin/cpanm URI::Escape -n 2>&1 | stderrlogit 3
+	fi
+	# pyyaml for yaml file analysis
+	pip_and_pyyaml
+	# quit if critical items still arent installed
+	[ ! `which dialog 2> /dev/null` ] || [ ! `which csvtool 2> /dev/null` ] || [ ! `which screen 2> /dev/null` ] || [ ! `which whois 2> /dev/null` ] || [ ! `which virt-what 2> /dev/null` ] && (ec red "It looks like yum might not be working... try 'yum clean all && rpm --rebuilddb && yum update' before retrying this script!" && exitcleanup 70)
+}
