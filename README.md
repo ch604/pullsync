@@ -1,6 +1,8 @@
-Cool rsync wrapper for cPanel servers.
+Cool migraiton script for cPanel servers.
 
 Migrate a single cPanel account, from a user list, a domain list, or all users, to another cPanel server. Update/final syncs, too.
+
+![Pullsync Preview](https://imgur.com/NzdUqtU.png)
 
 Bonus features:
 * php/http version matching 
@@ -13,13 +15,6 @@ Bonus features:
 * IP swap support (if datacenter supports this)
 ...and more!
 
-## INSTALLATION
-```wget -O /root/pullsync.sh https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh && chmod 700 ~/pullsync.sh```
-
-Install screen also, if it isn't already:
-
-```yum -y install screen```
-
 ## REQUIREMENTS
 The script will only run on cPanel servers, and will only migrate from cPanel servers, both of which must be CentOS/RHEL. You must have direct root-level SSH access available to the source server.
 
@@ -27,12 +22,21 @@ The script has been tested as far back as CentOS 4 for source, but newer feature
 
 The script also assumes that you have migrated websites manually in the past, as, in essence, this is a bash script you downloaded from the internet, and you should treat it as such.
 
+Lastly, you will need screen installed.
+
+```yum -y install screen```
+
 ## RUNNING PULLSYNC
+Pullsync is run from the TARGET of your migration.
+
 Set up your userlist at /root/userlist.txt with space or newline separated cpanel usernames. If migrating all users, skip this step.
 
 If you need to exclude files or databases, set up the appropriate files at /root/rsync_exclude.txt and /root/db_exclude.txt.
 
-Finally, execute the script:
+Finally, download and execute the script:
+
+```wget -O /root/pullsync.sh https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh && chmod 700 ~/pullsync.sh```
+
 ```bash /root/pullsync.sh```
 
 Pullsync will install its own prerequisites (whois and parallel) if needed, and download its supporting files from this repo. It will restart itself in screen if necessary, and present a user-friendly menu to proceed from there.
