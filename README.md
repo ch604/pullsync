@@ -1,8 +1,10 @@
+# Pullsync
+
 ![LastCommit](https://img.shields.io/github/last-commit/ch604/pullsync)
 [![License](https://img.shields.io/badge/license-BSD3-green.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Donate](https://img.shields.io/badge/donate-paypal-blue)](https://www.paypal.me/walilkoa)
 
-Cool migraiton script for cPanel servers.
+Pullsync is a cool migraiton script for cPanel servers.
 
 Migrate a single cPanel account, from a user list, a domain list, or all users, to another cPanel server. Update/final syncs, too.
 
