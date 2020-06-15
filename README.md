@@ -1,3 +1,7 @@
+![LastCommit](https://img.shields.io/github/last-commit/ch604/pullsync)
+[![License](https://img.shields.io/badge/license-BSD3-green.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![Donate](https://img.shields.io/badge/donate-paypal-blue)](https://www.paypal.me/walilkoa)
+
 Cool migraiton script for cPanel servers.
 
 Migrate a single cPanel account, from a user list, a domain list, or all users, to another cPanel server. Update/final syncs, too.
@@ -39,7 +43,7 @@ Finally, download and execute the script:
 
 ```bash /root/pullsync.sh```
 
-Pullsync will install its own prerequisites (whois and parallel) if needed, and download its supporting files from this repo. It will restart itself in screen if necessary, and present a user-friendly menu to proceed from there.
+Pullsync will install its own prerequisites (whois, parallel, etc) if needed, and download its supporting files from this repo. It will restart itself in screen if necessary, and present a user-friendly menu to proceed from there.
 
 ## LOG LOCATIONS
 Pullsync writes its temporary files and logs to /home/temp/pullsync/, which is a symlink to a directory in /home/temp/ suffixed with the start time. Some important files to consider:
