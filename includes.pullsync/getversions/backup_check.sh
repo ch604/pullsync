@@ -11,7 +11,7 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 	backup_enable=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | grep backupenable | awk '{print $2}')
 	backup_acct=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | grep backupaccts | awk '{print $2}')
 	remote_backups=$(grep ^BACKUPENABLE: "$dir/var/cpanel/backups/config" | cut -d\' -f2)
-	local sourcebackupdir=$(grep ^BACKUPDIR: "$dir/var/cpanel/backups/config" | awk '{print $2}'
+	local sourcebackupdir=$(grep ^BACKUPDIR: "$dir/var/cpanel/backups/config" | awk '{print $2}')
 	if [ "$remote_backups" = "yes" ]; then
 		ec lightGreen "Remote cPanel backups are enabled."
 		if [ "$(ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ]; then
