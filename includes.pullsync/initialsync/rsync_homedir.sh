@@ -1,4 +1,4 @@
-rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs the homedir of a restored account. also executes phpfpm conversion, suspension, and perm fixes, as well as a few extra syncs for final syncs.
+rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs the homedir of a restored account. also executes malware scan, phpfpm conversion, suspension, and perm fixes, as well as a few extra syncs for final syncs.
 	local user=$1
 	local progress="$2 | $user:"
 	if [ -f "$dir/etc/passwd" ]; then
@@ -67,6 +67,12 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			if [ $fixperms ]; then
 				ec brown "$progress Fixing permissions..."
 				sh /home/fixperms.sh $user 2>&1 | stderrlogit 4
+			fi
+
+			# malware scan
+			if [ $malwarescan ]; then
+				sem --wait --id malware_scan_running #wait if other malware scans are running
+				sem --fg --id restore_pkg_running --jobs 1 -u malware_scan $user
 			fi
 
 			# suspend suspended accounts

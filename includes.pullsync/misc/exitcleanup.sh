@@ -48,7 +48,7 @@ EOF
 	echo -en "\a" # sound the terimal bell
 	[[ "$1" ]] && echo "exit code: $1" | logit
 	#unset exported functions/variables
-	unset -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress dbscan
-	unset dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert comment_crons defaultea4profile log solrver fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync
+	unset -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 malware_scan logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress dbscan
+	unset dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert comment_crons malwarescan defaultea4profile log solrver fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync
 	exit $1
 }

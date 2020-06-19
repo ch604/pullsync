@@ -33,9 +33,10 @@ Lastly, you will need screen installed.
 ```yum -y install screen```
 
 The script utilizes the following additional standalone systems, and may redistribute precompiled versions for ease of installation:
-* [GNU Parallel](https://www.gnu.org/software/parallel/) by Ole Tange
-* [Marill](https://github.com/lrstanley/marill) by Liam Stanley
+* [GNU Parallel](https://www.gnu.org/software/parallel/) by Ole Tange (GPL 3.0)
+* [Marill](https://github.com/lrstanley/marill) by Liam Stanley (MIT License)
 * Maintenance Engine by Lee Rumler
+* [AMWScan](https://github.com/marcocesarato/PHP-Antimalware-Scanner) by Marco Cesarato (GPL 3.0)
 
 ## RUNNING PULLSYNC
 Pullsync is run from the TARGET of your migration.

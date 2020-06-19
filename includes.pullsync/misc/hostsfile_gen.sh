@@ -47,6 +47,21 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	#edit reply
 	sed -i -e "s|http://\${ip}/hostsfile.txt|$hostsfile_url|" $dir/pullsync_reply.txt
 	sed -i -e "s|http://\${ip}/migration_test_urls.html|$test_urls|" $dir/pullsync_reply.txt
+
+	#add stanza if malware found
+	if ([ -s /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt); then
+		cat >> $dir/pullsync_reply.txt <<EOF
+
+  IMPORTANT:
+
+To help ensure our network's security, during migrations, we perform basic malware scanning on migrated accounts as they arrive. One or more of the accounts for this migration contained malware signatures:
+
+$(grep -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt)
+
+Your developer should be contacted to help thoroughly scan and clean these files. If you have any questions about this, please let us know.
+EOF
+	fi
+
 	#remove final sync message
 	if [ $remove_final_sync_message ]; then
 		sed -i -e "s/\ If\ DNS\ is\ updated\ prematurely,\ a\ final\ sync\ of\ data\ may\ not\ be\ possible.$//" -e "/^Since\ it\ is/,+1d" -e "/^Once\ testing\ is/c\Once testing is complete, DNS for the migrated domains can be updated to make the new server live at your convenience. This is done at the current nameservers for each domain; let us know if you need help determining where your nameservers are. If you are planning to change nameservers, please let us know, and we can provide additional details on switching to Liquid Web\'s nameservers, or setting up your own custom nameservers. Please also know that we will not automatically terminate the old hosting solution for you; this must be requested separately once you are sure you no longer need the old server." $dir/pullsync_reply.txt

@@ -10,14 +10,15 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Update Sync Menu" --separate-output --checklist "Select options for the update sync. Sane options have been selected based on your source, but modify as needed." 0 0 6)
 	local options=( 1 "Use --update for rsync" on
 		2 "Exclude 'cache' from the rsync" off
-		3 "Run marill auto testing after sync" off
-		4 "Run fixperms.sh after homedir sync" off
-		5 "Use --delete on the mail folder (BETA)" off)
+		3 "Scan php files for malware during sync (users in /root/dirty_accounts.txt)" off
+		4 "Run marill auto testing after sync" off
+		5 "Run fixperms.sh after homedir sync" off
+		6 "Use --delete on the mail folder (BETA)" off)
 
 	for user in $userlist; do
 		[[ ! "$(sssh "stat /home/$user/public_html" | grep Uid | awk -F'[(|/|)]' '{print $2, $6, $9}')" =~ 751\ +$user\ +nobody ]] && local fixmatch=1
 	done
-	[ $fixmatch ] && cmd[9]=`echo "${cmd[9]}\n(4) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)"` && unset fixmatch
+	[ $fixmatch ] && cmd[9]=`echo "${cmd[9]}\n(5) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)"` && unset fixmatch
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> $log
@@ -26,9 +27,10 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 		case $choice in
 			1) rsync_update="--update";;
 			2) rsync_excludes=`echo --exclude=cache $rsync_excludes`;;
-			3) runmarill=1; download_marill;;
-			4) fixperms=1; download_fixperms;;
-			5) maildelete=1;;
+			3) malwarescan=1; download_malware;;
+			4) runmarill=1; download_marill;;
+			5) fixperms=1; download_fixperms;;
+			6) maildelete=1;;
 			*) :;;
 		esac
 	done
@@ -41,6 +43,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	echo "synctype is $synctype. source server is $ip."
 	echo -e "to reattach, run (screen -r $STY).\n"
 	[ "$rsync_update" = "--update" ] && echo "* used --update for rsync"
+	[ $malwarescan ] && echo "* scanned php files for accounts in /root/dirty_accounts.txt for malware"
 	[ $runmarill ] && echo "* ran marill auto-testing"
 	[ $fixperms ] && echo -e "\n* RAN FIXPERMS UPON ACCOUNT ARRIVAL"
 	[ $maildelete ] && echo -e "\n* USED --delete ON THE MAIL FOLDER (BETA)"

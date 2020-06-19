@@ -22,7 +22,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			12 "Run fixperms.sh after homedir sync" off
 			13 "Use --delete on the mail folder (BETA)" off
 			14 "Copy remote cPanel backup destinations (e.g. S3, FTP)" off
-			15 "Set domains on source server to 'remote' mail routing (BETA)" off)
+			15 "Set domains on source server to 'remote' mail routing (BETA)" off
+			16 "Scan php files for malware during sync (all users)" on)
 		#turn off things for shared server sources
 		[ "$(sssh "hostname | cut -d. -f2-3")" == "liquidweb.com" ] && cmd[9]=`echo "${cmd[9]}\n(2 3 4 8) LW shared source detected"` && options[5]=off && options[8]=off && options[11]=off && options[23]=off
 		#check if there are natted ips and dont copy dns
@@ -62,6 +63,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 				13)	maildelete=1;;
 				14)	copyremotebackups=1;;
 				15)	setremotemx=1;;
+				16)	malwarescan=1; download_malware;;
 				*)	:;;
 			esac
 		done
@@ -89,6 +91,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	echo $rsync_excludes | grep -q cache && echo "* excluded cache from rsync"
 	[ $doremovehc ] && echo "* removed HostsCheck files from all users"
 	[ $autossl ] && echo "* enabled AutoSSL for all users"
+	[ $malwarescan ] && echo "* scanned php files on all accounts for malware"
 	[ $runmarill ] && echo "* ran marill auto-testing"
 	[ $copyremotebackups ] && echo "* copied remote backup destinations"
 	[ $fixperms ] && echo -e "\n* RAN FIXPERMS UPON ACCOUNT ARRIVAL"
