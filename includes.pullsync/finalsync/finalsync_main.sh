@@ -50,6 +50,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 				3)	restartservices=1;;
 				4)	remotemotd=1;;
 				5)	sssh "if [[ \"\$(uname -m)\" != \"x86_64\" ]]; then wget -q -O /root/maintenance http://67.225.133.73/maintenance-32; else wget -q -O /root/maintenance http://67.225.133.73/maintenance; fi; chmod 700 /root/maintenance &> /dev/null"
+					sssh "if [ -z /root/maintenance -o ! -e /root/maintenance ]; then if [[ \"\$(uname -m)\" != \"x86_64\" ]]; then wget -q -O /root/maintenance https://github.com/ch604/pullsync/raw/master/maintenance-32; else wget -q -O /root/maintenance https://github.com/ch604/pullsync/raw/master/maintenance; fi; fi; chmod 700 /root/maintenance &> /dev/null"
 					sssh "stat /root/maintenance &> /dev/null" && maintpage=1 || ec red "Could not download maintenance engine! Skipping maintenance pages...";;
 				6)	rsync_update="--update";;
 				7)	rsync_excludes=`echo --exclude=cache $rsync_excludes`;;
