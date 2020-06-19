@@ -14,7 +14,7 @@ Bonus features:
 * php/http version matching 
 * tweak settings and exim settings matching
 * common 3rd party software installation
-* parallel account syncs (thanks to GNU Parallel by Ole Tange)
+* parallel account syncs
 * lower TTLs
 * one-time-use ssh key generation
 * copy-paste information to send to clients
@@ -31,6 +31,11 @@ The script also assumes that you have migrated websites manually in the past, as
 Lastly, you will need screen installed.
 
 ```yum -y install screen```
+
+The script utilizes the following additional standalone systems, and may redistribute precompiled versions for ease of installation:
+* [GNU Parallel](https://www.gnu.org/software/parallel/) by Ole Tange
+* [Marill](https://github.com/lrstanley/marill) by Liam Stanley
+* Maintenance Engine by Lee Rumler
 
 ## RUNNING PULLSYNC
 Pullsync is run from the TARGET of your migration.
