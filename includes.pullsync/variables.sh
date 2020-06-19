@@ -23,6 +23,9 @@ rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new
 # database excludes for final and mysql only syncs can be added to /root/db_exclude.txt (one per line). good for large databases that you dont want to sync again, or dbs that you only sync a few tables for manually.
 # similarly, database includes for final and mysql only syncs can be added to /root/db_include.txt (one per line). great for syncing databases that dont belong to a cpanel user. this is added before the excludes and the baddbs filter as above.
 
+# at the conclusion of hands-off portions of syncs, a slack hook can be activated. uncomment add a url for your slack hook here.
+#slackhook_url="https://hooks.slack.com/services/your/url/goeshere"
+
 # the following files are rsynced over from old server to the $dir just after connection.
 filelist="/etc/apf
 /etc/apache2/conf.d
