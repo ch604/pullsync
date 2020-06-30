@@ -7,6 +7,12 @@
 # last updated: Jun 30 2020
 version="7.5.8"
 
+############
+# root check
+############
+
+[ ! "$(whoami)" = "root" ] && echo "Need to run as root!" && exit 1
+
 ###############################
 # ensure supporting files exist
 ###############################
