@@ -72,7 +72,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			# malware scan
 			if [ $malwarescan ]; then
 				sem --wait --id malware_scan_running #wait if other malware scans are running
-				sem --fg --id restore_pkg_running --jobs 1 -u malware_scan $user
+				sem --fg --id malware_scan_running --jobs 1 -u malware_scan $user
 			fi
 
 			# suspend suspended accounts
