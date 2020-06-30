@@ -267,19 +267,17 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	[ "$(grep 'Mysql::_restore_grants' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some mysql passwords failed to restore (grep \"Mysql::_restore_grants\" $dir/log/restorepkg*log | awk -F'“|”' '{print \$4}'; )" >> $dir/error.log
 	[ "$(grep 'Mysql::_restore_db_file' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some mysql databases restored with alternate names (grep \"Mysql::_restore_db_file\" $dir/log/restorepkg*log)" >> $dir/error.log
 	[ "$(grep 'Mysql::_restore_dbowner' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some cpanel user mysql passwords failed to restore (grep \"Mysql::_restore_dbowner\" $dir/log/restorepkg*log | awk -F'“|”' '{print \$4}'; )" >> $dir/error.log
+	[ "$(grep 'DBD::mysql::db do failed' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some databases failed to restore (grep \"DBD::mysql::db do failed\" $dir/log/restorepkg*log)" >> $dir/error.log
 	[ -s $dir/did_not_restore.txt ] && echo "[ERROR] Some $(cat $dir/did_not_restore.txt | wc -w) cPanel users did not restore! (cat $dir/did_not_restore.txt)" >> $dir/error.log
 	[ ! "$(awk '$1=="DirectoryIndex" {print $2}' /etc/apache2/conf/httpd.conf)" ] && echo "[ERROR] apache DirectoryIndex priority is not set! Set this up in WHM under 'Apache Configuration' -> 'DirectoryIndex Priority' manually." >> $dir/error.log
+	[ -f /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt && cp -a /root/dirty_accounts.txt $dir/ && echo "[ERROR] Malware detected on $(cat $dir/dirty_accounts.txt | egrep '(^'$(echo $userlist | tr ' ' '|')'$)' | wc -l) accounts from userlist (cat $dir/dirty_accounts.txt)" >> $dir/error.log
+	[ "$comment_crons" ] && echo "[INFO] Commented crons for users! These will be undone with a resync of crontabs if this script is used for a final sync." >> $dir/error.log
 
 	# print warnings and errors
-	[ "$comment_crons" ] && ec yellow "Commented crons for users! These will be undone with a resync of crontabs if this script is used for a final sync."
-	if [ "$(grep 'DBD::mysql::db do failed' $dir/log/restorepkg*log)" ] || [ -f $dir/error.log ]; then
-		errorsofnote=1
-		(
+	if [ -f $dir/error.log ]; then
 		ec lightRed "==Errors of note=="
-		[ "$(grep 'DBD::mysql::db do failed' $dir/log/restorepkg*log)" ] && ec red "Some databases failed to restore (grep \"DBD::mysql::db do failed\" $dir/log/restorepkg*log)"
-		[ -f $dir/error.log ] && ec red "There is content in the error log (cat $dir/error.log)" && cat $dir/error.log
-		ec lightRed "==Please fix the above issues manually! (see $log for even more details and $dir/errors_of_note.txt for this list again)=="
-		) | tee -a $dir/errors_of_note.txt
+		cat $dir/error.log
+		ec lightRed "==Please fix the above issues manually! (see $log for even more details and $dir/error.log for this list again)=="
 	fi
 
 	# generate ticket response and perform automatic testing

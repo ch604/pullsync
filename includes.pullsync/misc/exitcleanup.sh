@@ -40,10 +40,10 @@ EOF
 	ec white "Started $starttime"
 	ec white "Ended `date +%F.%T`"
 	ec lightGreen "Done!"
-	if [ ! $1 ]; then #if no special exit code, ping slack
+	if [ ! $1 ] && [ "$slackhook_url" ]; then #if no special exit code, and url set, ping slack
 		ec yellow "Posting completion to slack channel..."
-		[ $errorsofnote ] && slackhook ff3333 || slackhook
-		[ $errorsofnote ] && ec red "There were errors of note! Make sure to check these! (cat $dir/errors_of_note.txt)"
+		[ -f $dir/error.log ] && slackhook ff3333 || slackhook
+		[ -f $dir/error.log ] && ec red "There were errors of note! Make sure to check these! (cat $dir/error.log)"
 	fi
 	echo -en "\a" # sound the terimal bell
 	[[ "$1" ]] && echo "exit code: $1" | logit
