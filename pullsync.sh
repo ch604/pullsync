@@ -91,6 +91,8 @@ fi
 #start in screen
 if [ ! "${STY}" ]; then
 	echo "Warning! Not in screen! Attempting to restart in an interactive screen session..."
+	[ ! $(which screen 2> /dev/null) ] && yum -y -q install screen
+	[ ! $(which screen 2> /dev/null) ] && echo "I can't find screen!" && exit 70
 	chmod 755 /var/run/screen
 	sleep .25
 	screen -S $scriptname bash -c "bash $0 $*; bash"
