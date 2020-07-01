@@ -2,7 +2,7 @@ install_parallel() { #build parallel and set will-cite to keep commands unattend
 	if [ ! `which parallel 2> /dev/null` ]; then
 		# parallel not installed, build it now
 		ec yellow " GNU parallel..."
-		[ ! "$(yum -q provides parallel)" ] && yum -y -q install epel-release
+		[ ! "$(yum -q provides parallel 2> /dev/null)" ] && yum -y -q install epel-release
 		yum -y -q install parallel
 		# get rid of the 'cite' warning on execution
 		mkdir -p /root/.parallel
