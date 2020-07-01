@@ -28,15 +28,12 @@ The script has been tested as far back as CentOS 4 for source, but newer feature
 
 The script also assumes that you have migrated websites manually in the past, as, in essence, this is a bash script you downloaded from the internet, and you should treat it as such.
 
-Lastly, you will need screen installed.
-
-```yum -y install screen```
-
 The script utilizes the following additional standalone systems, and may redistribute precompiled versions for ease of installation:
 * [GNU Parallel](https://www.gnu.org/software/parallel/) by Ole Tange (GPL 3.0)
 * [Marill](https://github.com/lrstanley/marill) by Liam Stanley (MIT License)
 * Maintenance Engine by Lee Rumler
 * [AMWScan](https://github.com/marcocesarato/PHP-Antimalware-Scanner) by Marco Cesarato (GPL 3.0)
+* [blcheck](https://github.com/ch604/blcheck) originally by Intellex (MIT License)
 
 ## RUNNING PULLSYNC
 Pullsync is run from the TARGET of your migration.
