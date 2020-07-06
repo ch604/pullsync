@@ -36,7 +36,7 @@ The script utilizes the following additional standalone systems, and may redistr
 * [blcheck](https://github.com/ch604/blcheck) originally by Intellex (MIT License)
 
 ## RUNNING PULLSYNC
-Pullsync is run from the TARGET of your migration.
+Pullsync is run from the TARGET of your migration as ROOT. You will need ROOT SSH access to your source server.
 
 Set up your userlist at /root/userlist.txt with space or newline separated cpanel usernames. If migrating all users, skip this step.
 
