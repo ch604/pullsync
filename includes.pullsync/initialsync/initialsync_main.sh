@@ -263,8 +263,8 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	# now that all databases are restored, calculate appropriate mysql variables
 	mysqlcalc
 
-	# check for blacklisting of target ip
-	blacklist_check
+	# check for blocklisting of target ip
+	blocklist_check
 
 	# put some more stuff in the error log
 	[ "$(grep 'Mysql::_restore_grants' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some mysql passwords failed to restore (grep \"Mysql::_restore_grants\" $dir/log/restorepkg*log | awk -F'“|”' '{print \$4}'; )" >> $dir/error.log
