@@ -75,7 +75,7 @@ if [ $autoupdate = 1 ]; then
 				wget -q https://github.com/ch604/pullsync/archive/master.zip -O /root/pullsync-master.zip
 				unzip /root/pullsync-master.zip pullsync-master/includes.pullsync/* -d /root/
 				unzip /root/pullsync-master.zip pullsync-master/pullsync.sh -d /root/
-				mv /root/pullsync-master/includes.pullsync /root/
+				mv -f /root/pullsync-master/includes.pullsync /root/
 				rm -r /root/pullsync-master
 				rm -f /root/pullsync-master.zip
 				chmod 700 /root/pullsync.sh
