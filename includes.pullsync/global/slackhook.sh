@@ -25,3 +25,4 @@ EOF
 
 	[ ! "$color" = "7CD197" ] && message="$(echo $message | sed 's/completed/completed with errors/')"
 	curl --silent -X POST --data-urlencode 'payload='"$message" $slackhook_url 2>&1 | stderrlogit 4
+}
