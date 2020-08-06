@@ -16,7 +16,8 @@ hosts_file() { #creates testing info for user $1, also generates line for runnin
 	  	echo "" | tee -a $hostsfile
 		#one line per domain
 		for domain in $user_domains; do
-			echo "$user_IP $domain www.$domain" >> $hostsfile_alt
+			echo "$user_IP $domain" >> $hostsfile_alt
+			echo "$user_IP www.$domain" >> $hostsfile_alt
 			echo "${domain}:${user_IP}" >> $dir/marilldomains.txt
 		done
 	else

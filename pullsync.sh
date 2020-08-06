@@ -66,7 +66,7 @@ fi
 
 # check for newer version of script
 if [ $autoupdate = 1 ]; then
-	if host githubusercontent.com &>/dev/null; then
+	if host github.com &>/dev/null; then
 		server_version=$(curl -s -r0-250 https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.DEVmf]*\)"/\1/')
 		echo "Detected server version as $server_version"
 		if [[ $server_version =~ $valid_version_format ]]; then # check for a valid version format
@@ -90,7 +90,7 @@ if [ $autoupdate = 1 ]; then
 			sleep 3
 		fi
 	else
-		echo "Couldn't resolve host githubusercontent.com to check for updates."
+		echo "Couldn't resolve host github.com to check for updates."
 	fi
 fi
 
