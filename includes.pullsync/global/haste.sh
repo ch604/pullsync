@@ -1,8 +1,8 @@
 haste() { #upload stdin to a pastebin, return the url as stdout. usage: myurl=$(echo "foo bar baz" | haste) ; echo $myurl
-	pastebin_url="hastebin.com"
+	pastebin_url="liquidwebpagetest.com"
 	if ! host $pastebin_url &> /dev/null; then
 		# if haste server cant be resolved, use the ip as a backup
-		pastebin_url="172.64.102.8"
+		pastebin_url="67.225.133.14"
 	fi
 	local pbfile=$(mktemp)
 	cat - > $pbfile ;
