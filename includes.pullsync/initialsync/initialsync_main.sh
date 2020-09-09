@@ -166,8 +166,6 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=selfsigned_generation_for_bestavailable_ssl_install value=1 2>&1 | stderrlogit 3 #Self-Signed SSL generated for all new cPanel accounts
 	[ -f /etc/csf/csf.conf ] && sed -i 's/^SMTP_BLOCK.*/SMTP_BLOCK = "0"/' /etc/csf/csf.conf && csf -ra 2>&1 | stderrlogit 3 #disable smtp block
 	/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=publichtmlsubsonly value=0 2>&1 | stderrlogit 3 #dont restrict docroots to pubhtml
-	rpm -q --quiet lw-autoswitch-php70-fpm && yum -y remove lw-autoswitch-php70-fpm 2>&1 | stderrlogit 4 #autoswitch is no longer needed
-	! grep -q 10.30.9.0 /etc/skipsmtpcheckhosts 2>/dev/null && echo -e "10.20.9.0/24\n10.30.9.0/24\n10.40.11.0/28\n10.50.9.0/27" >> /etc/skipsmtpcheckhosts && /scripts/restartsrv_exim #allow monitoring through to check exim all the time
 	ps axc | grep -q queueprocd || /scripts/restartsrv_queueprocd 2>&1 | stderrlogit 3 #ensure cpanel can queue processes for restore
 
 	# OK HERE IS WHERE THE MAGIC HAPPENS! DONT BLINK!

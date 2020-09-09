@@ -5,10 +5,10 @@ ea4phpextras () { #run after ea4 to match handler, default version, and variable
 		ec yellow "Matching default PHP version to $(echo $remotephp | cut -d. -f1-2)..."
 		local newdefault=`/usr/local/cpanel/bin/rebuild_phpconf --available | grep $(echo $remotephp | cut -d. -f1-2 | tr -d '.') | cut -d: -f1`
 		/usr/local/cpanel/bin/rebuild_phpconf --default $newdefault
-	elif /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q ea-php70; then
-		# php70 available on target
-		ec yellow "Remote PHP version of $(echo $remotephp | cut -d. -f1-2) not available! Changing default to 7.0..."
-		/usr/local/cpanel/bin/rebuild_phpconf --default ea-php70
+	elif /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q ea-php73; then
+		# php73 available on target
+		ec yellow "Remote PHP version of $(echo $remotephp | cut -d. -f1-2) not available! Changing default to 7.3..."
+		/usr/local/cpanel/bin/rebuild_phpconf --default ea-php73
 	else
 		# neither available on target
 		ec red "Remote PHP version of $(echo $remotephp | cut -d. -f1-2) AND suggested default of 7.0 are not available! Leaving default php version at $(/usr/local/cpanel/bin/rebuild_phpconf --current | head -n1 | awk '{print $3}')"
