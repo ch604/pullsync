@@ -1,4 +1,5 @@
 detect_apps() { # look for common extra applications
+	#first, look for installed things on source
 	ec yellow "Checking for 3rd party apps..."
 	psfile=$(mktemp) #avoid too many ssh sessions by storing output of ps early
 	sssh "ps acx" > $psfile
@@ -29,7 +30,7 @@ detect_apps() { # look for common extra applications
 	mailscanner=`[ ! -d /usr/mailscanner ] && sssh "[ -d /usr/mailscanner ] && echo 1"`
 	[ $mailscanner ] && unset spamassassin
 
-	#detect stuff we cant install with pullsync
+	#detect stuff we cant install
 	xcachefound=`grep -e 'xcache' $psfile`
 	varnishfound=`grep -e 'varnishd' $psfile`
 	eaccelfound=`grep -e 'eaccelerator' $psfile`
@@ -60,9 +61,29 @@ detect_apps() { # look for common extra applications
 	fi
 	rm -f $psfile
 
+	#next, remove items already installed and put them in a separate list
+	ec yellow "Trimming already-installed programs..."
+	psfile2=$(mktemp)
+	ps acx > $psfile
+	[ "$ffmpeg" ] && which ffmpeg &> /dev/null && unset ffmpeg && echo "ffmpeg" >> $dir/skippedinstall.txt
+	[ "$imagick" ] which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
+	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
+	[ "$redis" ] && which redis-server &> /dev/null && unset redis && echo "redis" >> $dir/skippedinstall.txt
+	[ "$maldet" ] && which maldet &> /dev/null && unset maldet && echo "maldet" >> $dir/skippedinstall.txt
+	[ "$java" ] && which java &> /dev/null && unset java javaver && echo "java" >> $dir/skippedinstall.txt
+	[ "$solr" ] && /etc/init.d/solr status &> /dev/null && unset solr && echo "solr" >> $dir/skippedinstall.txt
+	[ "$wkhtmltopdf" ] && which wkhtmltopdf &> /dev/null && unset wkhtmltopdf && echo "wkhtmltopdf" >> $dir/skippedinstall.txt
+	[ "$pdftk" ] && which pdftk &> /dev/null && unset pdftk && echo "pdftk" >> $dir/skippedinstall.txt
+	[ "$postgres" ] && pgrep postgres &> /dev/null && unset postgres && echo "postgres" >> $dir/skippedinstall.txt
+	[ "$nodejs" ] && which node &> /dev/null && unset nodejs npm && echo "nodejs" >> $dir/skippedinstall.txt
+	[ "$tomcat" ] && which tomcat &> /dev/null && unset tomcat && echo "tomcat" >> $dir/skippedinstall.txt
+	[ "$cpanelsolr" ] && service cpanel-dovecot-solr status &> /dev/null && unset cpanelsolr && echo "cpanelsolr" >> $dir/skippedinstall.txt
+	rm -f $psfile2
+
 	#print out the programs we detected
 	ec yellow "Program scan results:"
 	for prog in $proglist; do
 		ec $([ "${!prog}" ] && echo green || echo red) " $prog"
 	done
+	[ -s $dir/skippedinstall.txt ] && ec yellow "Some programs were already detected on target and will not be installed" && cat $dir/skippedinstall.txt
 }
