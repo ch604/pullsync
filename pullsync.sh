@@ -4,8 +4,8 @@
 # based on initialsync by abrevick@liquidweb.com and various other migrations team contributors; thank you!
 # https://github.com/ch604/pullsync
 
-# last updated: Oct 02 2020
-version="7.6.4"
+# last updated: Nov 16 2020
+version="7.6.7"
 
 ############
 # root check

@@ -13,6 +13,7 @@ mysql_dbsync_2(){ # syncs the databases for the user passed as $1. if the db doe
 
 	# make the list of dbs for this user
 	local dblist=$(user_mysql_listgen $user)
+	[ -f /root/db_exclude.txt ] && dblist=$(echo "$dblist" | grep -vx -f /root/db_exclude.txt)
 	local db_count=$(echo "$dblist" | wc -l)
 	local p=1
 
