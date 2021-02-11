@@ -112,8 +112,8 @@ optimizations(){ #server optimizations separated from installs() in case version
 	fi
 	#mod_pagespeed
 	if [ $pagespeed ]; then
-		yum install -y -q ea-apache24-mod_version 2>&1 | stderrlogit 4
-		/scripts/plbake mod_pagespeed
+		yum -q -y install ea4-experimental 2>&1 | stderrlogit 4
+		yum install -y -q ea-apache24-mod_pagespeed ea-apache24-mod_version --enablerepo=EA4-experimental 2>&1 | stderrlogit 4
 		sed -i '$ i\<Location \/wp-admin\/>\nModPagespeed Off\n<\/Location>' /usr/local/apache/conf/pagespeed.conf
 		mkdir -p /var/cache/pagespeed /var/cache/mod_pagespeed
 		chown nobody.nobody /var/cache/pagespeed /var/cache/mod_pagespeed

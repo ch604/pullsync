@@ -44,7 +44,6 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 			ec red "ENGINTRON DETECTED! Make sure the vhosts are set up properly in /etc/nginx/ following the ip swap." | errorlogit 2
 			bash /engintron.sh res
 		else
-			/scripts/plbake nginx --sync-vhosts --refried
 			/scripts/restartsrv_httpd
 			service nginx restart
 		fi
