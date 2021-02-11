@@ -119,4 +119,10 @@ optimizations(){ #server optimizations separated from installs() in case version
 		chown nobody.nobody /var/cache/pagespeed /var/cache/mod_pagespeed
 		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
 	fi
+	#nginx proxy
+	if [ $nginxproxy ]; then
+		ec yellow "Installing Nginx proxy..."
+		yum -q -y install ea4-experimental 2>&1 | stderrlogit 4
+		yum -q -y install ea-nginx --enablerepo=EA4-experimental 2>&1 | stderrlogit 4
+	fi
 }

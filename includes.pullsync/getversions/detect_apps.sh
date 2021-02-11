@@ -29,12 +29,12 @@ detect_apps() { # look for common extra applications
 	[ -f $dir/var/cpanel/apps/cse.conf ] && [ ! -f /var/cpanel/apps/cse.conf ] && cse=1
 	mailscanner=`[ ! -d /usr/mailscanner ] && sssh "[ -d /usr/mailscanner ] && echo 1"`
 	[ $mailscanner ] && unset spamassassin
+	nginxfound=`grep -e 'nginx' $psfile`
 
 	#detect stuff we cant install
 	xcachefound=`grep -e 'xcache' $psfile`
 	varnishfound=`grep -e 'varnishd' $psfile`
 	eaccelfound=`grep -e 'eaccelerator' $psfile`
-	nginxfound=`grep -e 'nginx' $psfile`
 	lswsfound=`grep -Ee '(litespeed|lsws|lshttpd)' $psfile`
 	mongodfound=`grep -e 'mongod' $psfile`
 	modcloudflarefound=`sssh "httpd -M 2> /dev/null | grep cloudflare"`
@@ -42,13 +42,12 @@ detect_apps() { # look for common extra applications
 	[ -f $dir/var/cpanel/domainmap ] && domainmap=1
 	[ -f $dir/usr/local/apache/conf/modsec2/00_asl_whitelist.conf -o -f $dir/etc/apache2/conf.d/modsec2/00_asl_whitelist.conf ] && turtlerules=1
 	rvsbfound=`sssh "[ -d /var/cpanel/rvglobalsoft/rvsitebuilder/ ] && echo 1"`
-	if [ "${xcachefound}${varnishfound}${eaccelfound}${nginxfound}${lswsfound}${mongodfound}${cxsfound}${domainmap}${rvsbfound}" ]; then
+	if [ "${xcachefound}${varnishfound}${eaccelfound}${lswsfound}${mongodfound}${cxsfound}${domainmap}${rvsbfound}" ]; then
 		ec white "3rd party stuff found on the old server! (cat $dir/uninstallable.txt)" | errorlogit 4
 		(
 		[ "$xcachefound" ] && echo "Xcache: $xcachefound"
 		[ "$varnishfound" ] && echo "Varnish: $varnishfound"
 		[ "$eaccelfound" ] && echo "Eaccelerator: $eaccelfound"
-		[ "$nginxfound" ] && echo "Nginx: $nginxfound"
 		[ "$lswsfound" ] && echo "Litespeed: $lswsfound"
 		[ "$mongodfound" ] && echo "Mongod: $mongodfound"
 		[ "$cxsfound" ] && echo "Configserver eXploit Scanner: $cxsfound"
@@ -66,7 +65,7 @@ detect_apps() { # look for common extra applications
 	psfile2=$(mktemp)
 	ps acx > $psfile
 	[ "$ffmpeg" ] && which ffmpeg &> /dev/null && unset ffmpeg && echo "ffmpeg" >> $dir/skippedinstall.txt
-	[ "$imagick" ] which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
+	[ "$imagick" ] && which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
 	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
 	[ "$redis" ] && which redis-server &> /dev/null && unset redis && echo "redis" >> $dir/skippedinstall.txt
 	[ "$maldet" ] && which maldet &> /dev/null && unset maldet && echo "maldet" >> $dir/skippedinstall.txt
