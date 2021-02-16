@@ -4,7 +4,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 	local restorepkg_args="--allow_reseller"
 	local pkgacct_args="--skiphomedir"
 	[ $dbbackup_schema ] && pkgacct_args="$pkgacct_args --dbbackup=schema"
-	local old_user_ip=`grep ^IP= $dir/var/cpanel/users/$user|cut -d '=' -f2`
+	local old_user_ip=$(grep ^IP= $dir/var/cpanel/users/$user | cut -d= -f2)
 	[ "$remainingcount" ] && local progress="$(($1 + $(cat $dir/realresellers.txt | wc -w) ))/$user_total | $user:" || local progress="$1/$user_total | $user:"
 	# package the remote account and locate it on the remote server
 	ec lightBlue "$progress Packaging $user..." | tee -a $dir/log/pkgacct.$user.log
@@ -14,7 +14,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 		# if the package was created, bring it to the target
 		ec lightPurple "$progress Rsyncing cpmove..."
 		rsync $rsyncargs -e "ssh $sshargs" $ip:$cpmovefile $dir/cpmovefiles/
-		if ([[ $old_user_ip != $old_main_ip ]] && [ "$ded_ip_check" = "1" ]) || [ "$single_dedip" = "yes" ]; then
+		if ([[ $old_user_ip != $old_main_ip ]] && [ "$ded_ip_check" = "1" ] && ! grep -l $old_user_ip $dir/var/cpanel/users/* | grep -qv /${user}$) || [ "$single_dedip" = "yes" ]; then
 			restorepkg_args="$restorepkg_args --ip=y"
 		fi
 		sleep $(($1 % 3)) #keep the wait commands a bit apart
