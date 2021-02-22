@@ -1,5 +1,5 @@
 optimize_menu(){ #run outside of matching_menu() in case version matching is not needed, but optimizations are wanted
-	local cmd=(dialog --clear --backtitle "pullsync" --title "Optimization Menu" --separate-output --checklist "Select options for server optimization. Sane options were selected based on your configuration:\n" 0 0 6)
+	local cmd=(dialog --clear --backtitle "pullsync" --title "Optimization Menu" --separate-output --checklist "Select options for server optimization. Sane options were selected based on your configuration:\n" 0 0 7)
 	local options=( 1 "Install mod_http2 for EA4" on
 			2 "Install memcached and modules" on
 			3 "Install nginx proxy for EA4 (EXPERIMENTAL)" off
