@@ -10,23 +10,27 @@ Migrate a single cPanel account, from a user list, a domain list, or all users, 
 
 ![Pullsync Preview](https://imgur.com/NzdUqtU.png)
 
+Shows updating status of parallel processes:
+
+![Progress Preview](https://imgur.com/OsFDYJt.png)
+
 Bonus features:
 * php/http version matching 
 * tweak settings and exim settings matching
 * common 3rd party software installation
 * parallel account syncs
-* lower TTLs
+* lower TTLs and update DNS
 * one-time-use ssh key generation
 * copy-paste information to send to clients
 * IP swap support (if datacenter supports this)
 ...and more!
 
 ## REQUIREMENTS
-The script will only run on cPanel servers, and will only migrate from cPanel servers, both of which must be CentOS/RHEL. You must have direct root-level SSH access available to the source server.
+The script will only run on cPanel servers, and will only migrate from cPanel servers, both of which must be CentOS/RHEL. You must have direct root-level SSH access available to both servers.
 
-The script has been tested as far back as CentOS 4 for source, but newer features have not been fully verified against this. Only CentOS 6 or 7 targets are supported at this time.
+The script has been tested as far back as CentOS 4 for source, but newer features have not been fully verified against this. CentOS 6+ targets are supported.
 
-The script also assumes that you have migrated websites manually in the past, as, in essence, this is a bash script you downloaded from the internet, and you should treat it as such.
+The script also assumes that you have migrated websites manually in the past, as, in essence, this is a bash script you downloaded from the internet, and you should treat it as such. It may fail, and you will have to pick up the pieces.
 
 The script utilizes the following additional standalone systems, and may redistribute precompiled versions for ease of installation:
 * [GNU Parallel](https://www.gnu.org/software/parallel/) by Ole Tange (GPL 3.0)
@@ -36,15 +40,15 @@ The script utilizes the following additional standalone systems, and may redistr
 * [blcheck](https://github.com/ch604/blcheck) originally by Intellex (MIT License)
 
 ## RUNNING PULLSYNC
-Pullsync is run from the TARGET of your migration as ROOT. You will need ROOT SSH access to your source server.
+Pullsync is run from the TARGET of your migration as ROOT. You will also need ROOT SSH access to your source server.
 
 Set up your userlist at /root/userlist.txt with space or newline separated cpanel usernames. If migrating all users, skip this step.
 
 If you need to exclude files or databases, set up the appropriate files at /root/rsync_exclude.txt and /root/db_exclude.txt.
 
-Finally, download and execute the script:
+Finally, download and execute the script AS ROOT:
 
-```wget -O /root/pullsync.sh https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh && chmod 700 ~/pullsync.sh```
+```wget -O /root/pullsync.sh https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh && chmod 700 /root/pullsync.sh```
 
 ```bash /root/pullsync.sh```
 
