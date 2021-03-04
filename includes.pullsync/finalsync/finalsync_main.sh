@@ -155,7 +155,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	> $dir/final_complete_users.txt
 	parallel --jobs $jobnum -u 'finalfunction {#} {} >$dir/log/looplog.{}.log' ::: $userlist &
 	finalprogress $!
-	if [ -f /root/db_include.txt ]; then
+	if [ -s /root/db_include.txt ]; then
 		ec yellow "Syncing /root/db_include.txt..."
 		dblist_restore=`cat /root/db_include.txt`
 		sanitize_dblist
