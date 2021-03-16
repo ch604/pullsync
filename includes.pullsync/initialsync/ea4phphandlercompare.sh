@@ -12,6 +12,7 @@ ea4phphandlercompare() { #attempt to compare php handler on ea4
 		if yesNo "Use PHP-FPM?"; then
 			matchhandler=cgi #cant use fcgi globally yet, will have to set it up per domain upon arrival
 			fcgiconvert=1
+			/usr/local/cpanel/bin/whmapi1 php_set_default_accounts_to_fpm default_accounts_to_fpm=1 &> /dev/null
 			ec green "PHP-FPM will be installed via yum and set up as accounts arrive."
 		fi
 	else

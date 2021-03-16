@@ -45,6 +45,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 				for dom in `cat /etc/userdomains | grep \ ${user}$`; do #run twice, to set non-inherit version and then turn on fpm
 					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$defaultea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
 					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$defaultea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
+					[ -f $dir/var/cpanel/userdata/$user/$dom.php-fpm.yaml ] && cp -a $dir/var/cpanel/userdata/$user/$dom.php-fpm.yaml $dir/var/cpanel/userdata/$user/ && /scripts/php_fpm_config --rebuild --domain=$dom &> /dev/null
 				done
 			fi
 
