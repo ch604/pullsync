@@ -229,53 +229,8 @@ installs() { # install all of the things we found and enabled
 	# upcp
 	[ $upcp ] && ec yellow "Running Upcp..." && /scripts/upcp
 
-	# java & tomcat
-	# java needs to be installed before tomcat
+	# java
 	[ "$java" ] && ec yellow "Installing Java..." && yum -y -q install java-1.8.0-openjdk
-	if [ "$tomcat" ]; then
-		ec yellow "Installing Tomcat..."
-		pushd /usr/local/src/ 2>&1 | stderrlogit 4
-		# get the correct tomcat pkg
-		wget -q http://files.liquidweb.com/scripts/plBake/packages/tomcat/apache-tomcat-8.5.24.tar.gz
-		tar -zxf apache-tomcat-8.5.24.tar.gz
-		mv apache-tomcat-8.5.24 tomcat-8.5.24
-		mkdir -p /usr/local/jakarta/
-		# copy the tomcat files into jakarta and link
-		cp -R /usr/local/src/tomcat-8.5.24 /usr/local/jakarta/
-		unlink /usr/local/jakarta/tomcat 2>&1 | stderrlogit 3
-		ln -s /usr/local/jakarta/tomcat-8.5.24 /usr/local/jakarta/tomcat
-		# add system variables
-		echo "export CATALINA_HOME=/usr/local/jakarta/tomcat" >> /etc/profile
-		source /etc/profile
-		# make the common files
-		cd /usr/local/jakarta/tomcat/bin/
-		tar -zxf commons-daemon-native.tar.gz
-		cd commons-daemon-1.0.15-native-src/unix/
-		./configure 2>&1 | stderrlogit 3
-		make 2>&1 | stderrlogit 3
-		if [ $? -eq 0 ]; then
-			# make success, continue with setup
-			cp jsvc ../..
-			echo "JAVA_OPTS=\"\${JAVA_OPTS} -Djava.net.preferIPv4Stack=true -Djava.net.preferIPv4Addresses=true\"" >> /usr/local/jakarta/tomcat-8.5.24/bin/setenv.sh
-			useradd tomcat
-			chown -R tomcat.tomcat /usr/local/jakarta/tomcat-8.5.24
-			# get the systemd script
-			wget -q -O /etc/systemd/system/tomcat.service http://files.liquidweb.com/scripts/plBake/packages/tomcat/tomcat.service
-			# turn on tomcat and start it
-			systemctl enable tomcat 2>&1 | stderrlogit 3
-			systemctl start tomcat
-			sleep 1
-			if ps faux | grep tomcat | grep -v -q grep; then
-				# tomcat is running
-				ec green "Success!"
-			else
-				ec red "Tomcat installed but failed to start properly!" | errorlogit 3
-			fi
-		else
-			ec red "Tomcat configure/make failed!" | errorlogit 3
-		fi
-		popd 2>&1 | stderrlogit 4
-	fi
 
 	# cpanel solr
 	if [ "$installcpanelsolr" ]; then
@@ -385,6 +340,10 @@ installs() { # install all of the things we found and enabled
 		ea4phpextras
 		#apacheextras
 	fi
+
+	# tomcat
+	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85
+
 
 	# modcloudflare
 	[ "$modcloudflare" ] && ec yellow "Installing mod_cloudflare plugin..." && yum -y -q install lw-mod_cloudflare-cpanel.noarch 2>&1 | stderrlogit 4

@@ -18,8 +18,6 @@ detect_apps() { # look for common extra applications
 	npm=`sssh "which npm 2> /dev/null"`
 	[ "$nodejs" ] && [ "$npm" ] && npmlist=`sssh "npm ls -g --depth=0" | tail -n+2 | awk '{print $2}' | cut -d@ -f1 | grep -v npm | grep [a-zA-Z]`
 	tomcat=`sssh "which tomcat 2> /dev/null"`
-	[ "$(echo $local_os | grep -o '[0-9]\+' | head -n1)" -ne 7 ] && unset tomcat #install only works on cent7
-	[ "$tomcat" ] && java=1 #java must be installed for tomcat
 	apc=`grep -x apc $dir/remote_php_details.txt`
 	cpanelsolr=`sssh "service cpanel-dovecot-solr status 2> /dev/null"`
 	# check for configserver WHM plugins
