@@ -131,7 +131,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	[ $dns_url ] && echo -e "\nuploaded DNS details to ${dns_url}"
 	[ $(echo $userlist | wc -w) -gt 15 ] && echo -e "\ntruncated userlist ($(echo $userlist | wc -w)): $(echo $userlist | tr ' ' '\n' | head -15 | tr '\n' ' ')" || echo -e "\nuserlist ($(echo $userlist | wc -w)): $(echo $userlist | tr '\n' ' ')"
 	echo ""
-	[[ $synchour =~ [0-9]+ ]] && echo "I guessed at a final sync time for you based on domlog activity. The hour with the least traffic is $(printf "%02d" "$synchour")00 $(sssh "date +%z")."
+	[[ $synchour =~ [0-9]+ ]] && echo "I guessed at a final sync time for you based on domlog activity. The hour with the least traffic is $(printf "%02d" "${synchour#0}")00 $(sssh "date +%z")."
 	) | tee -a $dir/ticketnote.txt | logit # end subshell for tee to ticketnote
 	ec lightPurple "Stop copying now :D"
 	ec green "Ready to do the initial sync!"
