@@ -54,7 +54,7 @@ copy_cloudlinux_configs() { #adjust php and lve settings on target to match sour
 	fi
 	ec yellow " php selector..."
 	for user in $userlist; do
-		if [ -d ~$user/.cl.selector ]; then
+		if [ -d $(eval echo ~$user)/.cl.selector ]; then
 			#restore php selector options from migrated files
 			ec yellow "  setting $user"
 			prefix=$(cagefsctl --getprefix $user)
