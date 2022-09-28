@@ -7,7 +7,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 
 	#print the options menu and automatically align certain selections
 	if [ ! "$autopilot" ]; then
-		local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Final Sync Menu" --separate-output --checklist "Select options for the final sync. Sane options have been selected based on your source, but modify as needed.\n" 0 0 17)
+		local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Final Sync Menu" --separate-output --checklist "Select options for the final sync. Sane options have been selected based on your source, but modify as needed.\n" 0 0 18)
 		local options=(	1 "Remove HostsCheck.php files" on
 			2 "Stop services on source server (httpd, cpanel, and mail)" on
 			3 "Restart services after sync" on
@@ -23,7 +23,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			13 "Use --delete on the mail folder (BETA)" off
 			14 "Copy remote cPanel backup destinations (e.g. S3, FTP)" off
 			15 "Set domains on source server to 'remote' mail routing (BETA)" off
-			16 "Scan php files for malware during sync (all users)" on)
+			16 "Scan php files for malware during sync (all users)" on
+			17 "Skip backup of local mysql dbs before import" off)
 		#turn off things for shared server sources
 		[ "$(sssh "hostname | cut -d. -f2-3")" == "liquidweb.com" ] && cmd[9]=`echo "${cmd[9]}\n(2 3 4 8) LW shared source detected"` && options[5]=off && options[8]=off && options[11]=off && options[23]=off
 		#check if there are natted ips and dont copy dns
@@ -64,6 +65,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 				14)	copyremotebackups=1;;
 				15)	setremotemx=1;;
 				16)	malwarescan=1; download_malware;;
+				17)	skipsqlzip=1;;
 				*)	:;;
 			esac
 		done
@@ -117,7 +119,6 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			ec yellow "Adding motd to remote server..."
 			sssh "echo -e '\tServices have been STOPPED for a migration final sync. Do not restart without contacting migrations.' >> /etc/motd"
 		fi
-		#ec yellow "Running exim queue and suspending inbound messages on source..."
 		ec yellow "Suspending inbound messages on source..."
 		sssh "echo 'in.smtpd : ALL : twist /bin/echo 453 System Maintenance' >> /etc/hosts.deny"
 		ec yellow "Stopping Services..."
@@ -271,6 +272,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $removemotd ] && ec white "Removed MOTD"
 	[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
 	[ -f $dir/missing_dbs.txt ] && ec red "Some databases were missing during final sync and were created and imported (cat $dir/missing_dbs.txt; cat $dir/missing_dbgrants.txt)"
+	[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually (cat $dir/dbmalware.txt)"
 	[ -s $dir/error.log ] && ec red "There is content in $dir/error.log! (cat $dir/error.log)" && cat $dir/error.log
 	[ $finalabort ] && ec red "You aborted the final sync!" && exitcleanup 120
 

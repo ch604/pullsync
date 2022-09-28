@@ -18,10 +18,10 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	#copy back core cpanel files with the new ips for recreating configs
 	ec yellow "Updating configurations to match source IP usage..."
 	mv /etc/ips{,.ipswap}
-	rsync $rsyncargs $dir/etc/ips /etc/
+	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/ips /etc/
 	mv /var/cpanel/userdata{,.ipswap}
 	mv /var/cpanel/users{,.ipswap}
-	rsync $rsyncargs $dir/var/cpanel/userdata $dir/var/cpanel/users /var/cpanel/
+	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/userdata $dir/var/cpanel/users /var/cpanel/
 	sed -i.ipswapbak '/^ADDR\ /s/^/#/' /etc/wwwacct.conf
 	local old_cpanel_main_ip=`grep "^ADDR\ [0-9]" $dir/etc/wwwacct.conf | awk '{print $2}' | tr -d '\n'`
 	echo "ADDR $old_cpanel_main_ip" >> /etc/wwwacct.conf
@@ -30,7 +30,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	ec yellow "Updating user domain configs and setting up SSLs..."
 	/usr/local/cpanel/scripts/updateuserdomains
 	[ ! -d /usr/share/ssl ] && ln -s /etc/ssl /usr/share/ssl
-	[ -d $dir/var/cpanel/ssl/installed ] && [ -d /var/cpanel/ssl/installed ] && rsync $rsyncargs $dir/var/cpanel/ssl/installed/ /var/cpanel/ssl/installed/
+	[ -d $dir/var/cpanel/ssl/installed ] && [ -d /var/cpanel/ssl/installed ] && rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/ssl/installed/ /var/cpanel/ssl/installed/
 	ec yellow "Rebuilding apache config..."
 	[ ! -h /usr/local/apache/conf/httpd.conf ] && mv /usr/local/apache/conf/httpd.conf{,.ipswap}
 	/scripts/rebuildhttpdconf
@@ -67,8 +67,8 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	mv /etc/named.conf{,.ipswap}
 	mv /etc/localdomains{,.ipswap}
 	mv /etc/remotedomains{,.ipswap}
-	rsync $rsyncargs $dir/var/named /var/
-	rsync $rsyncargs $dir/etc/localdomains $dir/etc/remotedomains /etc/
+	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/named /var/
+	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/localdomains $dir/etc/remotedomains /etc/
 	sed -i.lwbak -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'`date +%Y%m%d%H`'/g' /var/named/*.db
 	/scripts/rebuilddnsconfig
 	rndc reload 2>&1 | stderrlogit 4

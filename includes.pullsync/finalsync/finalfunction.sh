@@ -13,7 +13,7 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 			for db in $pgdbs; do
 				ec blue "$progress Importing pgsql db $db..."
 				sssh "pg_dump --clean -U postgres $db > $remote_tempdir/$db.psql"
-				rsync $rsyncargs -e "ssh $sshargs" $ip:$remote_tempdir/$db.psql $dir/pgdumps/
+				rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:$remote_tempdir/$db.psql $dir/pgdumps/
 				pg_dump --clean -U postgres $db > $dir/pre_pgdumps/$db.psql
 				psql --quiet -U postgres -f $dir/pgdumps/$db.psql -d $db
 			done
@@ -24,10 +24,10 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 		ec white "$progress Syncing mailman lists..."
 		for list in $mailinglists; do
 			# list settings in /usr/local/cpanel/3rdparty/mailman/lists/$list
-			rsync $rsyncargs -e "ssh $sshargs" $ip:/usr/local/cpanel/3rdparty/mailman/lists/$list /usr/local/cpanel/3rdparty/mailman/lists/
+			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/usr/local/cpanel/3rdparty/mailman/lists/$list /usr/local/cpanel/3rdparty/mailman/lists/
 			# archive data is in /usr/local/cpanel/3rdparty/mailman/archives/{private,public}/$list{,.mbox}
-			rsync $rsyncargs -e "ssh $sshargs" $ip:"/usr/local/cpanel/3rdparty/mailman/archives/private/$list{,.mbox}" /usr/local/cpanel/3rdparty/mailman/archives/private/
-			rsync $rsyncargs -e "ssh $sshargs" $ip:"/usr/local/cpanel/3rdparty/mailman/archives/public/$list{,.mbox}" /usr/local/cpanel/3rdparty/mailman/archives/public/ 2>&1 | stderrlogit 4
+			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"/usr/local/cpanel/3rdparty/mailman/archives/private/$list{,.mbox}" /usr/local/cpanel/3rdparty/mailman/archives/private/
+			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"/usr/local/cpanel/3rdparty/mailman/archives/public/$list{,.mbox}" /usr/local/cpanel/3rdparty/mailman/archives/public/ 2>&1 | stderrlogit 4
 		done
 	fi
 	#the meaty core

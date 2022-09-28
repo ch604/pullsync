@@ -4,8 +4,8 @@
 # based on initialsync by abrevick@liquidweb.com and various other migrations team contributors; thank you!
 # https://github.com/ch604/pullsync
 
-# last updated: Sep 20 2021
-version="7.7.6"
+# last updated: Sep 28 2022
+version="7.9.4"
 
 ############
 # root check
@@ -142,8 +142,8 @@ printf "\e]0; pullsync-$(hostname) \a" 1>&2
 ###############
 
 #export functions for parallel
-export -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress apache_user_includes malware_scan
-export dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert phpextrafail comment_crons defaultea4profile log apacheextrafail fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync malwarescan
+export -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress apache_user_includes malware_scan fpmconvert
+export dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert phpextrafail comment_crons defaultea4profile log apacheextrafail fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync malwarescan skipsqlzip
 
 # start the script after functions are defined.
 validate_license #make sure cpanel is licensed

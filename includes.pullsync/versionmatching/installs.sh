@@ -19,7 +19,7 @@ installs() { # install all of the things we found and enabled
 		if echo $output | grep -q 'Backup Successful'; then
 			cpconfbackup=`echo $output |awk '{print $3}'`
 			# copy over the backup
-			rsync $rsyncargs -e "ssh $sshargs" $ip:$cpconfbackup $dir/
+			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:$cpconfbackup $dir/
 			# combat tar timestamp errors from clock drift
 			sleep 2
 			if [ -f $dir/whm-config-backup-all-original.tar.gz ]; then
@@ -36,13 +36,22 @@ installs() { # install all of the things we found and enabled
 					# if custom exim filter, copy it over
 					exim_filter="$(grep ^system_filter\  /etc/exim.conf | awk '{print $3}')"
 					if [ ! "$exim_filter" = "/etc/cpanel_exim_system_filter" ]; then
-						rsync $rsyncargs $ip:$eximfilter $eximfilter
+						rsync $rsyncargs --bwlimit=$rsyncspeed $ip:$eximfilter $eximfilter
 					fi
 					# if blockeddomains, import
 					[ -f $dir/etc/blockeddomains ] && cat $dir/etc/blockeddomains >> /etc/blockeddomains
 					# if homedir or homematch changed, put them back
 					sed -i -e '/^HOMEDIR\ /d' -e '/^HOMEMATCH\ /d' /etc/wwwacct.conf
 					echo "$homevariables" >> /etc/wwwacct.conf
+					# ensure that the correct ip is used for httpd listening
+					if [ $(grep -c port=0.0.0.0 /var/cpanel/cpanel.config) -lt 2 ]; then
+						ec red "Ports for apache in /var/cpanel/cpanel.config do not appear to be listening on 0.0.0.0!"
+						grep _port= /var/cpanel/cpanel.config | logit
+						ec yellow "Resetting these to 0.0.0.0:80 and 0.0.0.0:443..."
+						whmapi1 set_tweaksetting key=apache_port value=0.0.0.0:80 2>&1 | stderrlogit 3
+						whmapi1 set_tweaksetting key=apache_ssl_port value=0.0.0.0:443 2>&1 | stderrlogit 3
+						/scripts/restartsrv_apache 2>&1 | stderrlogit 3
+					fi
 				else
 					ec red "Restore of WHM tweak settings failed. See $dir/tweaksettings.log for details, and $dir/whm-config-backup-all-original.tar.gz for the original settings." | errorlogit 2
 				fi
@@ -58,12 +67,12 @@ installs() { # install all of the things we found and enabled
 		if [ -d $dir/var/cpanel/webtemplates/ ]; then # default pages
 			ec yellow " web templates"
 			mv /var/cpanel/webtemplates $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
-			rsync $rsyncargs $dir/var/cpanel/webtemplates /var/cpanel/
+			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/webtemplates /var/cpanel/
 		fi
 		if [ -d $dir/var/cpanel/customizations/ ]; then # theme customizations
 			ec yellow " theme customizations"
 			mv /var/cpanel/customizations $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
-			rsync $rsyncargs $dir/var/cpanel/customizations /var/cpanel/
+			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/customizations /var/cpanel/
 		fi
 		if [ -f $dir/var/cpanel/icontact_event_importance.json -a -f /var/cpanel/icontact_event_importance.json ]; then # contact prefs
 			ec yellow " contact preferences"
@@ -78,7 +87,7 @@ installs() { # install all of the things we found and enabled
 			ec yellow " spam greylist"
 			/usr/local/cpanel/bin/whmapi1 disable_cpgreylist 2>&1 | stderrlogit 3
 			mv /var/cpanel/greylist $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
-			rsync $rsyncargs $dir/var/cpanel/greylist /var/cpanel/
+			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/greylist /var/cpanel/
 			rm -f /var/cpanel/greylist/enabled
 			/usr/local/cpanel/bin/whmapi1 enable_cpgreylist 2>&1 | stderrlogit 3
 			/usr/local/cpanel/bin/whmapi1 load_cpgreylist_config 2>&1 | stderrlogit 3
@@ -87,7 +96,7 @@ installs() { # install all of the things we found and enabled
 			ec yellow "Copying cPhulkd IP lists..."
 			/usr/local/cpanel/bin/whmapi1 disable_cphulk 2>&1 | stderrlogit 3
 			mv /var/cpanel/hulkd $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
-			rsync $rsyncargs $dir/var/cpanel/hulkd /var/cpanel/
+			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/hulkd /var/cpanel/
 			rm -f /var/cpanel/hulkd/enabled
 			/usr/local/cpanel/bin/whmapi1 enable_cphulk 2>&1 | stderrlogit 3
 			/usr/local/cpanel/etc/init/startcphulkd 2>&1 | stderrlogit 3
@@ -107,7 +116,7 @@ installs() { # install all of the things we found and enabled
 		fi
 		ec yellow " global docroot"
 		cp -a /usr/local/cpanel/htdocs $dir/pre_whm_config_settings/
-		rsync $rsyncargs -e "ssh $sshargs" $ip:/usr/local/cpanel/htdocs/ /usr/local/cpanel/htdocs/
+		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/usr/local/cpanel/htdocs/ /usr/local/cpanel/htdocs/
 		/scripts/restartsrv_cpsrvd 2>&1 | stderrlogit 3
 	fi
 
@@ -182,7 +191,7 @@ installs() { # install all of the things we found and enabled
 	if [ $match_sqlmode ]; then
 		ec yellow "Matching sql_mode and innodb_strict_mode..."
 		# sqlmode
-		remotesqlmode=`sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}'`
+		remotesqlmode=$(sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}')
 		if [ -f /usr/my.cnf ] && grep -iq ^sql_mode /usr/my.cnf; then
 			# there is a /usr/my.cnf, and sql_mode is set there
 			sed -i.syncbak '/^sql_mode/s/^/#/' /usr/my.cnf
@@ -281,7 +290,7 @@ installs() { # install all of the things we found and enabled
 		cp -a /etc/my.cnf{,.pullsync.variablechange.bak}
 		# compare ibps, ibpi, toc, kbs, and mc and set in /etc/my.cnf if source is greater than target by commenting out old variable and adding a new line
 		[ $local_sql_ibps -lt $remote_sql_ibps ] && ec yellow " innodb_buffer_pool_size ($( human $local_sql_ibps) to $(human $remote_sql_ibps))" && sed -i -e '/^innodb_buffer_pool_size/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_size='$remote_sql_ibps /etc/my.cnf
-		[ $local_sql_ibpi -lt $remote_sql_ibpi ] && ec yellow " innodb_buffer_pool_instances ($local_sql_ibpi to $remote_sql_ibpi)" sed -i -e '/^innodb_buffer_pool_instances/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_instances='$remote_sql_ibpi /etc/my.cnf
+		[ $local_sql_ibpi -lt $remote_sql_ibpi ] && ec yellow " innodb_buffer_pool_instances ($local_sql_ibpi to $remote_sql_ibpi)" && sed -i -e '/^innodb_buffer_pool_instances/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_instances='$remote_sql_ibpi /etc/my.cnf
 		[ $local_sql_toc -lt $remote_sql_toc ] && ec yellow " table_open_cache ($local_sql_toc to $remote_sql_toc)" && sed -i -e '/^table_open_cache/s/^/#/' -e '/\[mysqld\]/a table_open_cache='$remote_sql_toc /etc/my.cnf
 		[ $local_sql_kbs -lt $remote_sql_kbs ] && ec yellow " key_buffer_size ($(human $local_sql_kbs) to $(human $remote_sql_kbs))" && sed -i -e '/^key_buffer_size/s/^/#/' -e '/\[mysqld\]/a key_buffer_size='$remote_sql_kbs /etc/my.cnf
 		[ $local_sql_mc -lt $remote_sql_mc ] && ec yellow " max_connections ($local_sql_mc to $remote_sql_mc)" && sed -i -e '/^max_connections/s/^/#/' -e '/\[mysqld\]/a max_connections='$remote_sql_mc /etc/my.cnf
@@ -374,17 +383,27 @@ for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 |
 		sed -i '/imagick.so/ s/^/;/' \$i
 	done
 	fi
+done &&
+for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
+	/opt/cpanel/\$each/root/usr/bin/phpize &&
+	./configure --with-php-config=/opt/cpanel/\$each/root/usr/bin/php-config &&
+	make && make install &&
+	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q magickwand || echo 'extension=magickwand.so' >> /opt/cpanel/\$each/root/etc/php.d/20-magickwand.ini)
+	make clean
 done"
 
 	# apc; install extension via pecl
 	[ "$apc" ] && ec yellow "Installing APC/APCu in separate screen..." && screen -S apc -d -m bash -c "for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php7); do
 	printf '\\n\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install apcu-4.0.10 &&
-	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
+	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q -x apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
 done
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep php7); do
 	printf '\\n\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install apcu &&
-	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
+	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q -x apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
 done"
+
+	# sodium; install via epel and pecl
+	[ "$sodium" ] && ec yellow "Installing PHP libsodium in a separate screen..." && screen -S sodium -d -m bash -c "yum -y install epel-release && yum --enablerepo=epel -y install libsodium libsodium-devel && for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php5 ); do /opt/cpanel/$each/root/usr/bin/pecl install libsodium; done; /scripts/restartsrv_apache_php_fpm"
 
 	# solr
 	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "cd /usr/local/src &&
@@ -410,9 +429,29 @@ systemctl enable redis &&
 [ -f /etc/cpanel/ea4/is_ea4 ] &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install redis &&
-	echo 'extension=redis.so' >> /opt/cpanel/\$each/root/etc/php.d/10-redis.ini
 done
 [ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install redis"
+
+	# elasticsearch; install elasticsearch and nodejs10, install elasticdump on both machines, dump on source, rsync datadir to target, load on target
+	[ "$elasticsearch" ] && ec yellow "Installing elasticsearch in a separate screen..." && screen -S elasticsearch -d -m bash -c "echo '[elasticsearch]
+name=Elasticsearch repository for 7.x packages
+baseurl=https://artifacts.elastic.co/packages/7.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md' > /etc/yum.repos.d/elasticsearch.repo &&
+yum -y install elasticsearch ea-nodejs10 &&
+sed -i 's|\${ES_TMPDIR}|/var/lib/elasticsearch|g' /etc/elasticsearch/jvm.options &&
+systemctl enable elasticsearch &&
+systemctl start elasticsearch &&
+echo \"elasticsearch:1\" >> /etc/chkserv.d/chkservd.conf &&
+echo \"service[elasticsearch]=x,x,x,/bin/systemctl restart elasticsearch.service,elasticsearch,elasticsearch\" >> /etc/chkserv.d/elasticsearch &&
+PATH=\$PATH:/opt/cpanel/ea-nodejs10/bin/ &&
+npm install elasticdump -g &&
+ssh ${sshargs} ${ip} \"[ -f /etc/cpanel/ea4/is_ea4 ] && PATH=\\\$(echo \\\$PATH:/opt/cpanel/ea-nodejs10/bin/) && yum -y install ea-nodejs10 && npm install elasticdump -g && mkdir $remote_tempdir/elastic && multielasticdump --direction=dump --input=http://localhost:9200 --output=$remote_tempdir/elastic/\" &&
+rsync $rsyncargs --bwlimit=$rsyncspeed -e \"ssh $sshargs\" $ip:$remote_tempdir/elastic $dir/ &&
+multielasticdump --direction=load --input=$dir/elastic --output=http://localhost:9200"
 
 	# wkhtmltopdf
 	[ "$wkhtmltopdf" ] && ec yellow "Installing wkhtmltopdf..." && yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.centos$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d "\"").x86_64.rpm

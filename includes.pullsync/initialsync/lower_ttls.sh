@@ -11,7 +11,7 @@ lower_ttls() { # should have a domainlist at this point, called from getuserlist
 			echo ${domain}.db >> $dir/rsynczones.txt
 		done
 		# make sure we have all the necessary zonefiles
-		rsync --files-from=$dir/rsynczones.txt $rsyncargs -e "ssh $sshargs" $ip:/var/named/ $dir/var/named/ 2>&1 | stderrlogit 4
+		rsync --files-from=$dir/rsynczones.txt $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/named/ $dir/var/named/ 2>&1 | stderrlogit 4
 		# lower main ttl and update serial number
 		for domain in $domainlist; do
 			if [ -f $dir/var/named/${domain}.db ]; then
@@ -23,7 +23,7 @@ lower_ttls() { # should have a domainlist at this point, called from getuserlist
 			fi
 		done
 		# copy them back over
-		rsync --files-from=$dir/rsynczones.txt $rsyncargs -e "ssh $sshargs" $dir/var/named/ $ip:/var/named/ 2>&1 | stderrlogit 4
+		rsync --files-from=$dir/rsynczones.txt $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $dir/var/named/ $ip:/var/named/ 2>&1 | stderrlogit 4
 	else
 		ec lightRed "Error: Domainlist not found $dir/domainlist.txt!" | errorlogit 2
 	fi

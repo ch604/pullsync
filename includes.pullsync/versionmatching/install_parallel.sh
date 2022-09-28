@@ -1,4 +1,6 @@
 install_parallel() { #build parallel and set will-cite to keep commands unattended
+	# make sure /usr/local/bin is in the path
+	! echo $PATH | grep -q /usr/local/bin && export PATH=$PATH:/usr/local/bin
 	if [ ! `which parallel 2> /dev/null` ]; then
 		# parallel not installed, build it now
 		ec yellow " GNU parallel..."

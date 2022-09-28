@@ -7,13 +7,14 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	[ $enabledbackups ] && cpbackup_finish
 
 	# menu for sync options
-	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Update Sync Menu" --separate-output --checklist "Select options for the update sync. Sane options have been selected based on your source, but modify as needed." 0 0 6)
+	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Update Sync Menu" --separate-output --checklist "Select options for the update sync. Sane options have been selected based on your source, but modify as needed." 0 0 7)
 	local options=( 1 "Use --update for rsync" on
 		2 "Exclude 'cache' from the rsync" off
 		3 "Scan php files for malware during sync (users in /root/dirty_accounts.txt)" off
 		4 "Run marill auto testing after sync" off
 		5 "Run fixperms.sh after homedir sync" off
-		6 "Use --delete on the mail folder (BETA)" off)
+		6 "Use --delete on the mail folder (BETA)" off
+		7 "Don't backup databases before transfer" off)
 
 	for user in $userlist; do
 		[[ ! "$(sssh "stat /home/$user/public_html" | grep Uid | awk -F'[(|/|)]' '{print $2, $6, $9}')" =~ 751\ +$user\ +nobody ]] && local fixmatch=1
@@ -31,6 +32,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 			4) runmarill=1; download_marill;;
 			5) fixperms=1; download_fixperms;;
 			6) maildelete=1;;
+			7) skipsqlzip=1;;
 			*) :;;
 		esac
 	done

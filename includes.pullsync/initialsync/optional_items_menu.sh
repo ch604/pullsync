@@ -7,7 +7,8 @@ optional_items_menu(){ #additional options for initial syncs
 			5 "Add motd line for in-progress migration" on
 			6 "Use --dbbackup=schema for pkgacct" off
 			7 "Run fixperms for migrated accounts" off
-			8 "Convert Roundcube MySQL to sqlite on source" off)
+			8 "Convert Roundcube MySQL to sqlite on source" off
+			9 "Skip sql backup before import" off)
 
 	#dedi ip check (3 4 5)
 	if [ ! "$synctype" = "single" ]; then
@@ -67,6 +68,7 @@ for ip in data["ip"]:
 			6) dbbackup_schema=1;;
 			7) fixperms=1; download_fixperms;;
 			8) rcubesqlite=1;;
+			9) skipsqlzip=1;;
 			*) :;;
 		esac
 	done

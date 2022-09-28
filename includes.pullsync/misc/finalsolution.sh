@@ -10,28 +10,28 @@ finalsolution() { #cleanup all data from pullsync. the worst function name ever.
 			unset dir
 			grep -q pullsync /etc/motd && sed -i '/pullsync/d' /etc/motd
 			[ -f /root/.ssh/config ] && grep -q pullsync /root/.ssh/config && sed -i '/\#added\ by\ pullsync/,+4d' /root/.ssh/config
-			rm -f /root/.ssh/pullsync* 2>&1 | stderrlogit 4
-			for file in userlist.txt dns.txt domainlist.txt; do rm -f /root/$file 2>&1 | stderrlogit 4; done
-			for file in hosts.txt hostsfile.txt moxxi.sh; do rm -f /usr/local/apache/htdocs/$file 2>&1 | stderrlogit 4; done
-			rm -f /etc/chkserv.d/chkservd.conf.pullsync.bak 2>&1 | stderrlogit 4
-			rm -f /etc/exim.conf.pullsync.bak 2>&1 | stderrlogit 4
-			rm -f /usr/my.cnf.syncbak /etc/my.cnf.syncbak 2>&1 | stderrlogit 4
-			rm -f /etc/cpbackup.conf.syncbak 2>&1 | stderrlogit 4
-			rm -f /etc/apf/allow_hosts.rules.pullsyncbak 2>&1 | stderrlogit 4
-			rm -f /scripts/db{yaml,json}.pl 2>&1 | stderrlogit 4
-			rm -f /root/get-pip.py 2>&1 | stderrlogit 4
-			rm -f /etc/localtime.pullsync.bak /etc/sysconfig/clock.pullsync.bak 2>&1 | stderrlogit 4
-			rm -f /etc/wwwacct.conf.pullsync.bak 2>&1 | stderrlogit 4
-			rm -f /root/marill 2>&1 | stderrlogit 4
-			rm -f /etc/mailhelo.ipswap /etc/mailips.ipswap 2>&1 | stderrlogit 4
-			rm -f /etc/mail/spamassassin/local.cf.pullsync.bak 2>&1 | stderrlogit 4
-			rm -f /var/cpanel/backups/config.pullsync 2>&1 | stderrlogit 4
-			rm -f /var/cpanel/conf/apache/local.pullsync.bak /var/cpanel/conf/apache/main.pullsync.bak 2>&1 | stderrlogit 4
-			find /home/temp/ -maxdepth 1 -name "pullsync*" -o -name "noop-pullsync*" -exec rm -rf '{}' \; &> /dev/null
+			\rm -f /root/.ssh/pullsync* 2>&1 | stderrlogit 4
+			for file in userlist.txt dns.txt domainlist.txt; do \rm -f /root/$file 2>&1 | stderrlogit 4; done
+			for file in hosts.txt hostsfile.txt moxxi.sh; do \rm -f /usr/local/apache/htdocs/$file 2>&1 | stderrlogit 4; done
+			\rm -f /etc/chkserv.d/chkservd.conf.pullsync.bak 2>&1 | stderrlogit 4
+			\rm -f /etc/exim.conf.pullsync.bak 2>&1 | stderrlogit 4
+			\rm -f /usr/my.cnf.syncbak /etc/my.cnf.syncbak 2>&1 | stderrlogit 4
+			\rm -f /etc/cpbackup.conf.syncbak 2>&1 | stderrlogit 4
+			\rm -f /etc/apf/allow_hosts.rules.pullsyncbak 2>&1 | stderrlogit 4
+			\rm -f /scripts/db{yaml,json}.pl 2>&1 | stderrlogit 4
+			\rm -f /root/get-pip.py 2>&1 | stderrlogit 4
+			\rm -f /etc/localtime.pullsync.bak /etc/sysconfig/clock.pullsync.bak 2>&1 | stderrlogit 4
+			\rm -f /etc/wwwacct.conf.pullsync.bak 2>&1 | stderrlogit 4
+			\rm -f /root/marill 2>&1 | stderrlogit 4
+			\rm -f /etc/mailhelo.ipswap /etc/mailips.ipswap 2>&1 | stderrlogit 4
+			\rm -f /etc/mail/spamassassin/local.cf.pullsync.bak 2>&1 | stderrlogit 4
+			\rm -f /var/cpanel/backups/config.pullsync 2>&1 | stderrlogit 4
+			\rm -f /var/cpanel/conf/apache/local.pullsync.bak /var/cpanel/conf/apache/main.pullsync.bak 2>&1 | stderrlogit 4
+			find /home/temp/ -maxdepth 1 -name "pullsync*" -o -name "noop-pullsync*" -exec \rm -rf '{}' \; &> /dev/null
 			ecnl white "Daisy, Daisy..."
-			rm -rf /root/includes.pullsync/ &> /dev/null
-			rm -rf /root/pullsync/ &> /dev/null
-			rm -f /root/pullsync.sh &> /dev/null
+			\rm -rf /root/includes.pullsync/ &> /dev/null
+			\rm -rf /root/pullsync/ &> /dev/null
+			\rm -f /root/pullsync.sh &> /dev/null
 			exit 404
 		fi
 	fi

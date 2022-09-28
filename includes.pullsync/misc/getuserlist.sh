@@ -70,7 +70,7 @@ getuserlist() { # get user list for different sync types
 			fi
 		fi
 	fi
-	#if we still done have a userlist, quit
+	#if we still dont have a userlist, quit
 	[ "$(echo $userlist | wc -w)" = "0" ] && ec red "Userlist is blank! What are you trying to do here? Really?" && exitcleanup 4
 	if [ "$synctype" == "domainlist" ]; then
 		#warn if there are extra domains attached to the users being synced for domainlist syncs

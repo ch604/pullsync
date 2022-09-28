@@ -26,9 +26,9 @@ Bonus features:
 ...and more!
 
 ## REQUIREMENTS
-The script will only run on cPanel servers, and will only migrate from cPanel servers, both of which must be CentOS/RHEL. You must have direct root-level SSH access available to both servers.
+The script will only run on cPanel servers, and will only migrate from cPanel servers, both of which must be CentOS/RHEL/AlmaLinux. You must have direct root-level SSH access available to both servers.
 
-The script has been tested as far back as CentOS 4 for source, but newer features have not been fully verified against this. CentOS 6+ targets are supported.
+The script has been tested as far back as CentOS 4 for source, but newer features have not been fully verified against this. RHEL 7 and AlmaLinux 8 targets are supported.
 
 The script also assumes that you have migrated websites manually in the past, as, in essence, this is a bash script you downloaded from the internet, and you should treat it as such. It may fail, and you will have to pick up the pieces.
 

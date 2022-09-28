@@ -1,4 +1,4 @@
-rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs the homedir of a restored account. also executes malware scan, phpfpm conversion, suspension, and perm fixes, as well as a few extra syncs for final syncs.
+rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs the homedir of a restored account. also executes malware_scan, phpfpm conversion, suspension, and perm fixes, as well as a few extra syncs for final syncs.
 	local user=$1
 	local progress="$2 | $user:"
 	if [ -f "$dir/etc/passwd" ]; then
@@ -29,38 +29,46 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			# perform file copies
 			if [[ "$synctype" == "final" || "$synctype" == "update" ]] && [ $maildelete ]; then
 				# if using --delete on maildir
-				rsync $rsyncargs $rsync_update $rsync_excludes --exclude=mail -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
+				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes --exclude=mail -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
 				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
-				rsync $rsyncargs $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/mail $userhome_local/ --delete &> $dir/log/rsync.${user}.log #mail --delete function
+				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/mail $userhome_local/ --delete &> $dir/log/rsync.${user}.log #mail --delete function
 				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
 			else
 				# normal rsync
-				rsync $rsyncargs $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
+				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
 				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
 			fi
 
 			# optionally convert to FPM
 			if [ "$fcgiconvert" ]; then
 				ec white "$progress Converting domains to PHP-FPM..."
-				for dom in `cat /etc/userdomains | grep \ ${user}$`; do #run twice, to set non-inherit version and then turn on fpm
-					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$defaultea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
-					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$defaultea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
-					[ -f $dir/var/cpanel/userdata/$user/$dom.php-fpm.yaml ] && cp -a $dir/var/cpanel/userdata/$user/$dom.php-fpm.yaml $dir/var/cpanel/userdata/$user/ && /scripts/php_fpm_config --rebuild --domain=$dom &> /dev/null
+				fpmconvert $user 1
+			elif \ls -A $dir/var/cpanel/userdata/$user/*.php-fpm.yaml &> /dev/null ; then #if there are any individual sites that were fpm on source, convert them
+				ec white "$progress Converting domains to PHP-FPM..."
+				fpmconvert $user 0
+			else
+				ec white "$progress Ensuring php version for domains matches source..."
+				for dom in `cat /etc/userdomains | grep \ ${user}$ | awk -F: '{print $1}'`; do
+					parentdom=$(grep -l $dom $dir/var/cpanel/userdata/$user/* | egrep -v -e '(cache|main|json|_SSL|yaml)$' | head -n1 | awk -F\/ '{print $NF}')
+					newphpver=$(grep ^phpversion: $dir/var/cpanel/userdata/$user/$parentdom | awk '{print $2}')
+					! /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $newphpver && newphpver=$defaultea4profile
+					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$newphpver php_fpm=0 vhost-0=$dom 2>&1 | stderrlogit 3
+					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$newphpver php_fpm=0 vhost-0=$dom 2>&1 | stderrlogit 3
 				done
 			fi
 
 			# resync several items on final: crons, valiases, ftp accounts, system pass
 			if [ "$synctype" = "final" ]; then
-				[ -f $dir/var/spool/cron/$user ] && rsync $rsyncargs -e "ssh $sshargs" $ip:/var/spool/cron/$user /var/spool/cron/
+				[ -f $dir/var/spool/cron/$user ] && rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/spool/cron/$user /var/spool/cron/
 				[ -f /var/spool/cron/$user ] && chown $user:root /var/spool/cron/$user
-				[ -f $dir/etc/proftpd/$user ] && rsync $rsyncargs $dir/etc/proftpd/$user /etc/proftpd/ 2>&1 | stderrlogit 3
+				[ -f $dir/etc/proftpd/$user ] && rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/proftpd/$user /etc/proftpd/ 2>&1 | stderrlogit 3
 				remotehash=$(sssh "grep ^$user\: /etc/shadow | cut -d: -f1-2")
 				if [ ! "${remotehash}" = "$(grep ^$user\: /etc/shadow | cut -d: -f1-2)" ]; then
 					ec brown "$progress Linux password changed, updating on target..." | errorlogit 4
 					echo $remotehash | chpasswd -e 2>&1 | stderrlogit 3
 				fi
 				for dom in `cat /etc/userdomains | grep \ ${user}$ | cut -d: -f1`; do
-					rsync $rsyncargs -e "ssh $sshargs" $ip:/etc/valiases/$dom /etc/valiases/ --update 2>&1 | stderrlogit 4
+					rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/etc/valiases/$dom /etc/valiases/ --update 2>&1 | stderrlogit 4
 				done
 			fi
 
@@ -71,10 +79,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			fi
 
 			# malware scan
-			if [ $malwarescan ]; then
-				sem --wait --id malware_scan_running #wait if other malware scans are running
-				sem --fg --id malware_scan_running --jobs 1 -u malware_scan $user
-			fi
+			[ $malwarescan ] && malware_scan $user
 
 			# suspend suspended accounts
 			if grep -q -E '^SUSPENDED[ ]?=[ ]?1' $dir/var/cpanel/users/$user; then

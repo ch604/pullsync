@@ -8,7 +8,11 @@ dnscheck(){ #skip on versionmatching, as there will be no $domainlist. check the
 
 		# set source_ips if not just checking DNS
 		[ "$ip" ] && source_ips=`sssh "/scripts/ipusage" | awk '{print $1}'` || source_ips="0.0.0.0"
-		target_ips=`/scripts/ipusage| awk '{print $1}'`
+		if [ -f /var/cpanel/cpnat ]; then
+			target_ips=$(for i in $(/scripts/ipusage | awk '{print $1}'); do grep -Eq ^$i\ [0-9]+ /var/cpanel/cpnat && grep ^$i\  /var/cpanel/cpnat | awk '{print $2}' || echo $i; done)
+		else
+			target_ips=$(/scripts/ipusage | awk '{print $1}')
+		fi
 
 		#set up some arrays
 		local -a no_resolve not_here_resolve source_resolve target_resolve

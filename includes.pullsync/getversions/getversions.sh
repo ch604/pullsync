@@ -81,6 +81,9 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 		detect_apps
 	fi
 
+	# cpnat check
+	cpnat_check
+
 	# dns checks
 	dnscheck
 	printrdns
@@ -113,9 +116,6 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 
 	# cloudlinux
 	cloudlinux_check
-
-	# cpnat check
-	cpnat_check
 
 	# detect security features
 	securityfeatures

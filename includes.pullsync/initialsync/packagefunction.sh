@@ -13,7 +13,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 	if [ $cpmovefile ]; then
 		# if the package was created, bring it to the target
 		ec lightPurple "$progress Rsyncing cpmove..."
-		rsync $rsyncargs -e "ssh $sshargs" $ip:$cpmovefile $dir/cpmovefiles/
+		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:$cpmovefile $dir/cpmovefiles/
 		if ([[ $old_user_ip != $old_main_ip ]] && [ "$ded_ip_check" = "1" ] && ! grep -l $old_user_ip $dir/var/cpanel/users/* | grep -qv /${user}$) || [ "$single_dedip" = "yes" ]; then
 			restorepkg_args="$restorepkg_args --ip=y"
 		fi

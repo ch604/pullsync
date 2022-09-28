@@ -45,7 +45,8 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			security_auto
 		fi
 		# bring over whm packages and features
-		rsync $rsyncargs -e "ssh $sshargs" $ip:"/var/cpanel/packages /var/cpanel/features" /var/cpanel/
+		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"/var/cpanel/packages /var/cpanel/features" /var/cpanel/
+		[ $? -ne 0 ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/cpanel/packages :/var/cpanel/features /var/cpanel/
 	fi
 
 	# optional items menu, run for all synctypes
@@ -91,12 +92,14 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ "$imagick" ] && echo "* installed imagemagick, imagick, and magickwand"
 		[ "$memcache" ] && echo "* installed memcached-full"
 		[ "$apc" ] && echo "* installed apc/apcu"
+		[ "$sodium" ] && echo "* installed sodium"
 		[ "$maldet" ] && echo "* installed maldet"
 		[ "$spamassassin" ] && echo "* enabled spamassassin"
 		[ "$nodejs" ] && echo "* installed node.js and npm"
 		[ "$wkhtmltopdf" ] && echo "* installed wkhtmltopdf"
 		[ "$pdftk" ] && echo "* installed pdftk"
 		[ "$redis" ] && echo "* installed redis and php plugins"
+		[ "$elasticsearch" ] && echo "* installed elasticsearch and copied indexes"
 		[ "$solr" ] && echo "* installed solr${solrver} and php plugins"
 		[ "$installcpanelsolr" ] && echo "* installed cpanels solr"
 		[ "$matchmysqlvariables" ] && echo "* matched critical mysql variables"
@@ -223,7 +226,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	if [ "$mailmanfolderlist" ] && ! echo "$mailmanfolderlist" | grep -q \/mailman$; then
 		#"mailman" mailing list does not exist, copy from source and enable
 		ec yellow "Syncing over default mailman list and enabling mailman..."
-		rsync $rsyncargs -e "ssh $sshargs" $ip:/usr/local/cpanel/3rdparty/mailman/lists/mailman /usr/local/cpanel/3rdparty/mailman/lists/
+		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/usr/local/cpanel/3rdparty/mailman/lists/mailman /usr/local/cpanel/3rdparty/mailman/lists/
 		mkdir -p /usr/local/cpanel/3rdparty/mailman/qfiles/out
 		/usr/local/cpanel/bin/whmapi1 configureservice service=mailman enabled=1 monitored=1 2>&1 | stderrlogit 3
 		/scripts/fixmailman &> /dev/null

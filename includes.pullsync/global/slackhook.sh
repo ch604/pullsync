@@ -1,7 +1,7 @@
 slackhook() { #post details of finished migration to slack channel
 	hostname=$(hostname)
 	[ -z "$1" ] && color=7CD197 || color=$1 #set color to passed parameter, or green if unset
-	slackuser=${slackuser:-"migrations-onshift"}
+	slackuser=${slackuser:-"migrations-team"}
 
 	#fail if cant connect to slack.com
 	timeout 1 bash -c 'cat < /dev/null > /dev/tcp/hooks.slack.com/443'

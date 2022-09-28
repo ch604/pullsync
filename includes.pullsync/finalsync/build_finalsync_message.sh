@@ -17,7 +17,16 @@ build_finalsync_message() { #create a ticket reply for post-finalsync based on s
 	local nameserver2=`cat /etc/wwwacct.conf | grep ^NS2\  | awk '{print $2}'`
 	local snameserver1=`cat $dir/etc/wwwacct.conf | grep ^NS\  | awk '{print $2}'`
 	local snameserver2=`cat $dir/etc/wwwacct.conf | grep ^NS2\  | awk '{print $2}'`
+	first_ip=$cpanel_main_ip
 	[ -s /etc/ips ] && second_ip=`head -n1 /etc/ips | cut -d\: -f1` || second_ip=$cpanel_main_ip #second ip for second nameserver
+
+	#check for natted ips
+	if [ -f /var/cpanel/cpnat ] && grep -Eq ^$first_ip\ [0-9]+ /var/cpanel/cpnat; then
+		first_ip=$(grep -E ^$first_ip\ [0-9]+ /var/cpanel/cpnat | awk '{print $2}')
+	fi
+	if [ -f /var/cpanel/cpnat ] && grep -Eq ^$second_ip\ [0-9]+ /var/cpanel/cpnat; then
+		second_ip=$(grep -E ^$second_ip\ [0-9]+ /var/cpanel/cpnat | awk '{print $2}')
+	fi
 
 	#use the nameserver registrar and contact information to guide suggestion
 	local registrar=$(nameserver_registrar $nameserver1)
@@ -63,7 +72,7 @@ https://www.whatsmydns.net/#A/$testdomain
 
 DNS for any domains that do not depend on your internal nameservers should be updated at this time. Please also update the IPs for your nameservers (also known as the Glue) to the following:
 
-${nameserver1:-ns1} - $cpanel_main_ip
+${nameserver1:-ns1} - $first_ip
 ${nameserver2:-ns2} - $second_ip
 
 EOF
@@ -80,7 +89,7 @@ EOF
 			2) cat >> $dir/finalsyncreply.txt << EOF
 The final sync is complete, and it is now time to update the DNS for your domains to the new nameservers, ${nameserver1} and ${nameserver2}. The nameservers for the domains are updated at their respective registrars. Please also ensure that the nameservers themselves are registered at their main domain's registrar. You can use the following IPs for each nameserver:
 
-${nameserver1:-ns1} - $cpanel_main_ip
+${nameserver1:-ns1} - $first_ip
 ${nameserver2:-ns2} - $second_ip
 
 EOF

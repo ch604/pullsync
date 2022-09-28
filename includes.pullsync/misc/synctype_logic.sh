@@ -18,7 +18,8 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 
 	# we need /etc/userdomains for the domainlist conversion, might as well get things now.
 	ec yellow "Transferring some config files over from old server to $dir"
-	rsync -RL $rsyncargs -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+	[ ! -d $dir/var/cpanel/users ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 
 	case $synctype in
 		single|list|domainlist|all)
@@ -37,12 +38,14 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 		update)
 			getuserlist
 			securityfeatures
+			cpnat_check
 			dnscheck
 			dnsclustering
 			updatesync_main
 			;;
 		prefinal)
 			getuserlist
+			cpnat_check
 			dnscheck
 			dnsclustering
 			printrdns
@@ -53,10 +56,12 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			ec green "Hope you make good decisions for your final sync!"
 			;;
 		final)
+			rsyncspeed=0 #change bwlimit to 0 to unlimit rsync speed
 			getuserlist
 			ipswapcheck
 			securityfeatures
 			dnsclustering
+			cpnat_check
 			[ ! "$ipswap" -a ! "$stormipswap" ] && dnscheck
 			printrdns
 			finalsync_main
@@ -88,6 +93,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			getuserlist
 			unowneddbs
 			mysql_listgen
+			if yesNo "Do you want to backup sql files before import? (recommended)"; then unset skipsqlzip; else skipsqlzip=1; fi
 			misc_ticket_note
 			lastpullsyncmotd
 			parallel_mysql_dbsync

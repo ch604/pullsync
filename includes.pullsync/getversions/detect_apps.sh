@@ -7,6 +7,7 @@ detect_apps() { # look for common extra applications
 	imagick=`sssh "which convert 2> /dev/null"`
 	memcache=`grep -e 'memcache' $psfile` #memcache is actually installed during optimizations() instad of installs() but thats ok
 	redis=`sssh "which redis-server 2> /dev/null"`
+	elasticsearch=`sssh "ps faux | grep -e 'elasticsearch' | grep -v grep"`
 	maldet=`sssh "which maldet 2> /dev/null"`
 	[ $(grep ^skipspamassassin\= $dir/var/cpanel/cpanel.config | cut -d= -f2) = 0 ] && [ $(grep ^skipspamassassin\= /var/cpanel/cpanel.config | cut -d= -f2) = 1 ] && spamassassin=1
 	java=`sssh "which java 2> /dev/null"`
@@ -18,7 +19,8 @@ detect_apps() { # look for common extra applications
 	npm=`sssh "which npm 2> /dev/null"`
 	[ "$nodejs" ] && [ "$npm" ] && npmlist=`sssh "npm ls -g --depth=0" | tail -n+2 | awk '{print $2}' | cut -d@ -f1 | grep -v npm | grep [a-zA-Z]`
 	tomcat=`sssh "which tomcat 2> /dev/null"`
-	apc=`grep -x apc $dir/remote_php_details.txt`
+	apc=`grep -x -e apc -e apcu $dir/remote_php_details.txt`
+	sodium=`grep -x -e sodium $dir/remote_php_details.txt`
 	cpanelsolr=`sssh "service cpanel-dovecot-solr status 2> /dev/null"`
 	# check for configserver WHM plugins
 	[ -f $dir/var/cpanel/apps/cmc.conf ] && [ ! -f /var/cpanel/apps/cmc.conf ] && cmc=1
@@ -66,6 +68,7 @@ detect_apps() { # look for common extra applications
 	[ "$imagick" ] && which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
 	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
 	[ "$redis" ] && which redis-server &> /dev/null && unset redis && echo "redis" >> $dir/skippedinstall.txt
+	[ "$elasticsearch" ] && service elasticsearch status &> /dev/null && unset elasticsearch && echo "elasticsearch" >> $dir/skippedinstall.txt
 	[ "$maldet" ] && which maldet &> /dev/null && unset maldet && echo "maldet" >> $dir/skippedinstall.txt
 	[ "$java" ] && which java &> /dev/null && unset java javaver && echo "java" >> $dir/skippedinstall.txt
 	[ "$solr" ] && /etc/init.d/solr status &> /dev/null && unset solr && echo "solr" >> $dir/skippedinstall.txt

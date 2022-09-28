@@ -33,19 +33,19 @@ mysql_dbsync_2(){ # syncs the databases for the user passed as $1. if the db doe
 			else
 				ec lightRed "$progress Couldn't collect grant for $db ($dbprog)!" | tee -a $dir/missing_dbgrants.txt
 			fi
-		else
+		elif [ ! "$skipsqlzip" ]; then
 			# if the db does exist, back it up and zip it
 			ec blue "$progress Backing up $db ($dbprog) to $dir/pre_dbdumps..."
-			mysqldump --opt --routines "$db" | gzip > "$dir/pre_dbdumps/$db.sql.gz"
+			mysqldump --opt --routines --add-drop-trigger "$db" | gzip > "$dir/pre_dbdumps/$db.sql.gz"
 			chmod 600 "$dir/pre_dbdumps/$db.sql.gz"
 		fi
 
 		# dump routines first
-		local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump -ntdR \"$db\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+		local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump -ntdR --add-drop-trigger \"$db\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
 		declare -a status=( ${DUMP##*:} )
 		if [ ! "${status[0]}" = "0" ]; then
 			# dump failed, retry
-			DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump -ntdR \"$db\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+			DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump -ntdR --add-drop-trigger \"$db\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
 			declare -a status=( ${DUMP##*:} )
 			if [ ! "${status[0]}" = "0" ]; then
 				# second dump failed too, mark as failed

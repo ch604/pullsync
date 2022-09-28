@@ -4,6 +4,7 @@ mysqlcalc() { #calculate (but dont implement) ideal innodb_buffer_pool_size and 
 	local target_ibps=$(find /var/lib/mysql/ -type f -printf "%s %f\n"|awk -F'[ ,.]' '{print $1, $NF}'|sort -k2|awk '{array[$2]+=$1} END {for (i in array) {print array[i]"\t"i}}' | grep ibd | awk '{print $1}' | paste -sd+ - | bc)
 	# get the size of all MYI files
 	local target_kbs=$(find /var/lib/mysql/ -type f -printf "%s %f\n"|awk -F'[ ,.]' '{print $1, $NF}'|sort -k2|awk '{array[$2]+=$1} END {for (i in array) {print array[i]"\t"i}}' | grep MYI | awk '{print $1}')
+	[[ ! $target_kbs ]] && target_kbs=0
 	# get the total target memory in comparable format
 	local total_mem_bytes=$(( $local_mem * 1048576 ))
 

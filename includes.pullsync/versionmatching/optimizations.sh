@@ -10,9 +10,9 @@ optimizations(){ #server optimizations separated from installs() in case version
 	fi
 	#fpm for all accounts
 	if [ $fpmdefault ]; then
-		installfpmrpms
 		if [ $(/usr/local/cpanel/bin/whmapi1 php_get_default_accounts_to_fpm | egrep "^\s+default_accounts_to_fpm" | awk '{print $2}') -eq 0 ]; then
 			ec yellow "Setting default handler for all accounts to FPM..."
+			installfpmrpms
 			/usr/local/cpanel/bin/whmapi1 php_set_default_accounts_to_fpm default_accounts_to_fpm=1 2>&1 | stderrlogit 3
 		else
 			ec yellow "Default handler for all accounts already set to FPM. Skipping..."

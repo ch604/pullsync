@@ -23,6 +23,9 @@ rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new
 # database excludes for final and mysql only syncs can be added to /root/db_exclude.txt (one per line). good for large databases that you dont want to sync again, or dbs that you only sync a few tables for manually.
 # similarly, database includes for final and mysql only syncs can be added to /root/db_include.txt (one per line). great for syncing databases that dont belong to a cpanel user. this is added before the excludes and the baddbs filter as above.
 
+# the speed, in kbps, of initial and update syncs will be limited to avoid excess network load on the source server. decrease this on overloaded source servers. this limit is removed on final syncs.
+rsyncspeed="3000"
+
 # at the conclusion of hands-off portions of syncs, a slack hook can be activated. uncomment add a url for your slack hook here.
 #slackhook_url="https://hooks.slack.com/services/your/url/goeshere"
 
@@ -99,6 +102,7 @@ filelist="/etc/apf
 /var/cpanel/mysql/remote_profiles/profiles.json
 /var/cpanel/nameserverips.yaml
 /var/cpanel/globalcache
+/var/cpanel/datastore
 /var/lib/named/chroot/var/named/master
 /var/spool/cron
 /var/ssl
@@ -115,14 +119,14 @@ pidfile="$dir/pullsync.pid"
 pid="$$"
 log="${dir}/$scriptname.log"
 errlog="${dir}/$scriptname.stderr.log"
-rsyncargs="-aqHz --bwlimit=3000 --timeout=900"
+rsyncargs="-aqHz --timeout=900"
 userlistfile="/root/userlist.txt"
 domainlistfile="/root/domainlist.txt"
 remote_tempdir="/home/temp/pullsynctmp.$starttime" # cpmove files are created here on remote server
 hostsfile="/usr/local/apache/htdocs/hosts.txt"
 hostsfile_alt="/usr/local/apache/htdocs/hostsfile.txt"
 sshargs="-o GSSAPIAuthentication=no" #disable "POSSIBLE BREAKIN ATTEMPT" messages
-proglist="ffmpeg imagick memcache cmc cmm cmq cse mailscanner java cpanelsolr postgres modcloudflare nodejs tomcat redis solr pdftk wkhtmltopdf apc maldet spamassassin"
+proglist="ffmpeg imagick memcache cmc cmm cmq cse mailscanner java cpanelsolr postgres modcloudflare nodejs tomcat redis solr pdftk elasticsearch wkhtmltopdf apc sodium maldet spamassassin"
 
 #colors
 nocolor="\E[0m"; black="\033[0;30m"; grey="\033[1;30m"; red="\033[0;31m"; lightRed="\033[1;31m"; green="\033[0;32m"; lightGreen="\033[1;32m"; brown="\033[0;33m"; yellow="\033[1;33m"; blue="\033[0;34m"; lightBlue="\033[1;34m"; purple="\033[0;35m"; lightPurple="\033[1;35m"; cyan="\033[0;36m"; lightCyan="\033[1;36m"; white="\033[1;37m"; greyBg="\033[1;37;40m"

@@ -79,12 +79,14 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			exitcleanup 401;;
 		h)	useallusers
 			getlocaldomainlist
+			cpnat_check
 			dnscheck
 			exitcleanup 402;;
 		i)	remove_HostsCheck;;
 		j)	finalsolution;;
 		k)	userlist=`/bin/ls -A /var/cpanel/users | egrep -v "^HASH" | egrep -vx "${badusers}"`
 			getlocaldomainlist
+			cpnat_check
 			dnscheck
 			(echo "server $cpanel_main_ip current state:"
 			echo "current users ($(echo $userlist | wc -w)): $(echo $userlist)"

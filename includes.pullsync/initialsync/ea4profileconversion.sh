@@ -3,7 +3,7 @@ ea4profileconversion() { #convert remote running EA3/4 profile
 	if [ "$remoteea" = "EA3" ]; then
 		# run profile conversion against remote ea3 yaml file
 		ec yellow "Setting up _main.yaml file for conversion..."
-		rsync -R $rsyncargs -e "ssh $sshargs" $ip:/var/cpanel/easy/apache/ $dir/
+		rsync -R $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/cpanel/easy/apache/ $dir/
 		grep -q '"SymlinkProtection":' $dir/var/cpanel/easy/apache/profile/_main.yaml && sed -i 's/\("SymlinkProtection":\).*/\1 1/g' $dir/var/cpanel/easy/apache/profile/_main.yaml || sed -i '/"optmods":/a \ \ \ \ "SymlinkProtection":\ 1' $dir/var/cpanel/easy/apache/profile/_main.yaml
 		ec yellow "Converting EA3 profile to EA4..."
 		/scripts/convert_ea3_profile_to_ea4 $dir/var/cpanel/easy/apache/profile/_main.yaml /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | stderrlogit 3
@@ -11,7 +11,7 @@ ea4profileconversion() { #convert remote running EA3/4 profile
 		# export remote ea4 profile and copy to target custom directory
 		ec yellow "Saving and copying configuration..."
 		sssh "mkdir -p /etc/cpanel/ea4/profiles/custom; /usr/local/bin/ea_current_to_profile --output=/etc/cpanel/ea4/profiles/custom/migration.json" 2>&1 | stderrlogit 3
-		rsync $rsyncargs -e "ssh $sshargs" $ip:/etc/cpanel/ea4/profiles/custom/migration.json /etc/cpanel/ea4/profiles/custom/
+		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/etc/cpanel/ea4/profiles/custom/migration.json /etc/cpanel/ea4/profiles/custom/
 	fi
 
 	if [ -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
