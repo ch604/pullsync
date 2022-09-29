@@ -9,7 +9,7 @@ nsprog_check() { # local nameserver setting check
 		echo "$local_nameservers" | logit
 		if [ ! "$source_nameservers" = "$local_nameservers" ]; then
 			if [ ! "$autopilot" ]; then
-				if yesNo "Set old nameservers to this server?"; then
+				if yesNo "Change local namservers to match source values?"; then
 					sed -i -e '/^NS[\ 0-9]/d' /etc/wwwacct.conf
 					grep ^NS[\ 0-9] $dir/etc/wwwacct.conf | grep -v NS[\ 0-9]\ $ | sort >> /etc/wwwacct.conf
 				fi
