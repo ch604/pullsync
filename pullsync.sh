@@ -1,14 +1,11 @@
 #!/bin/bash
 # pullsync.sh
 # awalilko@liquidweb.com
-# based on initialsync by abrevick@liquidweb.com
-# https://git.liquidweb.com/migrations/pullsync
+# based on initialsync by abrevick@liquidweb.com and various other migrations team members; thank you!
+# https://github.com/ch604/pullsync
 
-# last updated: Mar 19 2024
-version="8.3.3"
-
-filehost="files.liquidweb.com"
-fileserver="http://${filehost}/migrations/pullsync"
+# last updated: Mar 20 2024
+version="8.3.4"
 
 ############
 # root check
@@ -23,11 +20,14 @@ fileserver="http://${filehost}/migrations/pullsync"
 #done before pid check, as there would probably not be a running pullsync if it had no supporting files
 if [ ! -d /root/includes.pullsync/ ]; then
 	echo "Missing supporting files! Downloading..."
-	if host $filehost &>/dev/null; then
-		wget -q -e robots=off -nH --cut-dirs=3 -r -np -R "index.html*" -R "README" ${fileserver}/includes.pullsync/ -P /root/includes.pullsync/
+	if host github.com &>/dev/null; then
+		wget -q https://github.com/ch604/pullsync/archive/master.zip -O /root/pullsync-master.zip
+		unzip /root/pullsync-master.zip pullsync-master/includes.pullsync/* -d /root/
+		mv /root/pullsync-master/includes.pullsync /root/
+		rm -r /root/pullsync-master
+		rm -f /root/pullsync-master.zip
 	else
-		echo "Couldn't resolve host $filehost to download supporting files!"
-		exit 2
+		echo "Couldn't resolve github.com to download supporting files!"
 	fi
 fi
 
@@ -65,13 +65,18 @@ fi
 
 # check for newer version of script
 if [ $autoupdate = 1 ]; then
-	if host $filehost &>/dev/null; then
-		server_version=$(curl -s -r0-250 ${fileserver}/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.DEVmf]*\)"/\1/')
+	if host github.com &>/dev/null; then
+		server_version=$(curl -s -r0-250 https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.DEVmf]*\)"/\1/')
 		echo "Detected server version as $server_version"
 		if [[ $server_version =~ $valid_version_format ]]; then # check for a valid version format
 			if [ ! $version = $(echo -e "$version\n$server_version" | sort -V | tail -1) ]; then
 				echo $version is less than server $server_version, downloading new version to /root/pullsync.sh and executing.
-				wget -q -e robots=off -nH --cut-dirs=2 -r -np -R "index.html*" -R "README" ${fileserver}/ -P /root/
+				wget -q https://github.com/ch604/pullsync/archive/master.zip -O /root/pullsync-master.zip
+				unzip /root/pullsync-master.zip pullsync-master/includes.pullsync/* -d /root/
+				unzip /root/pullsync-master.zip pullsync-master/pullsync.sh -d /root/
+				mv -f /root/pullsync-master/includes.pullsync /root/
+				rm -r /root/pullsync-master
+				rm -f /root/pullsync-master.zip
 				chmod 700 /root/pullsync.sh
 				sleep .25
 				exec bash /root/pullsync.sh $@
@@ -79,12 +84,12 @@ if [ $autoupdate = 1 ]; then
 				echo $version is equal or greater than server $server_version
 			fi
 		else
-			echo "Script version on $filehost is not in expected format, problem with the server? Continuing afer a few seconds..."
+			echo "Script version on github.com is not in expected format, problem with the server? Continuing afer a few seconds..."
 			echo "Detected version as $server_version"
 			sleep 3
 		fi
 	else
-		echo "Couldn't resolve host $filehost to check for updates."
+		echo "Couldn't resolve host github.com to check for updates."
 	fi
 fi
 
