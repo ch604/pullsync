@@ -117,5 +117,4 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	/scripts/restartsrv_named
 	/usr/local/cpanel/bin/checkallsslcerts
 	screen -S upcp -d -m /scripts/upcp
-	rpm -q --quiet yumconf-serversecureplus && slackhook_secteam
 }
