@@ -9,8 +9,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	#print the options menu and automatically align certain selections
 	if [ ! "$autopilot" ]; then
 		local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Final Sync Menu" --separate-output --checklist "Select options for the final sync. Sane options have been selected based on your source, but modify as needed.\n" 0 0 19)
-		local options=(	1 "Remove lwHostsCheck.php files" on
-			2 "Stop services on source server (also suspends inbound mail and runs the queue)" on
+		local options=(	1 "Remove HostsCheck.php files" on
+			2 "Stop services on source server (httpd, cpanel, and mail)" on
 			3 "Restart services after sync" on
 			4 "Add motd to source server while services stopped" on
 			5 "Put up maintenance page for all traffic while services are stopped" on
@@ -28,11 +28,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			17 "Scan for out of date CMS versions" off
 			18 "Skip backup of local mysql dbs before import" off
 			19 "Don't use dbscan" on)
-		#turn off things for shared server sources
-		sourcehostname="$(sssh "hostname")"
-		([ "$sourcehostname" == "liquidweb.com" ] || [ "$sourcehostname" == "sourcedns.com" ] || [ "$sourcehostname" == "alphahosting.com" ]) && cmd[9]=$(echo "${cmd[9]}\n(2 3 4 8) LW shared source detected") && options[5]=off && options[8]=off && options[11]=off && options[23]=off
 		#dont restart services or copy dns for ip swaps
-		[ "$ipswap" -o "$stormipswap" ] && cmd[9]=$(echo "${cmd[9]}\n(3 8) IP swap selected") && options[8]=off && options[23]=off
+		[ "$ipswap" ] && cmd[9]=$(echo "${cmd[9]}\n(3 8) IP swap selected") && options[8]=off && options[23]=off
 		#turn malware scan on if there were hits during initial sync
 		[ -s /root/dirty_accounts.txt ] && cmd[9]=$(echo "${cmd[9]}\n(9) Malware found in prior pullsync (/root/dirty_accounts.txt)") && options[26]=off
 		#turn on autossl if there are autossls on source
@@ -50,7 +47,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		for choice in $choices; do print_next_element options $choice >> $log; done
 		for choice in $choices; do
 			case $choice in
-				1)	doremovelwhc=1;;
+				1)	doremovehc=1;;
 				2)	stopservices=1;;
 				3)	restartservices=1;;
 				4)	remotemotd=1;;
@@ -76,7 +73,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		build_finalsync_message
 	fi
 	#if autopilot, just the basics
-	[ "$autopilot" ] && rsync_update="--update" && doremovelwhc=1
+	[ "$autopilot" ] && rsync_update="--update" && doremovehc=1
 
 	#ticket note
 	clear
@@ -95,7 +92,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $copydns ] && echo "* copied DNS to source server" || echo "* did not copy DNS to source server"
 	[ "$rsync_update" = "--update" ] && echo "* used --update for rsync"
 	echo $rsync_excludes | grep -q cache && echo "* excluded cache from rsync"
-	[ $doremovelwhc ] && echo "* removed lwHostsCheck files from all users"
+	[ $doremovehc ] && echo "* removed lwHostsCheck files from all users"
 	[ $autossl ] && echo "* enabled AutoSSL for all users"
 	[ $malwarescan ] && echo "* scanned php files on all accounts for malware"
 	[ $versionscan ] && echo "* scanned for out of date CMS installs"
@@ -105,7 +102,6 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $maildelete ] && echo -e "\n* USED --delete ON THE MAIL FOLDER (BETA)"
 	[ $setremotemx ] && echo -e "\n* SET SOURCE SERVER TO REMOTE MX DESTINATION (BETA)"
 	[ $ipswap ]  && echo -e "\n* PERFORMED AUTOMATIC IP SWAP"
-	[ $stormipswap ]  && echo -e "\n* PERFORMED AUTOMATIC STORM IP SWAP"
 	[ $(echo $userlist | wc -w) -gt 15 ] && echo -e "\ntruncated userlist ($(echo $userlist | wc -w)): $(echo $userlist | tr ' ' '\n' | head -15 | tr '\n' ' ')" || echo -e "\nuserlist ($(echo $userlist | wc -w)): $(echo $userlist | tr '\n' ' ')"
 	) | tee -a $dir/ticketnote.txt | logit
 	ec lightPurple "Stop copying now :D"
@@ -115,21 +111,18 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	ec lightBlue "Ready to begin the final sync!"
 	say_ok
 
-	#ping monitoring if lw source
-	[ -f $dir/usr/local/lp/etc/lp-UID ] && slackhook_final
-
 	#update motd and clean up extra testing files
 	lastpullsyncmotd
-	[ $doremovelwhc ] && remove_lwHostsCheck
+	[ $doremovehc ] && remove_HostsCheck
 
 	#stop services on the source server and start the maintenance engine, detect extra programs to restart for later
 	if [ "$stopservices" ]; then
 		if [ "$remotemotd" ]; then
 			ec yellow "Adding motd to remote server..."
-			sssh "echo -e '\tServices have been STOPPED for a migration final sync in $ticket. Do not restart without contacting migrations.' >> /etc/motd"
+			sssh "echo -e '\tServices have been STOPPED for a migration final sync. Do not restart without contacting migrations.' >> /etc/motd"
 		fi
-		#ec yellow "Running exim queue and suspending inbound messages on source..."
 		ec yellow "Suspending inbound messages on source..."
+		#ec yellow "Running exim queue and suspending inbound messages on source..."
 		sssh "echo 'in.smtpd : ALL : twist /bin/echo 453 System Maintenance' >> /etc/hosts.deny"
 		#sssh "echo 'in.smtpd : ALL : twist /bin/echo 453 System Maintenance' >> /etc/hosts.deny; [ \$(exim -bpc) -gt 0 ] && echo \$(exim -bpc) mails in queue && exim -qf"
 		ec yellow "Stopping Services..."
@@ -208,7 +201,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			else
 				ec red "Bailing! NOT updating DNS or swapping IPs! Services will be restarted only if you said you wanted to originally!"
 				finalabort=1
-				unset stormipswap ipswap autossl runmarill copydns copyremotebackups removemotd setremotemx versionscan
+				unset ipswap autossl runmarill copydns copyremotebackups removemotd setremotemx versionscan
 			fi
 		else
 			copybackdns
@@ -296,8 +289,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		ec white "Did not stop services."
 	fi
 	[ "$copydns" ] && ec white "Copied zone files back to old server." || ec white "Did not copy zone files back to old server"
-	[ "$ipswap" ] && ec white "Swapped IPs between source and destination servers." && ec red "PLEASE FOLLOW THE REMAINDER OF THE IP SWAP WIKI TO FINISH UP THE TASK. https://wiki.int.liquidweb.com/articles/Cpanel_ip_swap#Administrative_Changes"
-	[ "$stormipswap" ] && ec white "Migrated IPs from source Storm server to target Storm server." && ec red "PLEASE PERFORM THE IP SWAP FROM PROVISIONING IN BILLING IMMEDIATELY!"
+	[ "$ipswap" ] && ec white "Swapped IPs between source and destination servers."
 	[ $autossl ] && ec white "Turned on AutoSSL"
 	[ $copyremotebackups ] && ec white "Copied remote backup configuration from source server"
 	[ $removemotd ] && ec white "Removed MOTD"
