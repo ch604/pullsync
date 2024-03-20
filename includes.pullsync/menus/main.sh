@@ -19,7 +19,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 	f "NoOp - Regenerate hostsfile.txt" off
 	g "NoOp - Run marill" off
 	h "NoOp - Check DNS" off
-	i "Cleanup - Remove lwHostsCheck.php files" off
+	i "Cleanup - Remove HostsCheck.php files" off
 	j "Cleanup - Cleanup all pullsync data on this machine (including this script)" off
 	k "Server state summary (dns+oldmigrations)" off
 	wl "NoOp - Run WPT (BETA)" off
@@ -88,7 +88,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			cpnat_check
 			dnscheck
 			exitcleanup 402;;
-		i)	remove_lwHostsCheck;;
+		i)	remove_HostsCheck;;
 		j)	uninstall;;
 		k)	userlist=`/bin/ls -A /var/cpanel/users | egrep -v "^HASH" | egrep -vx "${badusers}"`
 			getlocaldomainlist
@@ -103,30 +103,33 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			summarize
 			exitcleanup 403;;
 		wl)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
-			#useallusers
-			#getlocaldomainlist
-			#> $hostsfile_alt
-			#for user in $userlist; do
-			#	hosts_file $user &> /dev/null
-			#done
-			#mkdir $dir/wptresults
-			#wpt_localwrapper
+			say_ok
+			useallusers
+			getlocaldomainlist
+			> $hostsfile_alt
+			for user in $userlist; do
+				hosts_file $user &> /dev/null
+			done
+			mkdir $dir/wptresults
+			wpt_localwrapper
 			exitcleanup 405;;
 		wr)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
-			#useallusers
-			#getlocaldomainlist
-			#mkdir $dir/wptresults
-			#wpt_remotewrapper
+			say_ok
+			useallusers
+			getlocaldomainlist
+			mkdir $dir/wptresults
+			wpt_remotewrapper
 			exitcleanup 405;;
 		wc)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
-                        #useallusers
-                        #getlocaldomainlist
-			#> $hostsfile_alt
-			#for user in $userlist; do
-			#	hosts_file $user &> /dev/null
-			#done
-			#mkdir $dir/wptresults
-			#wpt_compare
+			say_ok
+                        useallusers
+                        getlocaldomainlist
+			> $hostsfile_alt
+			for user in $userlist; do
+				hosts_file $user &> /dev/null
+			done
+			mkdir $dir/wptresults
+			wpt_compare
 			exitcleanup 405;;
 		ma)	synctype="email"
 			synctype_logic;;
@@ -149,7 +152,9 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			ec yellow "Hey I'm gonna dos your source server now. I'll run 5 concurrent connections for 10 seconds per domain, ALL AGAINST LIVE DNS. YOU MIGHT MESS UP SOMEONES DAY REAL BAD IF YOU DO A LOT OF DOMAINS."
 			useallusers
 			getlocaldomainlist
-			ab_test_remotewrapper
+			if yesNo "Are you sure you want to continue? DID YOU HEAR ME SAY DOS?"; then
+				ab_test_remotewrapper
+			fi
 			exitcleanup 406;;
 		0)	echo "Bye..."
 			exitcleanup 99;;
