@@ -11,26 +11,10 @@ detect_apps() { # look for common extra applications
 	maldet=`sssh "which maldet 2> /dev/null"`
 	[ $(awk -F= '/^skipspamassassin=/ {print $2}' $dir/var/cpanel/cpanel.config) = 0 ] && [ $(awk -F= '/^skipspamassassin=/ {print $2}' /var/cpanel/cpanel.config) = 1 ] && spamassassin=1
 	java=`sssh "which java 2> /dev/null"`
-	if [ "$java" ]; then
-		local javafullver=`sssh "java -version 2>&1" | head -n1 | cut -d\" -f2`
-		if [ $(echo $javafullver | cut -d. -f1) -eq 1 ]; then #1.6 through 1.8
-			javaver=$(echo $javafullver | cut -d. -f2)
-		else #larger versions
-			javaver=$(echo $javafullver | cut -d. -f1)
-		fi
-		#plbake only compatible with 1.7, 1.8, 11, 17, and 21 (as of dec 2023)
-		case $javaver in
-			7|8|11|17|21) :;;
-			*) javaver=11;;
-		esac
-	fi
 	[ "$java" ] && solr=`sssh "/etc/init.d/solr status 2> /dev/null"` #might be a more universal check method
-	if [ "$solr" ] && [ "$javaver" -le 8 ]; then
-		#latest solr install requires java 11+
-		javaver=11
-	fi
 	wkhtmltopdf=`sssh "which wkhtmltopdf 2> /dev/null"`
 	pdftk=`sssh "which pdftk 2> /dev/null"`
+	[ "$pdftk" ] && [ ! "$java" ] && java=1
 	sssh "pgrep postgres &> /dev/null" || sssh "pgrep postmaster &> /dev/null" && postgres="found"
 	nodejs=`sssh "which node 2> /dev/null"`
 	npm=`sssh "which npm 2> /dev/null"`

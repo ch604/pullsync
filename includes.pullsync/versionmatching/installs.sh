@@ -364,13 +364,13 @@ installs() { # install all of the things we found and enabled
 					ec green "Success!"
 					localea=EA4
 					ea4phpextras
-					#apacheextras
+					apacheextras
 				else
 					ec red "EA failed! (cant find php binary) Installing default profile... (less $dir/ea4.profile.install.log)" | errorlogit 2
 					yum -y -q install ea-profiles-cpanel 2>&1 | stderrlogit 4
 					ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json
 					ea4phpextras
-					#apacheextras
+					apacheextras
 				fi
 			fi
 		fi
@@ -380,34 +380,11 @@ installs() { # install all of the things we found and enabled
 	if [ $noeaextras ]; then
 		# run the php extras and apache extras without running ea
 		ea4phpextras
-		#apacheextras
+		apacheextras
 	fi
 
 	# tomcat
 	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85 2>&1 | stderrlogit 4
-
-	# modsec
-	if [ $modsecimport ]; then
-		ec yellow "Copying modsec2 whitelist.conf..."
-		# set modsec folder per ea version
-		[ "$localea" = "EA4" ] && modsecroot="/etc/apache2/conf.d/modsec2" || modsecroot="/usr/local/apache/conf/modsec2"
-		cp -a $modsecroot/whitelist.conf{,.pullsync.bak}
-		# copy in the content of either modsec whitelist if either has size
-		if [ -s $dir/usr/local/apache/conf/modsec2/whitelist.conf ]; then
-			cat $dir/usr/local/apache/conf/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
-		elif [ -s $dir/etc/apache2/conf.d/modsec2/whitelist.conf ]; then
-			cat $dir/etc/apache2/conf.d/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
-		else
-			ec red "Neither EA3 or EA4 modsec2 whitelist from source had content!" | errorlogit 4
-		fi
-		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
-		if [ ! "${PIPESTATUS[0]}" = "0" ]; then
-			# apache restart failed because of some addition to the whitelist, revert
-			ec red "Couldn't restart apache! Reverting changes..."
-			mv -f $modsecroot/whitelist.conf{.pullsync.bak,}
-			/scripts/restartsrv_apache 2>&1 | stderrlogit 3
-		fi
-	fi
 
 	# modcloudflare
 	[ "$modcloudflare" ] && ec yellow "Installing mod_cloudflare plugin..." && yum -y -q install lw-mod_cloudflare-cpanel.noarch 2>&1 | stderrlogit 4
@@ -415,30 +392,18 @@ installs() { # install all of the things we found and enabled
 	# ffmpeg; install ffmpeg binary only
 	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG..." && yum --enablerepo=epel -y -q localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm --eval %rhel).noarch.rpm 2>&1 | stderrlogit 4 && yum -y -q install ffmpeg ffmpeg-devel 2>&1 | stderrlogit 4
 
-	# imagick; install magickwand via plbake and php plugins via make or pecl
-	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q remove lw-ImageMagick* ImageMagick ImageMagick-devel
-yum -y -q install ImageMagick ImageMagick-devel &&
+	# imagick
+	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q install ImageMagick ImageMagick-devel pcre-devel &&
 [ -f /etc/cpanel/ea4/is_ea4 ] &&
-cd /usr/local/src &&
-wget http://files.liquidweb.com/scripts/plBake/packages/imagemagick/MagickWandForPHP-1.0.9-2.tar.gz &&
-tar -zxvf MagickWandForPHP-1.0.9-2.tar.gz &&
-cd MagickWandForPHP-1.0.9 &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -e php4 -e php5); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install imagick
 	list=\$(grep -E -Rl ^extension=[\\\"]?imagick.so[\\\"]?$ /opt/cpanel/\$each/root/etc/php.d/)
 	count=\$(echo \"\$list\" | wc -l)
 	if [ \$count -gt 1 ]; then
-	for i in \$(echo \"\$list\" | sort | head -n\$((\$count - 1))); do
-		sed -i '/imagick.so/ s/^/;/' \$i
-	done
+		for i in \$(echo \"\$list\" | sort | head -n\$((\$count - 1))); do
+			sed -i '/imagick.so/ s/^/;/' \$i
+		done
 	fi
-done &&
-for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
-	/opt/cpanel/\$each/root/usr/bin/phpize &&
-	./configure --with-php-config=/opt/cpanel/\$each/root/usr/bin/php-config &&
-	make && make install &&
-	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q magickwand || echo 'extension=magickwand.so' >> /opt/cpanel/\$each/root/etc/php.d/20-magickwand.ini)
-	make clean
 done"
 
 	# apc; install extension via pecl
@@ -455,30 +420,28 @@ done"
 	[ "$sodium" ] && ec yellow "Installing PHP libsodium in a separate screen..." && screen -S sodium -d -m bash -c "yum --enablerepo=epel -y install libsodium libsodium-devel && for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v -e php5 -e php4 ); do /opt/cpanel/$each/root/usr/bin/pecl install libsodium; done; /scripts/restartsrv_apache_php_fpm"
 
 	# solr; install via plbake and extensions via make
-	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "/scripts/plbake solr8
-cd /usr/local/src &&
-wget http://pecl.php.net/get/solr &&
-tar -zxvf solr &&
-cd solr-* &&
-[ -f /etc/cpanel/ea4/is_ea4 ] &&
+	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "cd /usr/local/src &&
+rm -rf /usr/local/src/solr-*
+wget https://archive.apache.org/dist/lucene/solr/8.9.0/solr-8.9.0.tgz &&
+tar -zvf solr-8.9.0.tgz &&
+cd /usr/local/src/solr-8.9.0/bin/ &&
+/install_solr_service.sh /usr/local/src/solr-8.9.0.tgz &&
+systemctl enable solr &&
+systemctl start solr &&
+[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install solr ||
+yum -y -q install libcurl-devel &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
-	/opt/cpanel/\$each/root/usr/bin/phpize &&
-	./configure --with-curl=/opt/curlssl --with-libxml-dir=/opt/xml2/ --with-php-config=/opt/cpanel/\$each/root/usr/bin/php-config &&
-	make && make install &&
-	echo 'extension=solr.so' >> /opt/cpanel/\$each/root/etc/php.d/20-solr.ini &&
-	make clean
-done
-[ ! -f /etc/cpanel/ea4/is_ea4 ] && phpize && ./configure --with-curl=/opt/curlssl --with-libxml-dir=/opt/xml2/ && make && make install"
+	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install solr
+done"
 
 	# redis; install via epel and extensions via pecl
 	[ "$redis" ] && ec yellow "Installing redis in separate screen..." && screen -S redis -d -m bash -c "yum --enablerepo=epel -y install redis &&
 service redis start &&
 systemctl enable redis &&
-[ -f /etc/cpanel/ea4/is_ea4 ] &&
+[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install redis ||
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install redis
-done
-[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install redis"
+done"
 
 	# nodejs before elasticsearch, just in case
 	if [ $nodejs ]; then
@@ -514,14 +477,19 @@ systemctl enable elasticsearch &&
 systemctl start elasticsearch &&
 echo \"elasticsearch:1\" >> /etc/chkserv.d/chkservd.conf &&
 echo \"service[elasticsearch]=x,x,x,/bin/systemctl restart elasticsearch.service,elasticsearch,elasticsearch\" >> /etc/chkserv.d/elasticsearch &&
-PATH=\$PATH:\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/ &&
+PATH=\$PATH:\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs | head -1)/bin/ &&
 npm install elasticdump -g &&
-ssh ${sshargs} ${ip} \"[ -f /etc/cpanel/ea4/is_ea4 ] && yum -y install ea4-nodejs && PATH=\\\$(echo \\\$PATH:\\\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/) && npm install elasticdump -g && mkdir $remote_tempdir/elastic && multielasticdump --direction=dump --input=http://localhost:9200 --output=$remote_tempdir/elastic/\" &&
+ssh ${sshargs} ${ip} \"[ -f /etc/cpanel/ea4/is_ea4 ] && yum -y install ea4-nodejs && PATH=\\\$(echo \\\$PATH:\\\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs | head -1)/bin/) && npm install elasticdump -g && mkdir $remote_tempdir/elastic && multielasticdump --direction=dump --input=http://localhost:9200 --output=$remote_tempdir/elastic/\" &&
 rsync $rsyncargs --bwlimit=$rsyncspeed -e \"ssh $sshargs\" $ip:$remote_tempdir/elastic $dir/ &&
 multielasticdump --direction=load --input=$dir/elastic --output=http://localhost:9200"
 
 	# wkhtmltopdf
-	[ "$wkhtmltopdf" ] && ec yellow "Installing wkhtmltopdf..." && /scripts/plbake wkhtmltox
+	if [ "$wkhtmltopdf" ]; then
+		ec yellow "Installing wkhtmltopdf..."
+		if [ $(rpm --eval %rhel) -le 7 ]; then
+			yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.centos$(rpm --eval %rhel).x86_64.rpm 2>&1 | stderrlogit 4
+		else
+			yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-3/wkhtmltox-0.12.6-3.almalinux$(rpm --eval %rhel).x86_64.rpm 2>&1 | stderrlogit 4
 
 	# pdftk
 	if [ "$pdftk" ]; then
@@ -623,8 +591,6 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 				/bin/ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
 					/scripts/featuremod --feature passengerapps --value enable --list "$list"
 				done
-			else #ea3
-				screen -S passenger -d -m /scripts/plbake passenger
 			fi
 		fi
 		# install any rails versions first

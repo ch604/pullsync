@@ -78,7 +78,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $upcp ] && echo "* ran upcp"
 		[ $upgrademysql ] && echo "* upgraded mysql"
 		[ $rubymatch ] && echo "* matched ruby gems"
-		[ "$java" ] && echo "* installed java $javaver"
+		[ "$java" ] && echo "* installed java"
 		[ "$tomcat" ] && echo "* installed ea-tomcat85"
 		[ "$postgres" ] && echo "* installed postgresql"
 		[ "$includeschanges" ] && echo "* replaced files in /usr/local/apache/conf/includes/"
