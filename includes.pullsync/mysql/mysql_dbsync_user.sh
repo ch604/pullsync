@@ -1,4 +1,4 @@
-mysql_dbsync_2(){ # syncs the databases for the user passed as $1. if the db doesnt exist, creates it and attempts to add grants. progress as #/# is passed as $2.
+mysql_dbsync_user(){ # syncs the databases for the user passed as $1. if the db doesnt exist, creates it and attempts to add grants. progress as #/# is passed as $2.
 	# get the passed variable
 	local user=$1
 	local progress="$2 | $user:"
@@ -67,17 +67,21 @@ mysql_dbsync_2(){ # syncs the databases for the user passed as $1. if the db doe
 			local tableprog="$n/$table_count"
 			ec purple "$progress Streaming dump of $db.$tb ($dbprog, $tableprog) to target..."
 			# perform the dump in a subshell to collect the pipestatus, getting exit code for the dump and the import at the same time
-			local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+			if [ "$nodbscan" ]; then
+				local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+			else
+				local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | tee >(dbscan) | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+			fi
 			# turn the pipestatus into a usable array
 			declare -a status=( ${DUMP##*:} )
 
 			# parse the status to see if anything failed
 			if [ ! "${status[0]}" = "0" ]; then
-				# dump failed, retry
+				# dump failed, retry without dbscan
 				ec red "$progress Dump of $db.$tb ($dbprog, $tableprog) returned non-zero exit code!"
 				echo "${status[@]}"
 				tail -n3 $dir/log/dbsync.log
-				ec red "$progress Retrying dump of $db.$tb ($dbprog, $tableprog)..."
+				ec red "$progress Retrying dump of $db.$tb ($dbprog, $tableprog) without dbscan..."
 				DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
 				declare -a status=( ${DUMP##*:} )
 				if [ ! "${status[0]}" = "0" ]; then

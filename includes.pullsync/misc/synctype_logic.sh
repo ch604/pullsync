@@ -1,6 +1,5 @@
 synctype_logic() { #case statement for performing server to server sync tasks. gets specific variables and establishes ssh connection via oldmigrationcheck() before starting.
 	echo "synctype: $synctype" | logit
-	printf "\e]0; pullsync-$(hostname) \a" 1>&2
 
 	oldmigrationcheck # see if any old migrations exist and option to use these for connection info
 	if [ "$oldip" ]; then
@@ -62,7 +61,8 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			securityfeatures
 			dnsclustering
 			cpnat_check
-			[ ! "$ipswap" -a ! "$stormipswap" ] && dnscheck
+			#skip dnscheck if theres already a nameserver_summary.txt copied from olddir, or if ipswap set
+			[ ! "$ipswap" ] && [ ! -f $dir/nameserver_summary.txt ] && dnscheck
 			printrdns
 			finalsync_main
 			;;
@@ -93,12 +93,14 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			getuserlist
 			unowneddbs
 			mysql_listgen
+			if yesNo "Do you want to use dbscan during the transfer?"; then unset nodbscan; else nodbscan=1; fi
 			if yesNo "Do you want to backup sql files before import? (recommended)"; then unset skipsqlzip; else skipsqlzip=1; fi
 			misc_ticket_note
 			lastpullsyncmotd
 			parallel_mysql_dbsync
 			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly, please recheck:" && cat $dir/dbdump_fails.txt
 			[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
+			[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually:" && cat $dir/dbmalware.txt
 			for user in $userlist; do
 				eternallog $user
 			done

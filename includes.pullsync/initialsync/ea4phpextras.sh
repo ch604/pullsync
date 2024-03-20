@@ -21,7 +21,6 @@ ea4phpextras () { #run after ea4 to match handler, default version, and variable
 		[ "$matchhandler" = "cgi" ] && yum -y -q install ea-apache24-mod_suexec 2>&1 | stderrlogit 4
 		/usr/local/cpanel/bin/whmapi1 php_set_handler version=$defaultea4profile handler=$matchhandler
 	fi
-	# csf.pignore is handled by lw-csf-rules yum install during finish_up()
 
 	# fcgi
 	if [ $fcgiconvert ]; then

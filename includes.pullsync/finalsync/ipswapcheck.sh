@@ -2,10 +2,10 @@ ipswapcheck() { #logic check and query tech as to whether an ip swap should be p
 	local remotecount=$(echo $userlist | wc -w)
 	local localcount=$(\ls -A /var/cpanel/users/ | egrep -vx "${badusers}" | wc -w)
 
-	# ignore virtual servers
-	if lscpu | grep -q ^Hypervisor\ vendor || sssh "lscpu" | grep -q ^Hypervisor\ vender; then
-		ec yellow "Source and/or target server are virtual, skipping IP swap logic."
-	# we should be left with dedi to dedi servers, ask if ip swap
+	# make sure that source and target are either both nat or both non-nat (TODO doesnt make sure that the prefixes match)
+	if [ "$(echo $cpanel_main_ip | grep -E "^($natprefix)")" -a "$(echo $ip | grep -vE "^($natprefix)")" ] || [ "$(echo $ip | grep -E "^($natprefix)")" -a "$(echo $cpanel_main_ip | grep -vE "^($natprefix)")" ]; then
+		ec yellow "One server has natted IPs, and the other does not ($ip, $cpanel_main_ip). Skipping IP swap logic."
+		unset ipswap
 	elif yesNo "Is this an IP swap final sync? (WARNING this feature is not IPv6 compatible!)"; then
 		[ ! "${STY}" ] && ec red "You do not seem to be in a screen session! The IP swap will destroy the running script when the networking changes! I'm exiting now, please restart the script in a screen." && exitcleanup 80
 		[ $remotecount -ne $localcount ] && ec red "Userlist count is DIFFERENT between both servers (counted $remotecount and $localcount)! ABORT!" && exitcleanup 50

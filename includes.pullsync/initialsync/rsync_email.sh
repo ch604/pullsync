@@ -11,7 +11,7 @@ rsync_email() { # $1 is progress position, $2 is user. rsync just the mail folde
 			# copy the folder
 			rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" ${ip}:${userhome_remote}/mail :${userhome_remote}/etc $userhome_local/
 			# sync forwarders
-			for dom in $(grep -e ^DNS[0-9]*= $dir/var/cpanel/users/$user | cut -d= -f2); do
+			for dom in $(awk -F= '/^DNS[0-9]*=/ {print $2}' $dir/var/cpanel/users/$user); do
 				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" ${ip}:/etc/valiases/$dom /etc/valiases/
 			done
 			# write to eternal log

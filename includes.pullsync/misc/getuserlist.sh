@@ -86,7 +86,7 @@ getuserlist() { # get user list for different sync types
 	fi
 
 	#generate domainlist to go with userlist
-	domainlist=$(for user in $userlist; do grep ^DNS.*= $dir/var/cpanel/users/$user | cut -d= -f2; done)
+	domainlist=$(for user in $userlist; do awk -F= '/^DNS.*=/ {print $2}' $dir/var/cpanel/users/$user; done)
 	echo $domainlist > $dir/domainlist.txt
 
 	#reorder the userlist so resellers are first

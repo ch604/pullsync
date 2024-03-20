@@ -1,21 +1,33 @@
 mysql_remote_profiles() { #check for remote profiles on both servers
-	# perform a bunch of python to parse the json files and determine if there are additionl mysql profiles
-	if [ -s $dir/var/cpanel/mysql/remote_profiles/profiles.json ] && cat $dir/var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; hosts=json.load(sys.stdin).keys(); print "\n".join(hosts)' | grep -vq localhost; then #see if there are any non-localhost mysql profiles
-		remoteactiveprofile=$(for host in $(cat $dir/var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; hosts=json.load(sys.stdin).keys(); print "\n".join(hosts)'); do active=$(cat $dir/var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; active=json.load(sys.stdin); print (active["'$host'"]["active"])'); echo "$host $active"; done | grep 1$ | awk '{print $1}')
-		if [ ! "$remoteactiveprofile" = "localhost" ]; then
-			ec red "Remote server has non-localhost mysql profiles and may be using a remote database server (with a profile named \"$remoteactiveprofile\"). This is normally not a problem, just wanted to let you know."
-		fi
+	if [ -f $dir/var/cpanel/mysql_status ] && grep -q "remote=1" $dir/var/cpanel/mysql_status; then
+		ec red "Source server has remote mysql server. This is normally not a problem, just wanted to let you know."
+		sourceremotemysql=1
 	fi
 	# do the same on target server
-	if [ -s /var/cpanel/mysql/remote_profiles/profiles.json ] && cat /var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; hosts=json.load(sys.stdin).keys(); print "\n".join(hosts)' | grep -vq localhost; then
-		localactiveprofile=$(for host in $(cat /var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; hosts=json.load(sys.stdin).keys(); print "\n".join(hosts)'); do active=$(cat /var/cpanel/mysql/remote_profiles/profiles.json | python -c 'import sys,json; active=json.load(sys.stdin); print (active["'$host'"]["active"])'); echo "$host $active"; done | grep 1$ | awk '{print $1}')
-		if [ ! "$localactiveprofile" = "localhost" ]; then
-			ec red "Local server has non-localhost mysql profiles and may be using a remote database server (with a profile named \"$localactiveprofile\"). This is normally not a problem, just wanted to let you know."
+	if [ -f /var/cpanel/mysql_status ] && grep -q "remote=1" /var/cpanel/mysql_status; then
+		ec red "Target server has remote mysql server. This is normally not a problem, just wanted to let you know."
+		targetremotemysql=1
+		if [ ! -s /var/cpanel/mysqlaccesshosts ]; then
+			ec lightRed "Target server does not have any mysql access hosts set up!"
+			if yesNo "Do you want me to do that for you?"; then
+				for ip in $(whmapi1 listips --output=json | python -c 'import sys,json; data=json.load(sys.stdin); print("\n".join(list(map(lambda i:data["data"]["ip"][i]["ip"], range(len(data["data"]["ip"]))))))') $(hostname) $(hostname | cut -d. -f1); do
+					echo "$ip" >> /var/cpanel/mysqlaccesshosts
+				done
+				if whmapi1 listips | grep -q \ 192.168; then
+					echo "192.168.%" >> /var/cpanel/mysqlaccesshosts
+				fi
+				if whmapi1 listips | grep -q \ 172.16; then
+					echo "172.16.%" >> /var/cpanel/mysqlaccesshosts
+				fi
+			else
+				ec Red "Suit yourself!"
+				ec Red "Dont forget to set up mysql access hosts and make sure grants are working!" | errorlogit 3
+			fi
 		fi
 	fi
 	# throw a big flag if both servers have remote mysql
-	if [ "$remoteactiveprofile" ] && [ "$localactiveprofile" ] && [ ! "$remoteactiveprofile" = "localhost" ] && [ ! "$localactiveprofile" = "localhost" ]; then
-		ec lightRed "I think that both servers are using remote mysql. If they are using the same remote mysql host, THIS IS A BIG PROBLEM. STOP HERE AND INVESTIGATE."
+	if [ "$sourceremotemysql" ] && [ "$targetremotemysql" ]; then
+		ec lightRed "I think that both servers are using remote mysql. If they are using the SAME remote mysql host, THIS IS A BIG PROBLEM. STOP HERE AND INVESTIGATE."
 		say_ok
 	fi
 }

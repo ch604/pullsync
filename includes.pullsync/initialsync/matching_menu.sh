@@ -5,7 +5,7 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 			2 "Match Ruby gems" off
 			3 "Run UPCP" off
 			4 "Copy CL altphp and LVE settings" off
-			5 "Copy WHM Tweak Settings (this changes a lot more stuff now!)" on
+			5 "Copy WHM Tweak Settings" on
 			6 "Copy CSF rules" off
 			7 "Match timezone data" off
 			8 "Match sql_mode and innodb_strict_mode" on
@@ -28,8 +28,8 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 	#csf rules (15 16 17)
 	[ -e $dir/etc/csf/csf.allow ] && [ -e /etc/csf/csf.allow ] && options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) CSF detected on both servers"`
 	#timezone (18 19 20)
-	[ -f $dir/etc/sysconfig/clock ] && remotetimezonefile=`cat $dir/etc/sysconfig/clock | grep ^ZONE | cut -d\" -f2` || remotetimezonefile=`sssh "[ -x /bin/timedatectl ] && timedatectl | grep zone\: | cut -d\: -f2 | awk '{print $1}'"`
-	[ -f /etc/sysconfig/clock ] && localtimezonefile=`cat /etc/sysconfig/clock | grep ^ZONE | cut -d\" -f2` || localtimezonefile=`[ -x /bin/timedatectl ] && timedatectl | grep zone\: | cut -d\: -f2 | awk '{print $1}'`
+	[ -f $dir/etc/sysconfig/clock ] && remotetimezonefile=$(awk -F\" '/^ZONE/ {print $2}' $dir/etc/sysconfig/clock) || remotetimezonefile=$(sssh "which timedatectl &>/dev/null && timedatectl" | awk '/zone:/ {print $3}')
+	[ -f /etc/sysconfig/clock ] && localtimezonefile=$(awk -F\" '/^ZONE/ {print $2}' /etc/sysconfig/clock) || localtimezonefile=$(which timedatectl &>/dev/null && timedatectl | awk '/zone:/ {print $3}')
 	remotetimezone=`sssh "date +%z"`
 	localtimezone=`date +%z`
 	if ! [ -z "${remotetimezone}" -o -z "${localtimezone}" -o -z "${remotetimezonefile}" -o -z "${localtimezonefile}" ]; then
@@ -38,14 +38,19 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 			cmd[8]=`echo "${cmd[8]}\n(7) Timezones do not match (L=${localtimezone}, R=${remotetimezone}) and can be matched"`
 		fi
 	fi
+	#sql_mode (21 22 23)
+	if echo $local_os | grep -q AlmaLinux; then
+		options[23]=off
+		cmd[8]=`echo "${cmd[8]}\n(8) Target server is AlmaLinux, not matching sql_mode"`
+	fi
 	#pgsql (24 25 26)
 	if [ "$postgres" ] && [ ! -d /var/lib/pgsql ]; then
 		options[26]=on
 		cmd[8]=`echo "${cmd[8]}\n(9) Postgres detected on source and not target"`
 	fi
 	#exim26 (27 28 29)
-	remote_exim_ports=`grep ^daemon_smtp_ports $dir/etc/exim.conf | cut -d\= -f2 | tr -d ' ' | tr ':' '\n' | sort`
-	local_exim_ports=`grep ^daemon_smtp_ports /etc/exim.conf | cut -d\= -f2 | tr -d ' ' | tr ':' '\n' | sort`
+	remote_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' $dir/etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
+	local_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' /etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
 	[ "$remote_exim_ports" != "$local_exim_ports" ] && ! grep -q ^exim-26 /etc/chkserv.d/chkservd.conf && options[29]=on && cmd[8]=`echo "${cmd[8]}\n(10) Exim ports do not match (L=$local_exim_ports, R=$remote_exim_ports)"`
 	#mysqlup (39 40 41)
 	[ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$remotemysql" ] && [ ! "$remotemysql" = "$localmysql" ] && /usr/local/cpanel/bin/whmapi1 installable_mysql_versions | grep -q \'${remotemysql}\' && options[41]=on && cmd[8]=`echo "${cmd[8]}\n(14) MySQL version is greater on source server (L=${localmysql}, R=${remotemysql}) and can be matched"`
@@ -59,16 +64,16 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 	fi
 	#mysql settings (45 46 47)
 	if [ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$localmysql" ] && [ $(( $local_mem + 500 )) -ge $remote_mem ]; then
-		remote_sql_ibps=$(sssh "mysql -Nse 'select @@innodb_buffer_pool_size'")
-		remote_sql_ibpi=$(sssh "mysql -Nse 'select @@innodb_buffer_pool_instances'")
-		remote_sql_toc=$(sssh "mysql -Nse 'select @@table_open_cache'")
-		remote_sql_kbs=$(sssh "mysql -Nse 'select @@key_buffer_size'")
-		remote_sql_mc=$(sssh "mysql -Nse 'select @@max_connections'")
-		local_sql_ibps=$(mysql -Nse 'select @@innodb_buffer_pool_size')
-		local_sql_ibpi=$(mysql -Nse 'select @@innodb_buffer_pool_instances')
-		local_sql_toc=$(mysql -Nse 'select @@table_open_cache')
-		local_sql_kbs=$(mysql -Nse 'select @@key_buffer_size')
-		local_sql_mc=$(mysql -Nse 'select @@max_connections')
+		remote_sql_ibps=$(sssh "mysql -Nse 'select @@innodb_buffer_pool_size' 2>/dev/null")
+		remote_sql_ibpi=$(sssh "mysql -Nse 'select @@innodb_buffer_pool_instances' 2>/dev/null")
+		remote_sql_toc=$(sssh "mysql -Nse 'select @@table_open_cache' 2>/dev/null")
+		remote_sql_kbs=$(sssh "mysql -Nse 'select @@key_buffer_size' 2>/dev/null")
+		remote_sql_mc=$(sssh "mysql -Nse 'select @@max_connections' 2>/dev/null")
+		local_sql_ibps=$(mysql -Nse 'select @@innodb_buffer_pool_size' 2>/dev/null)
+		local_sql_ibpi=$(mysql -Nse 'select @@innodb_buffer_pool_instances' 2>/dev/null)
+		local_sql_toc=$(mysql -Nse 'select @@table_open_cache' 2>/dev/null)
+		local_sql_kbs=$(mysql -Nse 'select @@key_buffer_size' 2>/dev/null)
+		local_sql_mc=$(mysql -Nse 'select @@max_connections' 2>/dev/null)
 		if [ ${remote_sql_ibps} -gt ${local_sql_ibps} ] || [ ${remote_sql_ibpi} -gt ${local_sql_ibpi} ] || [ ${remote_sql_toc} -gt ${local_sql_toc} ] || [ ${remote_sql_kbs} -gt ${local_sql_kbs} ] || [ ${remote_sql_mc} -gt ${local_sql_mc} ]; then
 			options[47]=on
 			cmd[8]=`echo "${cmd[8]}\n(16) One or more critical MySQL variables are higher on source than on target, local MySQL version is greater or equal to source, and local memory is greater or equal to source; critical variables are innodb buffer pool size/instances, table open cache, key buffer size, and max connections."`
@@ -121,7 +126,7 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 	! echo $choices | grep -q -x 9 && unset postgres
 	for choice in $choices; do
 		case $choice in
-			1)	grep ^CONTACTEMAIL\  $dir/etc/wwwacct.conf | awk '{print $2}' > $dir/whmcontact.txt
+			1)	awk '/^CONTACTEMAIL / {print $2}' $dir/etc/wwwacct.conf > $dir/whmcontact.txt
 				setcontact=1;;
 			2)	rubymatch=1;;
 			3)	upcp=1;;

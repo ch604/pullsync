@@ -26,6 +26,11 @@ securityfeatures() { #look for common security features on source
 		ec red "There are $keycount active SSH keys in remote /root/.ssh/authorized_keys!" | errorlogit 3
 		local securityfeat=1
 	fi
+	if [ -f $dir/var/cpanel/authn/api_tokens_v2/whostmgr/root.json ] && cat $dir/var/cpanel/authn/api_tokens_v2/whostmgr/root.json | python -c 'import sys,json; tokens=json.load(sys.stdin); print(tokens["tokens"])' | grep -q -v '{}'; then
+		# tokens exist within api_tokens_v2 json file of any type
+		ec red "There are WHM Access Tokens on the source server! (checked against /var/cpanel/authn/api_tokens_v2/whostmgr/root.json)" | errorlogit 3
+		local securityfeat=1
+	fi
 	if [ $securityfeat ]; then
 		# of any of the above if statements were triggered, print a warning
 		ec lightRed "Please make sure the above items are implemented after the final sync is complete! All relevant remote files are stored in $dir. (logged in $dir/error.log)"

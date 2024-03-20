@@ -4,22 +4,20 @@ security_menu() { #run outside of matching_menu() in case version matching is no
 			2 "Enable mod_reqtimeout (fight slowloris)" on
 			3 "Disable mod_userdir (fight XSS)" on)
 
-	# turn things on front to back
-
 	# turn things off back to front
 	#mod_userdir (6 7 8)
-	if rpm --quiet -q ea-apache24-mod_mpm_itk || rpm --quiet -q ea-apache24-mod_ruid2 || rpm --quiet -q ea-ruby24-mod_passenger; then
-		unset options[6] options[7] options[8] && cmd[8]=`echo "${cmd[8]}\n(3) mod_userdir already disabled"`
+	if rpm --quiet -q ea-apache24-mod_mpm_itk || rpm --quiet -q ea-apache24-mod_ruid2 || rpm --quiet -q ea-ruby24-mod_passenger || rpm --quiet -q ea-apache24-mod-passenger; then
+		unset options[8] options[7] options[6] && cmd[8]=`echo "${cmd[8]}\n(3) mod_userdir already disabled"`
 	fi
 
 	#mod_reqtimeout (3 4 5)
 	if rpm --quiet -q ea-apache24-mod_reqtimeout; then
-		unset options[3] options[4] options[5] && cmd[8]=`echo "${cmd[8]}\n(2) mod_reqtimeout already enabled"`
+		unset options[5] options[4] options[3] && cmd[8]=`echo "${cmd[8]}\n(2) mod_reqtimeout already enabled"`
 	fi
 
 	#mod_evasive (0 1 2)
 	if rpm --quiet -q ea-apache24-mod_evasive; then
-		unset options[0] options[1] options[2] && cmd[8]=`echo "${cmd[8]}\n(1) mod_evasive already enabled"`
+		unset options[2] options[1] options[0] && cmd[8]=`echo "${cmd[8]}\n(1) mod_evasive already enabled"`
 	fi
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)

@@ -5,10 +5,10 @@ summarize() { #summarize the migrations run on this server
 		ec yellow "Detected ${#oldlist[@]} previous pullsync folders."
 		ec yellow "Putting summary of each in $dir/summary.txt..."
 		for each in ${oldlist[@]}; do
-			local oec=$(grep exit\ code\:\  /home/temp/$each/pullsync.log | awk '{print $NF}')
+			local oec=$(awk '/exit code: / {print $NF}' /home/temp/$each/pullsync.log)
 			echo -e "---------------\n$each"
 			echo "started by $(cat /home/temp/$each/youdidthis)"
-			echo "synctype was $(grep synctype\:\  /home/temp/$each/pullsync.log | awk '{print $NF}')"
+			echo "synctype was $(awk '/synctype: / {print $NF}' /home/temp/$each/pullsync.log)"
 			echo "exit code $oec indicates:"
 			case $oec in
 				0) echo "success" ;;
@@ -26,12 +26,13 @@ summarize() { #summarize the migrations run on this server
 				99) echo "exit from menu or non-cpanel source/target" ;;
 				120) echo "final sync aborted from failed mysqldumps" ;;
 				130) echo "control-c pushed" ;;
+				132) echo "tried to migrate mysql 8 into some other mysql version" ;;
 				140) echo "pip/pyyaml failed to install" ;;
 				400) echo "success (hosts file gen)" ;;
 				401) echo "success (marill gen)" ;;
 				402) echo "success (dns check)" ;;
 				403) echo "success (summarize)" ;;
-				404) echo "finalsolution complete.... hang on a sec...." ;;
+				404) echo "uninstall complete.... hang on a sec...." ;;
 				405) echo "success (webpagetest)" ;;
 				406) echo "success (apache benchmark)" ;;
 				*) echo "i'm not actually sure..." ;;

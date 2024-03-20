@@ -26,7 +26,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			# abort if users exist on autopilot
 			check_existing_users
 			# match CONTACTEMAIL
-			[ ! -f $dir/whmcontact.txt ] && grep ^CONTACTEMAIL\  $dir/etc/wwwacct.conf | awk '{print $2}' > $dir/whmcontact.txt
+			[ ! -f $dir/whmcontact.txt ] && awk '/^CONTACTEMAIL / {print $2}' $dir/etc/wwwacct.conf > $dir/whmcontact.txt
 			# do safe things and fuzzy matching
 			rubymatch=1
 			copytweak=1
@@ -45,8 +45,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			security_auto
 		fi
 		# bring over whm packages and features
-		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"/var/cpanel/packages /var/cpanel/features" /var/cpanel/
-		[ $? -ne 0 ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/cpanel/packages :/var/cpanel/features /var/cpanel/
+		rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/cpanel/packages :/var/cpanel/features /var/cpanel/ 2>/dev/null
 	fi
 
 	# optional items menu, run for all synctypes
@@ -79,16 +78,16 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $upcp ] && echo "* ran upcp"
 		[ $upgrademysql ] && echo "* upgraded mysql"
 		[ $rubymatch ] && echo "* matched ruby gems"
-		[ "$java" ] && echo "* installed java 1.$javaver"
-		[ "$tomcat" ] && echo "* installed tomcat 8"
+		[ "$java" ] && echo "* installed java"
+		[ "$tomcat" ] && echo "* installed ea-tomcat85"
 		[ "$postgres" ] && echo "* installed postgresql"
 		[ "$includeschanges" ] && echo "* replaced files in /usr/local/apache/conf/includes/"
 		[ "$modcloudflare" ] && echo "* installed mod_cloudflare"
 		[ "$match_sqlmode" ] && echo "* matched sql_mode and innodb_strict_mode"
 		[ "$ea" ] && echo "* ran easyapache"
-		[ "$matchhandler" ] && echo "* set global php handler to $matchhandler"
-		[ $fcgiconvert ] && echo "* converted arriving accounts to fcgi"
-		[ "$ffmpeg" ] && echo "* installed ffmpeg-php"
+		[ $matchhandler ] && echo "* matched php handlers"
+		[ $fpmconvert ] && echo "* converted arriving accounts to fpm"
+		[ "$ffmpeg" ] && echo "* installed ffmpeg"
 		[ "$imagick" ] && echo "* installed imagemagick, imagick, and magickwand"
 		[ "$memcache" ] && echo "* installed memcached-full"
 		[ "$apc" ] && echo "* installed apc/apcu"
@@ -100,10 +99,11 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ "$pdftk" ] && echo "* installed pdftk"
 		[ "$redis" ] && echo "* installed redis and php plugins"
 		[ "$elasticsearch" ] && echo "* installed elasticsearch and copied indexes"
-		[ "$solr" ] && echo "* installed solr${solrver} and php plugins"
+		[ "$solr" ] && echo "* installed solr8 and php plugins"
 		[ "$installcpanelsolr" ] && echo "* installed cpanels solr"
 		[ "$matchmysqlvariables" ] && echo "* matched critical mysql variables"
 		[ "$cmc" ] || [ "$cmm" ] || [ "$cmq" ] || [ "$cse" ] || [ "$mailscanner" ] && echo "* installed configserver plugins"
+		[ "$modsecimport" ] && echo "* imported modsec2/whitelist.conf"
 		[ $eximon26 ] && echo "* added exim-26"
 		[ $cloudlinuxconfig ] && echo "* copied cloudlinux settings"
 		[ $enabledbackups ] && echo "* turned on cpanel backups"
@@ -116,7 +116,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $memcache ] && echo "* installed memcache and its php connectors"
 		[ $fpmdefault ] && echo "* set all sites to use php-fpm"
 		[ $basicoptimize ] && echo "* turned on keepalive, mod_deflate, and mod_expires"
-		[ $ssp_tweaks ] && echo "* turned on serversecure plus tweaks"
+		[ $security_tweaks ] && echo "* turned on serversecure plus tweaks"
 		[ $pagespeed ] && echo "* installed mod_pagespeed"
 		[ $do_mysqlcalc ] && echo "* calculated best ibps/kbs for mysql"
 		echo -e "\nadded server security:"
@@ -189,7 +189,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		# make sure user restored
 		if [ -f /var/cpanel/users/$user ]; then
 			# make sure $user has all its domains
-			for domain in $(grep ^DNS $dir/var/cpanel/users/$user | awk -F= '{print $2}'); do
+			for domain in $(awk -F= '/^DNS/ {print $2}' $dir/var/cpanel/users/$user); do
 				if [ "$(/scripts/whoowns $domain)" = "" ]; then
 					ec lightRed "Domain $domain is missing!" | tee -a $dir/missingthings.txt
 				elif [ "$(/scripts/whoowns $domain)" != "$user" ]; then
@@ -198,16 +198,16 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			done
 			# make sure user has all its databases
 			if [[ -f $dir/var/cpanel/databases/$user.json ]]; then
-				dblist=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["MYSQL"]["dbs"].keys() ; print "\n".join(dbs)' | grep -v \*`
+				dblist=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["MYSQL"]["dbs"].keys() ; print("\n".join(dbs))' | grep -v \*`
 			elif [[ -f $dir/var/cpanel/databases/$user.yaml ]]; then
-				dblist=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["MYSQL"]["dbs"].keys() ; print "\n".join(dbs)' | grep -v \*`
+				dblist=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["MYSQL"]["dbs"].keys() ; print("\n".join(dbs))' | grep -v \*`
 			else
 				dblist=`sssh "mysql -Nse 'show databases'" | grep ^${user:0:8}\_ | grep -v \*`
 			fi
 			for db in $dblist; do
 				if ! mysql -Nse 'show databases' | grep -q ^${db}$; then
 					ec lightRed "Database $db is missing!" | tee -a $dir/missingthings.txt
-				elif ! cat /var/cpanel/databases/$user.json |  python -c 'import sys,json; dbs=json.load(sys.stdin)["MYSQL"]["dbs"].keys() ; print "\n".join(dbs)' | grep -q ^${db}$; then
+				elif ! cat /var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["MYSQL"]["dbs"].keys() ; print("\n".join(dbs))' | grep -q ^${db}$; then
 					ec lightRed "Database $db exists, but is not owned by $user!" | tee -a $dir/missingthings.txt
 				fi
 			done
@@ -220,6 +220,9 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 
 	# if backups were turned on, finish turning them on by enabling all users
 	[ $enabledbackups ] && cpbackup_finish
+
+	# if tomcat was installed or exists, restart tomcat instances
+	[ -f /usr/local/cpanel/scripts/ea-tomcat85 ] && ec yellow "Restarting tomcat instances..." && /usr/local/cpanel/scripts/ea-tomcat85 all restart &> /dev/null
 
 	# check to see if any mailman lists were copied and do some fixes to ensure operability
 	mailmanfolderlist=$(find /usr/local/cpanel/3rdparty/mailman/lists/ -maxdepth 1 -mindepth 1 -type d)
@@ -234,9 +237,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	fi
 
 	# set up cloudlinux things
-	if [ $cloudlinuxconfig ]; then
-		copy_cloudlinux_configs
-	fi
+	[ $cloudlinuxconfig ] && copy_cloudlinux_configs
 
 	# enable fpm by converting all accounts
 	if [ $fpmdefault ]; then
@@ -248,7 +249,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	if [ "$(cat /usr/local/cpanel/version | cut -d. -f2)" -ge "60" ]; then
 		ec yellow "Correcting themes for 11.60+ compatibility..."
 		for user in $userlist; do
-			if [ "$(/usr/local/cpanel/bin/whmapi1 accountsummary user=$user | grep theme\: | awk '{print $2}')" = "x3" ]; then
+			if [ "$(/usr/local/cpanel/bin/whmapi1 accountsummary user=$user | awk '/theme:/ {print $2}')" = "x3" ]; then
 				/usr/local/cpanel/bin/uapi --user=$user Themes update theme=paper_lantern 2>&1 | stderrlogit 4
 			fi
 		done
@@ -272,9 +273,10 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	[ "$(grep 'Mysql::_restore_db_file' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some mysql databases restored with alternate names (grep \"Mysql::_restore_db_file\" $dir/log/restorepkg*log)" >> $dir/error.log
 	[ "$(grep 'Mysql::_restore_dbowner' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some cpanel user mysql passwords failed to restore (grep \"Mysql::_restore_dbowner\" $dir/log/restorepkg*log | awk -F'“|”' '{print \$4}'; )" >> $dir/error.log
 	[ "$(grep 'DBD::mysql::db do failed' $dir/log/restorepkg*log)" ] && echo "[ERROR] Some databases failed to restore (grep \"DBD::mysql::db do failed\" $dir/log/restorepkg*log)" >> $dir/error.log
+	[ -f $dir/dbmalware.txt ] && echo "[ERROR] Some databases may have malware, which usually indicates that the CMS is hosed. Please check manually! (cat $dir/dbmalware.txt)" >> $dir/error.log
 	[ -s $dir/did_not_restore.txt ] && echo "[ERROR] Some $(cat $dir/did_not_restore.txt | wc -w) cPanel users did not restore! (cat $dir/did_not_restore.txt)" >> $dir/error.log
 	[ ! "$(awk '$1=="DirectoryIndex" {print $2}' /etc/apache2/conf/httpd.conf)" ] && echo "[ERROR] apache DirectoryIndex priority is not set! Set this up in WHM under 'Apache Configuration' -> 'DirectoryIndex Priority' manually." >> $dir/error.log
-	[ -f /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt && cp -a /root/dirty_accounts.txt $dir/ && echo "[ERROR] Malware detected on $(cat $dir/dirty_accounts.txt | egrep '(^'$(echo $userlist | tr ' ' '|')'$)' | wc -l) accounts from userlist (cat $dir/dirty_accounts.txt)" >> $dir/error.log
+	[ -f /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt && echo "[ERROR] Malware detected on $(cat /root/dirty_accounts.txt | egrep '(^'$(echo $userlist | tr ' ' '|')'$)' | wc -l) accounts from userlist, totalling $(for i in $(cat /root/dirty_accounts.txt | egrep '(^'$(echo $userlist | tr ' ' '|')'$)'); do grep 'Flagged as' $dir/log/$i.scan; done | wc -l) suspicious files (cat /root/dirty_accounts.txt; for i in \$(cat /root/dirty_accounts.txt); do grep -EH '(Flagged as|Cleaning)' $dir/log/\$i.scan; done)" >> $dir/error.log && cp -a /root/dirty_accounts.txt $dir/
 	[ "$comment_crons" ] && echo "[INFO] Commented crons for users! These will be undone with a resync of crontabs if this script is used for a final sync." >> $dir/error.log
 
 	# print warnings and errors

@@ -1,28 +1,27 @@
 backup_check() { #detect if backups are enabled and optionally turn them on
 	ec yellow "Checking backup configuration..."
-	# print is this a virtual server, usually you do not want cp backups.
+		e# print is this a virtual server, usually you do not want cp backups.
 	if lscpu | grep -q ^Hypervisor\ vendor; then
-		ec lightBlue "This appears to be a virtual Server."
+		ec lightBlue "This appears to be a virtual server."
 	else
-		ec blue "This appears to be a dedicated Server."
+		ec blue "This appears to be a dedicated server."
 	fi
 
 	# need to ensure backups are on and accounts are set to be backed up
-	backup_enable=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | grep backupenable | awk '{print $2}')
-	backup_acct=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | grep backupaccts | awk '{print $2}')
-	remote_backups=$(grep ^BACKUPENABLE: "$dir/var/cpanel/backups/config" | cut -d\' -f2)
-	local sourcebackupdir=$(grep ^BACKUPDIR: "$dir/var/cpanel/backups/config" | awk '{print $2}')
+	backup_enable=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | awk '/backupenable/ {print $2}')
+	backup_acct=$(/usr/local/cpanel/bin/whmapi1 backup_config_get | awk '/backupaccts/ {print $2}')
+	remote_backups=$(awk -F\' '/^BACKUPENABLE:/ {print $2}' $dir/var/cpanel/backups/config)
 	if [ "$remote_backups" = "yes" ]; then
 		ec lightGreen "Remote cPanel backups are enabled."
 		if [ "$(ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ]; then
-			ec red "Remote server has a remote backup destination (s3, ftp, etc)!" | errorlogit 3
+			ec red "Remote server has a remote backup destination (s3)!" | errorlogit 3
 			say_ok
 		fi
 		if awk '{print $2}' "$dir/etc/fstab" | grep -q $sourcebackupdir; then #source has a backup mount point
 			ec red "Source server has a separate mount point for $sourcebackupdir!" | errorlogit 4
 		fi
 	else
-		ec while "Remote cPanel backups are disabled."
+		ec white "Remote cPanel backups are disabled."
 	fi
 
 	if [ "$backup_enable" = 1 ] && [ "$backup_acct" = 1 ]; then
@@ -36,7 +35,6 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 		ec yellow "The remote server has the following backup schedule:"
 		grep -E '(BACKUP_DAILY|BACKUP_MONTHLY|BACKUP_WEEKLY|BACKUPDAYS)' "$dir/var/cpanel/backups/config" | logit
 		if [ ! "$autopilot" ]; then
-			# disabled automatically turning on backups in case of no backup disk
 			if yesNo "Do you want to enable cPanel backups?"; then
 				# turn on backups
 				/usr/local/cpanel/bin/whmapi1 backup_config_set backupenable=1 backupaccts=1 2>&1 | stderrlogit 3

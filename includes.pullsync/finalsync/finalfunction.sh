@@ -4,11 +4,11 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 	#get some rare stuff out of the way first
 	if [ "$dopgsync" = 1 ]; then
 		if [[ -f "$dir/var/cpanel/databases/$user.json" ]]; then
-			local pgdbs=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["PGSQL"]["dbs"].keys() ; print "\n".join(dbs)'`
+			local pgdbs=$(cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["PGSQL"]["dbs"].keys() ; print("\n".join(dbs))')
 		elif [ -f "$dir/var/cpanel/databases/$user.yaml" ]; then
-			local pgdbs=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["PGSQL"]["dbs"].keys() ; print "\n".join(dbs)'`
+			local pgdbs=$(cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["PGSQL"]["dbs"].keys() ; print("\n".join(dbs))')
 		fi
-		local pgdbcount=`echo $pgdbs |wc -w`
+		local pgdbcount=$(echo $pgdbs |wc -w)
 		if [[ $pgdbcount -gt 0 ]]; then
 			for db in $pgdbs; do
 				ec blue "$progress Importing pgsql db $db..."
@@ -20,7 +20,7 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 		fi
 	fi
 	if [ -f "/var/cpanel/datastore/$user/mailman-list-usage" ] && [ $(cat /var/cpanel/datastore/$user/mailman-disk-usage) -gt 0 ]; then
-		local mailinglists=`cat /var/cpanel/datastore/$user/mailman-list-usage |cut -d: -f1`
+		local mailinglists=$(cat /var/cpanel/datastore/$user/mailman-list-usage | cut -d: -f1)
 		ec white "$progress Syncing mailman lists..."
 		for list in $mailinglists; do
 			# list settings in /usr/local/cpanel/3rdparty/mailman/lists/$list
@@ -32,7 +32,7 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 	fi
 	#the meaty core
 	local shortprog=$(echo "$progress" | awk '{print $1}')
-	sem --id datamove${user} -j 2 -u mysql_dbsync_2 $user $shortprog >> $dir/log/dblog.$user.log
+	sem --id datamove${user} -j 2 -u mysql_dbsync_user $user $shortprog >> $dir/log/dblog.$user.log
 	sem --id datamove${user} -j 2 -u rsync_homedir $user $shortprog
 	sem --wait --id datamove${user}
 	echo $user >> $dir/final_complete_users.txt

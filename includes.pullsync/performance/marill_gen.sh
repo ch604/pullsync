@@ -2,7 +2,7 @@ marill_gen() { #do marill testing and notify of any failures
 	ec yellow "Generating output for marill auto-testing..."
 
 	# run marill against the list of domains to test
-	/root/bin/marill -a --delay=1s --debug-log $dir/marill_log.txt --result-file $dir/marill_output.txt --domains "$(cat $dir/marilldomains.txt | grep -vF '*')" 2>&1 | stderrlogit 3
+	/root/bin/marill -a --delay=1s --debug-log $dir/marill_log.txt --result-file $dir/marill_output.txt --domains "$(grep -vF '*' $dir/marilldomains.txt)" 2>&1 | stderrlogit 3
 	[ $? != 0 ] && ec red "Marill returned non-zero exit code! There was probably an issue generating the marilldomains.txt file, indicating an issue with something in /var/cpanel/users. Check this out manually!" && return || ec green "Success! See $dir/marill_output.txt"
 
 	# exclude those domains that do not resolve anywhere from the failure list

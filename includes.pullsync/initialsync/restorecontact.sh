@@ -6,7 +6,7 @@ restorecontact() { #change the whm email address back to what was saved in pause
 		/usr/local/cpanel/bin/whmapi1 set_user_email_forward_destination user=root forward_to=$(cat ${dir}/root/.forward) 2>&1 | stderrlogit 3
 	elif [ ! "$setcontact" ] && [ -f /root/.forward.syncbak ]; then
 		/usr/local/cpanel/bin/whmapi1 set_user_email_forward_destination user=root forward_to=$(cat /root/.forward.syncbak) 2>&1 | stderrlogit 3
-	elif [ ! "$setcontact" ]; then
+	elif [ -f $dir/.forward ]; then
 		/usr/local/cpanel/bin/whmapi1 set_user_email_forward_destination user=root forward_to=$(cat ${dir}/.forward) 2>&1 | stderrlogit 3
 	fi
 	# delete and replace the contactemail line

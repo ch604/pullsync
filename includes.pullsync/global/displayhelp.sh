@@ -27,6 +27,7 @@ Currently supported flags:
 
 	-l EMAIL	Set contact email to EMAIL after initial sync
 	-m		Perform sane version matching
+	-x		Scan php files for malware during transfer
 	-y		Run marill auto-testing after sync (all/list only)
 
 	-s		Stop services for final sync
@@ -34,11 +35,11 @@ Currently supported flags:
 	-e		Run maintenance page engine on source server during final sync
 	-d		Copy dns back to source server
 
+	-u		Slack user for slack reporting
 	-h		Display this help and exit
 
 The following issues will cause pullsync to fail after a sane startup:
 	* insufficient disk space on target/source
 	* dns clustering set up on target/source
-
 "
 }

@@ -9,9 +9,9 @@ pgsql_dbsync() { # enumerates and syncs postgres databases
 				# run to locate db list for final sync.
 				ec blue "Checking for postgres databases for $user..."
 				if [[ -f "$dir/var/cpanel/databases/$user.json" ]]; then
-					pgdbs=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["PGSQL"]["dbs"].keys() ; print "\n".join(dbs)'`
+					pgdbs=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["PGSQL"]["dbs"].keys() ; print("\n".join(dbs))'`
 				elif [ -f "$dir/var/cpanel/databases/$user.yaml" ]; then
-					pgdbs=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["PGSQL"]["dbs"].keys() ; print "\n".join(dbs)'`
+					pgdbs=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["PGSQL"]["dbs"].keys() ; print("\n".join(dbs))'`
 				fi
 				pgdbcount=`echo $pgdbs |wc -w`
 				if [[ $pgdbcount -gt 0 ]]; then

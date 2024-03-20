@@ -20,8 +20,8 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 					ec brown "$progress Source public_html is symlink, moved $user's public_html to $dir/public_html_symlink_baks/$user/public_html." | errorlogit 4
 				fi
 			fi
-			# collect quotas for rsync status printing
-			local remote_quotaline=$(sssh "repquota -s \$(df -P $userhome_remote | tail -1 | awk '{print \$6}') 2> /dev/null" | grep ^${user}\ )
+			# collect quotas for rsync status printing; always try repquota even if its not installed, this will be sorted when printing. get mountpoint of the userhome in case /home2.
+			local remote_quotaline=$(sssh "repquota -s \$(findmnt -nT $userhome_remote | awk '{print \$1}') 2> /dev/null" | grep ^${user}\ )
 			local remote_quota=$(echo $remote_quotaline | awk '{print $3}')
 			local remote_inodes=$(echo $remote_quotaline | awk '/+-|++/ {print $7;next} /--|-+/ {print $6}')
 			ec lightGreen "$progress Rsyncing homedir (${remote_quota:-no quota} used with ${remote_inodes:-no inode quota} inodes)..."
@@ -40,21 +40,12 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			fi
 
 			# optionally convert to FPM
-			if [ "$fcgiconvert" ]; then
+			if [ "$fpmconvert" ]; then
 				ec white "$progress Converting domains to PHP-FPM..."
 				fpmconvert $user 1
-			elif \ls -A $dir/var/cpanel/userdata/$user/*.php-fpm.yaml &> /dev/null ; then #if there are any individual sites that were fpm on source, convert them
-				ec white "$progress Converting domains to PHP-FPM..."
-				fpmconvert $user 0
 			else
 				ec white "$progress Ensuring php version for domains matches source..."
-				for dom in `cat /etc/userdomains | grep \ ${user}$ | awk -F: '{print $1}'`; do
-					parentdom=$(grep -l $dom $dir/var/cpanel/userdata/$user/* | egrep -v -e '(cache|main|json|_SSL|yaml)$' | head -n1 | awk -F\/ '{print $NF}')
-					newphpver=$(grep ^phpversion: $dir/var/cpanel/userdata/$user/$parentdom | awk '{print $2}')
-					! /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $newphpver && newphpver=$defaultea4profile
-					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$newphpver php_fpm=0 vhost-0=$dom 2>&1 | stderrlogit 3
-					/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$newphpver php_fpm=0 vhost-0=$dom 2>&1 | stderrlogit 3
-				done
+				fpmconvert $user 0
 			fi
 
 			# resync several items on final: crons, valiases, ftp accounts, system pass
@@ -62,12 +53,12 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 				[ -f $dir/var/spool/cron/$user ] && rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/spool/cron/$user /var/spool/cron/
 				[ -f /var/spool/cron/$user ] && chown $user:root /var/spool/cron/$user
 				[ -f $dir/etc/proftpd/$user ] && rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/proftpd/$user /etc/proftpd/ 2>&1 | stderrlogit 3
-				remotehash=$(sssh "grep ^$user\: /etc/shadow | cut -d: -f1-2")
+				remotehash=$(sssh "grep ^$user\: /etc/shadow" | cut -d: -f1-2)
 				if [ ! "${remotehash}" = "$(grep ^$user\: /etc/shadow | cut -d: -f1-2)" ]; then
 					ec brown "$progress Linux password changed, updating on target..." | errorlogit 4
 					echo $remotehash | chpasswd -e 2>&1 | stderrlogit 3
 				fi
-				for dom in `cat /etc/userdomains | grep \ ${user}$ | cut -d: -f1`; do
+				for dom in $(grep \ ${user}$ /etc/userdomains | cut -d: -f1); do
 					rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/etc/valiases/$dom /etc/valiases/ --update 2>&1 | stderrlogit 4
 				done
 			fi

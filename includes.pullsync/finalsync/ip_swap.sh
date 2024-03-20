@@ -2,16 +2,16 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	ec red "Ready to begin the IP swap! There is no interrupting the task once it begins!"
 	ec red "Stopping the task partway through could cause unexpected complications."
 	say_ok
-	local ethdev=$(grep ^ETHDEV\  $dir/etc/wwwacct.conf | awk '{print $2}')
+	local ethdev=$(awk '/^ETHDEV / {print $2}' $dir/etc/wwwacct.conf)
 	[ "${ethdev}" = "" ] && ethdev=eth0
-	local localethdev=$(grep ^ETHDEV\  /etc/wwwacct.conf | awk '{print $2}')
+	local localethdev=$(awk '/^ETHDEV / {print $2}' /etc/wwwacct.conf)
 	[ "${localethdev}" = "" ] && localethdev=eth0
-	local expectedips=$(echo "$(cut -d\: -f1 ${dir}/etc/ips) $(grep ^IPADDR\= $dir/etc/sysconfig/network-scripts/ifcfg-${ethdev} | cut -d= -f2)" | tr ' ' '\n')
+	local expectedips=$(echo "$(cut -d\: -f1 ${dir}/etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' $dir/etc/sysconfig/network-scripts/ifcfg-${ethdev})" | tr ' ' '\n')
 	ec red "Changing IPs on source machine and stopping networking."
 	ec lightRed "THE SOURCE SERVER WILL THEN REBOOT AFTER 5 MINUTES."
 
 	#ssh to source, back up remote eth configs, change the ip address, remove extra ips from /etc/ips, and shutdown in 1 minute
-	local gateway=$(grep ^GATEWAY= /etc/sysconfig/network-scripts/ifcfg-${localethdev} | awk -F= '{print $2}')
+	local gateway=$(awk -F= '/^GATEWAY=/ {print $2}' /etc/sysconfig/network-scripts/ifcfg-${localethdev})
 	sssh "cp -a /etc/sysconfig/network-scripts/ifcfg-${ethdev} /root/ifcfg-${ethdev}.ipswapbak; sed -i -e '/^GATEWAY/s/^/#/' -e '/^IPADDR/s/^/#/' /etc/sysconfig/network-scripts/ifcfg-${ethdev}; echo IPADDR=$cpanel_main_ip >> /etc/sysconfig/network-scripts/ifcfg-${ethdev}; echo GATEWAY=$gateway >> /etc/sysconfig/network-scripts/ifcfg-${ethdev}; mv /etc/ips{,.ipswapbak}; touch /etc/ips; echo 'service network stop; /etc/init.d/network stop; sleep 300; reboot' | at now"
 	sleep 5
 
@@ -23,7 +23,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	mv /var/cpanel/users{,.ipswap}
 	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/userdata $dir/var/cpanel/users /var/cpanel/
 	sed -i.ipswapbak '/^ADDR\ /s/^/#/' /etc/wwwacct.conf
-	local old_cpanel_main_ip=`grep "^ADDR\ [0-9]" $dir/etc/wwwacct.conf | awk '{print $2}' | tr -d '\n'`
+	local old_cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' $dir/etc/wwwacct.conf | tr -d '\n')
 	echo "ADDR $old_cpanel_main_ip" >> /etc/wwwacct.conf
 
 	#regenerate configs
@@ -33,7 +33,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	[ -d $dir/var/cpanel/ssl/installed ] && [ -d /var/cpanel/ssl/installed ] && rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/ssl/installed/ /var/cpanel/ssl/installed/
 	ec yellow "Rebuilding apache config..."
 	[ ! -h /usr/local/apache/conf/httpd.conf ] && mv /usr/local/apache/conf/httpd.conf{,.ipswap}
-	/scripts/rebuildhttpdconf
+	/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 	ec yellow "Restarting web server daemon..."
 	if ps axc | grep -qEe '(litespeed|lsws|lshttpd)'; then
 		ec yellow "Litespeed detected"
@@ -54,7 +54,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	for dom in $domlist; do
 		local user=$(/scripts/whoowns $dom)
 		if [ -f /var/cpanel/userdata.ipswap/$user/$dom.php-fpm.yaml ]; then
-			local ea4profile=$(grep ^$dom\:\  /etc/userdatadomains | awk -F'==' '{print $NF}')
+			local ea4profile=$(awk -F'==' '/^'$dom': / {print $NF}' /etc/userdatadomains)
 			/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$ea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
 			/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$ea4profile php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3
 		fi
@@ -69,7 +69,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	mv /etc/remotedomains{,.ipswap}
 	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/named /var/
 	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/localdomains $dir/etc/remotedomains /etc/
-	sed -i.lwbak -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'`date +%Y%m%d%H`'/g' /var/named/*.db
+	sed -i.pullsync.bak -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'$(date +%Y%m%d%H)'/g' /var/named/*.db
 	/scripts/rebuilddnsconfig
 	rndc reload 2>&1 | stderrlogit 4
 	[ -f /var/cpanel/usensd ] && ( nsdc rebuild && nsdc reload ) 2>&1 | stderrlogit 4
@@ -84,14 +84,14 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	mv /etc/sysconfig/network-scripts/ifcfg-${localethdev} /root/ipswap-ethconfigs/
 	mv /etc/sysconfig/network-scripts/ifcfg-eno* /root/ipswap-ethconfigs/ #remove ipv6 items
 	cp $dir/etc/sysconfig/network-scripts/ifcfg-${ethdev} /etc/sysconfig/network-scripts/ifcfg-${localethdev}
-	sed -i -e 's/^HWADDR/#HWADDR/g' -e "3iHWADDR=`cat /sys/class/net/${localethdev}/address`" -e 's/'${ethdev}'/'${localethdev}'/g' /etc/sysconfig/network-scripts/ifcfg-${localethdev}
+	sed -i -e 's/^HWADDR/#HWADDR/g' -e "3iHWADDR=$(cat /sys/class/net/${localethdev}/address)" -e 's/'${ethdev}'/'${localethdev}'/g' /etc/sysconfig/network-scripts/ifcfg-${localethdev}
 
 	#kick out users by killing sshd, enforce the new network configs by restarting networking, ipaliases, and sshd.
 	ec red "Restarting networking..."
 	(killall sshd; service network stop; service network start; /scripts/restartsrv_ipaliases; /scripts/restartsrv_sshd)
 	ec green "Done!"
 	ec yellow "Attempting to clear arp automatically..."
-	local newips=$(echo "$(cut -d\: -f1 /etc/ips) $(grep ^IPADDR\= /etc/sysconfig/network-scripts/ifcfg-${localethdev} | cut -d= -f2)" | tr ' ' '\n')
+	local newips=$(echo "$(cut -d\: -f1 /etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' /etc/sysconfig/network-scripts/ifcfg-${localethdev})" | tr ' ' '\n')
 	for each in $newips; do
 		ec white " $each"
 		arping -q -c2 -I $localethdev $each

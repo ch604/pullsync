@@ -19,13 +19,13 @@ sshkeygen() { #generate a unique ssh key and copy it to the source server.
 		# generate a key
 		mkdir -p -m600 /root/.ssh
 		[ -f /root/.ssh/pullsync*.pub ] && rm -f /root/.ssh/pullsync*
-		keyname=pullsync.`tr -cd '[:alnum:]' < /dev/urandom | fold -w10 | head -n1`
+		keyname=pullsync.$(tr -cd '[:alnum:]' < /dev/urandom | fold -w10 | head -n1)
 		ec yellow "Generating SSH key /root/.ssh/${keyname}..."
 		ssh-keygen -q -N "" -t rsa -f /root/.ssh/${keyname} -C "${keyname}"
 		echo "/root/.ssh/${keyname}" > $dir/keyname.txt
 		# print sshkey and pause before trying ssh connection.
 		ec lightCyan "Generated ssh key. Run this command on the source server if you want to skip typing the remote password in this machine:"
-		echo "echo \"`cat ~/.ssh/${keyname}.pub`\" >> /root/.ssh/authorized_keys" | logit
+		echo "echo \"$(cat ~/.ssh/${keyname}.pub)\" >> /root/.ssh/authorized_keys" | logit
 		ec lightCyan "Press enter to attempt ssh connection to $ip."
 		rd
 		ec yellow "Copying Key to remote server..."
@@ -55,13 +55,15 @@ sshkeygen() { #generate a unique ssh key and copy it to the source server.
 	echo $ip > $dir/ip.txt #output to ip.txt only after ssh connection success, for control_c support
 	ec green "Ssh connection to $ip succeeded!"
 	# command to remove the 'stdin: is not a tty' error. prepend to /root/.bashrc on the source server. don't add more entries if it exists.
-	stdin_cmd="if ! grep -q '\[ -z "'$PS1'" \] && return' /root/.bashrc; then sed -i '1s/^/[ -z "'$PS1'" ] \&\& return\n/' /root/.bashrc ;fi"
+	stdin_cmd="if ! grep -q '\[ -z "'$PS1'" \] && return' /root/.bashrc; then sed -i '1s/^/[ -z "'$PS1'" ] \&\& return\n/' /root/.bashrc; fi"
 	sssh "$stdin_cmd"
 	sleep 0.5
+	# if we arent root, bail
+	[ $(sssh "id -u") -ne 0 ] && ec red "You don't seem to be root on source... I got UID $(sssh "id -u")" && exitcleanup 99
 	# if source is not a cpanel server, bail
 	sssh "[ ! -f /etc/wwwacct.conf ]" && ec red "Source server doesn't seem to be a cPanel server..." && exitcleanup 99
-	# disable firewall app on hostgator servers, it denies rapid remote connections
-	sssh "[ \`which firewall 2>/dev/null\` ] && firewall stop"
+	# disable firewall app for hostgator servers, it denies rapid remote connections
+	sssh "[ \$(which firewall 2>/dev/null) ] && firewall stop"
 	# make a remote tempdir and record some critical info
 	sssh "mkdir -p -m600 $remote_tempdir/"
 	echo -e "target server: $(hostname)-${cpanel_main_ip}\nstarted by: ${sshClientIP}" | sssh "cat > $remote_tempdir/syncinfo.txt"

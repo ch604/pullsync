@@ -12,12 +12,6 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 				chmod 644 $docroot/HostsCheck.php
 			done
 		done
-#		ec yellow "Ensuring short_open_tag..."
-#		for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
-#			[ -f /opt/cpanel/$each/root/etc/php.d/local.ini ] && file=/opt/cpanel/$each/root/etc/php.d/local.ini || file=/opt/cpanel/$each/root/etc/php.ini
-#			sed -i "s/^\(short_open_tag\ =\ \).*$/\1On/" $file
-#			unset file
-#		done
 	else
 		ec red "Warning: Userlist variable not detected when creating test file!"
 	fi
@@ -48,23 +42,34 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	sed -i -e "s|http://\${ip}/hostsfile.txt|$hostsfile_url|" $dir/pullsync_reply.txt
 	sed -i -e "s|http://\${ip}/migration_test_urls.html|$test_urls|" $dir/pullsync_reply.txt
 
+	#remove final sync message
+	if [ $remove_final_sync_message ]; then
+		sed -i -e '/ONCE YOU FINISH TESTING/,$d' -e "s/Switching\ DNS\ prematurely\ may\ prevent\ a\ final\ migration\ from\ taking\ place\.//" $dir/pullsync_reply.txt
+		cat >> $dir/pullsync_reply.txt <<EOF
+  ONCE YOU FINISH TESTING:
+
+Once testing is complete, DNS for the migrated domains can be updated to make the new server live at your convenience. This is done at the current nameservers for each domain; let us know if you need help determining where your nameservers are. If you are planning to change nameservers, please let us know, and we can provide additional details on switching to Liquid Web's nameservers, or setting up your own custom nameservers.
+
+We will not automatically terminate the old hosting solution; you must request this separately if you no longer need the old server.
+
+Please let us know if you have any questions.
+EOF
+	fi
+
 	#add stanza if malware found
 	if ([ -s /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt); then
 		cat >> $dir/pullsync_reply.txt <<EOF
 
   IMPORTANT:
 
-To help ensure our network's security, during migrations, we perform basic malware scanning on migrated accounts as they arrive. One or more of the accounts for this migration contained malware signatures:
+To help ensure our network's security, during migrations, we perform basic malware scanning on migrated accounts as they arrive. One or more of the accounts for this migration contained one or more of these security variances:
 
 $(grep -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt)
 
-Your developer should be contacted to help thoroughly scan and clean these files. If you have any questions about this, please let us know.
-EOF
-	fi
+If you have any questions about any of the above information, please let us know.
 
-	#remove final sync message
-	if [ $remove_final_sync_message ]; then
-		sed -i -e "s/\ If\ DNS\ is\ updated\ prematurely,\ a\ final\ sync\ of\ data\ may\ not\ be\ possible.$//" -e "/^Since\ it\ is/,+1d" -e "/^Once\ testing\ is/c\Once testing is complete, DNS for the migrated domains can be updated to make the new server live at your convenience. This is done at the current nameservers for each domain; let us know if you need help determining where your nameservers are. If you are planning to change nameservers, please let us know, and we can provide additional details on switching to Liquid Web\'s nameservers, or setting up your own custom nameservers. Please also know that we will not automatically terminate the old hosting solution for you; this must be requested separately once you are sure you no longer need the old server." $dir/pullsync_reply.txt
+Thanks!
+EOF
 	fi
 
 

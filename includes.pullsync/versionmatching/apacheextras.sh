@@ -1,6 +1,7 @@
 apacheextras() { #run after successful ea, copies extra apache things not part of ea
-	if [ -f $dir/var/cpanel/conf/apache/local ]; then
+	if [ -f $dir/var/cpanel/conf/apache/local ] && [ "$localea" = "EA3" ]; then
 		# there are apache setting includes from the old server, set them up and rebuild httpd
+		#TODO import individual settings to /etc/cpanel/ea4/ea4.conf on EA4 servers
 		ec yellow "Copying over WHM apache settings..."
 		[ -f /var/cpanel/conf/apache/local ] && mv /var/cpanel/conf/apache/local{,.pullsync.bak}
 		cp -a $dir/var/cpanel/conf/apache/local /var/cpanel/conf/apache/local
@@ -19,12 +20,20 @@ apacheextras() { #run after successful ea, copies extra apache things not part o
 			/scripts/restartsrv_apache 2>&1 | stderrlogit 4
 		fi
 	fi
+
 	# see if we can set the directory index variable
-	remotehttp_di=$(grep -E [\"\']?directoryindex[\"\']?\:\ [\"\']?[a-zA-Z0-9] $dir/var/cpanel/conf/apache/main | tail -1)
+	if [ "$remoteea" = "EA3" ]; then
+		local remotehttp_di=$(grep -E [\"\']?directoryindex[\"\']?\:\ [\"\']?[a-zA-Z0-9] $dir/var/cpanel/conf/apache/main | tail -1)
+	else
+		local remotehttp_di=$(awk -F\" '/\"directoryindex\"/ {print $4}' $dir/etc/cpanel/ea4/ea4.conf)
+	fi
 	if [ "$remotehttpd_di" ]; then
-		# if set, its nonstandard, set on local server
 		ec yellow "Copying DirectoryIndex priority..."
-		sed -i.pullsync.bak "s/\s*[\"\']\?directoryindex[\"\']\?\:\ [\"\']\?[a-zA-Z0-9\.\ ]\+[\"\']\?$/$remotehttpd_di/" /var/cpanel/conf/apache/main
+		if [ "$localea" = "EA4" ]; then
+			sed -i.pullsync.bak '/\"directoryindex\"\ \:/ s/\:\ \"[a-zA-Z0-9\ \.]*\"/\:\ \"'"$remotehttpd_di"'\"/' /etc/cpanel/ea4/ea4.conf
+		else
+			sed -i.pullsync.bak "s/\s*[\"\']\?directoryindex[\"\']\?\:\ [\"\']\?[a-zA-Z0-9\.\ ]\+[\"\']\?$/$remotehttpd_di/" /var/cpanel/conf/apache/main
+		fi
 		/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 		httpd -t 2>&1 | stderrlogit 4
 		if [ "${PIPESTATUS[0]}" = "0" ]; then
@@ -34,13 +43,15 @@ apacheextras() { #run after successful ea, copies extra apache things not part o
 		else
 			# restart failed, revert
 			ec red "Couldn't validate config after adjusting DirectoryIndex priority! Reverting changes..." | errorlogit 3
-			mv -f /var/cpanel/conf/apache/main{.pullsync.bak,}
+			[ -f /var/cpanel/conf/apache/main.pullsync.bak ] && mv -f /var/cpanel/conf/apache/main{.pullsync.bak,}
+			[ -f /etc/cpanel/ea4/ea4.conf.pullsync.bak ] && mv -f /etc/cpanel/ea4/ea4.conf{.pullsync.bak,}
 			/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 			/scripts/restartsrv_apache 2>&1 | stderrlogit 4
 		fi
 	fi
+
+	# remoteip or rpaf
 	if sssh "httpd -M 2>&1" | grep -q -E '(remoteip|rpaf)'_module ; then
-		# if remoteip or rpaf
 		ec yellow "Apache remoteip or rpaf module detected! Installing mod_remoteip..."
 		yum -y -q install ea-apache24-mod_remoteip 2>&1 | stderrlogit 4
 	fi

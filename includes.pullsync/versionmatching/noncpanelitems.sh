@@ -1,47 +1,51 @@
 noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users, and zonefiles to warn tech
 	ec yellow "Checking for non-cpanel items:"
+	a=0; b=0; c=0; d=0; e=0
 
 	#users
 	ec yellow " Users..."
 	noncpanelusers="$(cat $dir/etc/passwd | cut -d\: -f1 | egrep -v "(^${systemusers}$)" | egrep -v "(^$(echo $(\ls -A $dir/var/cpanel/users/) | tr ' ' '|')$)")"
 	for user in $noncpanelusers; do
 		if ! grep -q ^$user\: /etc/passwd; then
-			ec red "$user is a non-cpanel linux user on source, but not on target!"
+			let a+=1
 			echo $user >> $dir/missinglinuxusers.txt
 			grep ^$user\: $dir/etc/passwd >> $dir/missinglinuxusers.txt
 			echo "" >> $dir/missinglinuxusers.txt
 		fi
 	done
+	[ $a -ne 0 ] && ec red "$a non-cpanel linux users detected on source!"
 
 	#vhosts
 	ec yellow " VirtualHosts..."
 	# get a list of vhosts
 	sssh "httpd -S &> /dev/null"
 	if [ $? -eq 0 ]; then
-		for domain in $(sssh "httpd -S 2> /dev/null" | grep namevhost | awk '{print $4}' | sort -u | egrep -v ${valid_ip_format} | egrep -v localhost$ | sed -e 's/_wildcard_/\\\*/g'); do
+		for domain in $(sssh "httpd -S 2> /dev/null" | awk '/namevhost/ && !/localhost / {print $4}' | sort -u | egrep -v ${valid_ip_format} | sed -e 's/_wildcard_/\\\*/g'); do
 			# print any vhosts that arent set up in userdata
 			if ! grep -qRE "\ \"?$domain\"?(:|$)" $dir/var/cpanel/userdata/; then
-				ec red "$domain is a vhost on source, but is not in cpanel!"
+				let b+=1
 				echo $domain >> $dir/missingvhosts.txt
 				sssh "httpd -S 2> /dev/null | grep namevhost\ ${domain}" >> $dir/missingvhosts.txt
 				echo "" >> $dir/missingvhosts.txt
 			fi
 		done
+		[ $b -ne 0 ] && ec red "$b vhosts on source not in cpanel!"
 	else
 		ec white "Couldn't execute 'httpd -S' on source, skipping this test."
 	fi
 
 	#zonefiles
 	ec yellow " DNS records..."
-	for domain in $(grep ^zone $dir/etc/named.conf | awk -F\" '{print $2}' | grep -v \.arpa$ | sort -u); do
+	for domain in $(awk -F\" '/^zone/ && !/\.arpa\"/ {print $2}' $dir/etc/named.conf | sort -u); do
 		# print any zone domains that arent set up in userdata
 		if ! grep -qRE "\ $domain(:|$)" $dir/var/cpanel/userdata/; then
-			ec red "$domain is a zonefile on source, but is not in cpanel!"
+			let c+=1
 			echo $domain >> $dir/missingdnszones.txt
 			grep -A3 ^zone\ \"$domain\" $dir/etc/named.conf >> $dir/missingdnszones.txt
 			echo "" >> $dir/missingdnszones.txt
 		fi
 	done
+	[ $c -ne 0 ] && ec red "$c zonefiles on source not in cpanel!"
 
 	#enabled services
 	ec yellow " Enabled services..."
@@ -59,25 +63,27 @@ noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users,
 	if grep -qv -f $dir/localrunlist.txt $dir/remoterunlist.txt; then
 		# list services not on target
 		for service in $(grep -v -f $dir/localrunlist.txt $dir/remoterunlist.txt); do
-			ec red "$service is enabled on source, but not on target!"
+			let d+=1
 			echo $service >> $dir/missingservices.txt
 		done
 	fi
+	[ $d -ne 0 ] && ec red "$d services enabled on source which arent on target!"
 
 	#listening services
 	ec yellow " Listening services..."
-	# most default listeners are enabled on both, so compare directly and only get differences
-	sssh "netstat -plunt" | awk '{print $7}' | cut -d\/ -f2 | sort -u | grep -v -e ^$ -e ^Address$ > $dir/remotelistening.txt
-	netstat -plunt | awk '{print $7}' | cut -d\/ -f2 | sort -u | grep -v -e ^$ -e ^Address$ > $dir/locallistening.txt
+	# most default listeners are enabled on both, so compare directly and only get differences. exclude mysql and variants because of name changes.
+	sssh "netstat -plunt" | awk '{print $7}' | cut -d\/ -f2 | sort -u | grep -v -e ^$ -e ^Address$ -e ^mysql$ -e ^mysqld$ -e ^mariadbd$ -e ^mariadb$ > $dir/remotelistening.txt
+	netstat -plunt | awk '{print $7}' | cut -d\/ -f2 | sort -u | grep -v -e ^$ -e ^Address$ -e ^mysql$ -e ^mysqld$ -e ^mariadbd$ -e ^mariadb$ > $dir/locallistening.txt
 	if grep -qv -f $dir/locallistening.txt $dir/remotelistening.txt; then
 		for service in $(grep -v -f $dir/locallistening.txt $dir/remotelistening.txt); do
-			ec red "$service is listening on source, but not on target!"
+			let e+=1
 			echo $service >> $dir/missinglisteners.txt
 		done
 	fi
+	[ $e -ne 0 ] && ec red "$e processes listening on source which arent on target!"
 
 	#summary
-	if [ -f $dir/missingdnszones.txt -o -f $dir/missingvhosts.txt -o -f $dir/missinglinuxusers.txt -o -f $dir/missingservices.txt -o -f $dir/missinglisteners.txt ]; then
+	if [ $((a+b+c+d+e)) -gt 0 ]; then
 		ec red "Errors found with non-cpanel items! Please resolve issues listed in these files manually later if needed!" | errorlogit 5
 		[ -f $dir/missingdnszones.txt ] && ec white $dir/missingdnszones.txt | errorlogit 5
 		[ -f $dir/missingvhosts.txt ] && ec white $dir/missingvhosts.txt | errorlogit 5

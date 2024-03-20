@@ -19,8 +19,7 @@ Started at $starttime
 	# connect to source
 	sshkeygen
 	ec yellow "Transferring some config files over from old server to $dir"
-	rsync -LR $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
-	[ ! -d $dir/var/cpanel/users ] && rsync -LR $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+	rsync -LR $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log 2>&1 | stderrlogit 4
 	# verify valid userlist
 	getuserlist
 	case $synctype in

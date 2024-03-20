@@ -9,16 +9,17 @@ detect_apps() { # look for common extra applications
 	redis=`sssh "which redis-server 2> /dev/null"`
 	elasticsearch=`sssh "ps faux | grep -e 'elasticsearch' | grep -v grep"`
 	maldet=`sssh "which maldet 2> /dev/null"`
-	[ $(grep ^skipspamassassin\= $dir/var/cpanel/cpanel.config | cut -d= -f2) = 0 ] && [ $(grep ^skipspamassassin\= /var/cpanel/cpanel.config | cut -d= -f2) = 1 ] && spamassassin=1
+	[ $(awk -F= '/^skipspamassassin=/ {print $2}' $dir/var/cpanel/cpanel.config) = 0 ] && [ $(awk -F= '/^skipspamassassin=/ {print $2}' /var/cpanel/cpanel.config) = 1 ] && spamassassin=1
 	java=`sssh "which java 2> /dev/null"`
 	[ "$java" ] && solr=`sssh "/etc/init.d/solr status 2> /dev/null"` #might be a more universal check method
 	wkhtmltopdf=`sssh "which wkhtmltopdf 2> /dev/null"`
 	pdftk=`sssh "which pdftk 2> /dev/null"`
+	[ "$pdftk" ] && [ ! "$java" ] && java=1
 	sssh "pgrep postgres &> /dev/null" || sssh "pgrep postmaster &> /dev/null" && postgres="found"
 	nodejs=`sssh "which node 2> /dev/null"`
 	npm=`sssh "which npm 2> /dev/null"`
 	[ "$nodejs" ] && [ "$npm" ] && npmlist=`sssh "npm ls -g --depth=0" | tail -n+2 | awk '{print $2}' | cut -d@ -f1 | grep -v npm | grep [a-zA-Z]`
-	tomcat=`sssh "which tomcat 2> /dev/null"`
+	tomcat=`sssh "which tomcat 2> /dev/null; ls /usr/local/cpanel/scripts/ea-tomcat85 2> /dev/null"`
 	apc=`grep -x -e apc -e apcu $dir/remote_php_details.txt`
 	sodium=`grep -x -e sodium $dir/remote_php_details.txt`
 	cpanelsolr=`sssh "service cpanel-dovecot-solr status 2> /dev/null"`
@@ -37,12 +38,15 @@ detect_apps() { # look for common extra applications
 	eaccelfound=`grep -e 'eaccelerator' $psfile`
 	lswsfound=`grep -Ee '(litespeed|lsws|lshttpd)' $psfile`
 	mongodfound=`grep -e 'mongod' $psfile`
+	mssqlfound=`grep -e 'sqlservr' $psfile`
 	modcloudflarefound=`sssh "httpd -M 2> /dev/null | grep cloudflare"`
 	[ -f $dir/var/cpanel/apps/cxs.conf ] && cxsfound=/var/cpanel/apps/cxs.conf
+	rvsbfound=`sssh "[ -d /var/cpanel/rvglobalsoft/rvsitebuilder/ ] && echo 1"`
 	[ -f $dir/var/cpanel/domainmap ] && domainmap=1
 	[ -f $dir/usr/local/apache/conf/modsec2/00_asl_whitelist.conf -o -f $dir/etc/apache2/conf.d/modsec2/00_asl_whitelist.conf ] && turtlerules=1
-	rvsbfound=`sssh "[ -d /var/cpanel/rvglobalsoft/rvsitebuilder/ ] && echo 1"`
-	if [ "${xcachefound}${varnishfound}${eaccelfound}${lswsfound}${mongodfound}${cxsfound}${domainmap}${rvsbfound}" ]; then
+	ffmpegphp=`grep -x -e ffmpeg $dir/remote_php_details.txt`
+	eapodman=`sssh "[ -f /usr/local/cpanel/scripts/ea-podman ] && echo 1"`
+	if [ "${xcachefound}${varnishfound}${eaccelfound}${lswsfound}${mongodfound}${mssqlfound}${cxsfound}${rvsbfound}${domainmap}${turtlerules}${ffmpegphp}${eapodman}" ]; then
 		ec white "3rd party stuff found on the old server! (cat $dir/uninstallable.txt)" | errorlogit 4
 		(
 		[ "$xcachefound" ] && echo "Xcache: $xcachefound"
@@ -50,12 +54,15 @@ detect_apps() { # look for common extra applications
 		[ "$eaccelfound" ] && echo "Eaccelerator: $eaccelfound"
 		[ "$lswsfound" ] && echo "Litespeed: $lswsfound"
 		[ "$mongodfound" ] && echo "Mongod: $mongodfound"
+		[ "$mssqlfound" ] && echo "MSSQL: $mssqlfound"
 		[ "$cxsfound" ] && echo "Configserver eXploit Scanner: $cxsfound"
 		[ "$rvsbfound" ] && echo "RVSiteBuilder: /var/cpanel/rvglobalsoft/rvsitebuilder/"
 		[ "$domainmap" ] && echo "WHM Domain Forwarding: /var/cpanel/domainmap"
 		[ "$turtlerules" ] && echo "ModSec Turtle Rules: /usr/local/apache/conf/modsec2 or /etc/apache2/conf.d/modsec2"
+		[ "$ffmpegphp" ] && echo "FFMPEG-PHP (not available on php7+): $ffmpegphp"
+		[ "$eapodman" ] && echo "ea-podman: /usr/local/cpanel/scripts/ea-podman"
 		) | tee -a $dir/uninstallable.txt | logit
-		ec lightRed "It is up to you to license/install these. Good luck t'ye."
+		ec lightRed "It is up to you to license/install these and migrate as needed. Good luck t'ye."
 		say_ok
 	fi
 	rm -f $psfile
@@ -63,7 +70,7 @@ detect_apps() { # look for common extra applications
 	#next, remove items already installed and put them in a separate list
 	ec yellow "Trimming already-installed programs..."
 	psfile2=$(mktemp)
-	ps acx > $psfile
+	ps acx > $psfile2
 	[ "$ffmpeg" ] && which ffmpeg &> /dev/null && unset ffmpeg && echo "ffmpeg" >> $dir/skippedinstall.txt
 	[ "$imagick" ] && which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
 	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
@@ -77,6 +84,7 @@ detect_apps() { # look for common extra applications
 	[ "$postgres" ] && pgrep postgres &> /dev/null && unset postgres && echo "postgres" >> $dir/skippedinstall.txt
 	[ "$nodejs" ] && which node &> /dev/null && unset nodejs npm && echo "nodejs" >> $dir/skippedinstall.txt
 	[ "$tomcat" ] && which tomcat &> /dev/null && unset tomcat && echo "tomcat" >> $dir/skippedinstall.txt
+	[ "$tomcat" ] && ls /usr/local/cpanel/scripts/ea-tomcat85 &> /dev/null && unset tomcat && echo "tomcat" >> $dir/skippedinstall.txt
 	[ "$cpanelsolr" ] && service cpanel-dovecot-solr status &> /dev/null && unset cpanelsolr && echo "cpanelsolr" >> $dir/skippedinstall.txt
 	rm -f $psfile2
 
@@ -85,5 +93,5 @@ detect_apps() { # look for common extra applications
 	for prog in $proglist; do
 		ec $([ "${!prog}" ] && echo green || echo red) " $prog"
 	done
-	[ -s $dir/skippedinstall.txt ] && ec yellow "Some programs were already detected on target and will not be installed" && cat $dir/skippedinstall.txt
+	[ -s $dir/skippedinstall.txt ] && ec lightRed "Some programs will not be installed due to target configuration:" && cat $dir/skippedinstall.txt
 }

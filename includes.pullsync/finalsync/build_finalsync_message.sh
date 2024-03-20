@@ -11,14 +11,14 @@ build_finalsync_message() { #create a ticket reply for post-finalsync based on s
 	echo -e "Hello,\n" > $dir/finalsyncreply.txt #blank the file
 
 	#set up variables to add to the reply or guide suggestion
-	local testuser=`echo $userlist | awk '{print $1}'`
-	local testdomain=`grep ^DNS\= /var/cpanel/users/$testuser | cut -d\= -f2`
-	local nameserver1=`cat /etc/wwwacct.conf | grep ^NS\  | awk '{print $2}'`
-	local nameserver2=`cat /etc/wwwacct.conf | grep ^NS2\  | awk '{print $2}'`
-	local snameserver1=`cat $dir/etc/wwwacct.conf | grep ^NS\  | awk '{print $2}'`
-	local snameserver2=`cat $dir/etc/wwwacct.conf | grep ^NS2\  | awk '{print $2}'`
+	local testuser=$(echo $userlist | awk '{print $1}')
+	local testdomain=$(awk -F= '/^DNS=/ {print $2}' /var/cpanel/users/$testuser)
+	local nameserver1=$(awk '/^NS / {print $2}' /etc/wwwacct.conf)
+	local nameserver2=$(awk '/^NS2 / {print $2}' /etc/wwwacct.conf)
+	local snameserver1=$(awk '/^NS / {print $2}' $dir/etc/wwwacct.conf)
+	local snameserver2=$(awk '/^NS2 / {print $2}' $dir/etc/wwwacct.conf)
 	first_ip=$cpanel_main_ip
-	[ -s /etc/ips ] && second_ip=`head -n1 /etc/ips | cut -d\: -f1` || second_ip=$cpanel_main_ip #second ip for second nameserver
+	[ -s /etc/ips ] && second_ip=$(head -n1 /etc/ips | cut -d\: -f1) || second_ip=$cpanel_main_ip #second ip for second nameserver
 
 	#check for natted ips
 	if [ -f /var/cpanel/cpnat ] && grep -Eq ^$first_ip\ [0-9]+ /var/cpanel/cpnat; then
@@ -128,23 +128,24 @@ EOF
 	cat >> $dir/finalsyncreply.txt << EOF
 If you made edits to your workstation's hosts file to test the sites during the course of the migration, these changes should be reverted at this time, so that your computer will start using public DNS records for your domains again. Leaving these hosts file records in place can cause issues with domain resolution in the future. If you need assistance editing your hosts file, please review the following link:
 
- https://www.howtogeek.com/howto/27350/beginner-geek-how-to-edit-your-hosts-file/
+https://www.howtogeek.com/howto/27350/beginner-geek-how-to-edit-your-hosts-file/
 
 EOF
 
 	# detect if cpanel backups are on
-	if [ $(/usr/local/cpanel/bin/whmapi1 backup_config_get | grep backupenable: | awk '{print $2}') -eq 1 ]; then
+	if [ $(/usr/local/cpanel/bin/whmapi1 backup_config_get | awk '/backupenable:/ {print $2}') -eq 1 ]; then
 		cat >> $dir/finalsyncreply.txt << EOF
 Now is a good time to ensure that you have appropriate backups set up and enabled for your data. I show that cPanel backups are enabled on the new server, though you may wish to investigate the retention schedule. Server-side backups can be enabled and adjusted through WHM, and we also offer remote backup solutions for all server types. More details can be found at these links, and we are happy to go over the options available to you.
 
- https://www.liquidweb.com/kb/how-to-enable-server-backups-in-whmcpanel/
+https://www.liquidweb.com/kb/enable-cpanel-backups-in-whm/
 
 EOF
 	else
 		cat >> $dir/finalsyncreply.txt << EOF
 Now is a good time to ensure that you have appropriate backups set up and enabled for your data, and I show that presently, cPanel backups are DISABLED on the target server. Server-side backups can be enabled through WHM, and we also offer remote backup solutions for all server types. More details can be found at these links, and we are happy to go over the options available to you.
 
- https://www.liquidweb.com/kb/how-to-enable-server-backups-in-whmcpanel/
+https://www.liquidweb.com/kb/enable-cpanel-backups-in-whm/
+
 EOF
 	fi
 

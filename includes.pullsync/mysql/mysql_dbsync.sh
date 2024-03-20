@@ -59,17 +59,21 @@ mysql_dbsync(){ # syncs the database passed as $1. if the db doesnt exist, creat
 		local tableprog="$n/$table_count"
 		ec purple "$progress Streaming dump of $db.$tb ($tableprog) to target..."
 		# perform the dump in a subshell to collect the pipestatus, getting exit code for the dump and the import at the same time
-		local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+		if [ "$nodbscan" ]; then
+			local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+		else
+			local DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | tee >(dbscan) | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
+		fi
 		# turn the pipestatus into a usable array
 		declare -a status=( ${DUMP##*:} )
 
 		# parse the status to see if anything failed
 		if [ ! "${status[0]}" = "0" ]; then
-			# dump failed, retry
+			# dump failed, retry without dbscan
 			ec red "$progress Dump of $db.$tb returned non-zero exit code!"
 			echo "${status[@]}"
 			tail -n3 $dir/log/dbsync.log
-			ec red "$progress Retrying dump of $db.$tb ($tableprog)..."
+			ec red "$progress Retrying dump of $db.$tb ($tableprog) without dbscan..."
 			DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
 			if [ ! "${status[0]}" = "0" ]; then
 				# second dump failed too, mark as failed

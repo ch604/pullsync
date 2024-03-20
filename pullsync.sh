@@ -1,11 +1,11 @@
 #!/bin/bash
 # pullsync.sh
-# by awalilko@liquidweb.com
-# based on initialsync by abrevick@liquidweb.com and various other migrations team contributors; thank you!
+# awalilko@liquidweb.com
+# based on initialsync by abrevick@liquidweb.com and various other migrations team members; thank you!
 # https://github.com/ch604/pullsync
 
-# last updated: Oct 12 2022
-version="7.9.5"
+# last updated: Mar 20 2024
+version="8.3.4"
 
 ############
 # root check
@@ -28,7 +28,6 @@ if [ ! -d /root/includes.pullsync/ ]; then
 		rm -f /root/pullsync-master.zip
 	else
 		echo "Couldn't resolve github.com to download supporting files!"
-		exit 2
 	fi
 fi
 
@@ -50,17 +49,17 @@ sshpid=${pid}
 sshloop=0
 while [ "$sshloop" = "0" ]; do
 	if [ "$(strings /proc/${sshpid}/environ | grep ^SSH_CLIENT)" ]; then
-		read sshClientIP sshClientSport sshClientDport <<< $(strings /proc/${sshpid}/environ | grep ^SSH_CLIENT | cut -d= -f2)
+		read sshClientIP sshClientSport sshClientDport <<< $(strings /proc/${sshpid}/environ | awk -F= '/^SSH_CLIENT/ {print $2}')
 		sshloop=1
 	else
-		sshpid=$(cat /proc/${sshpid}/status | grep PPid | awk '{print $2}')
+		sshpid=$(awk '/PPid/ {print $2}' /proc/${sshpid}/status)
 		[ "$sshpid" = "0" ] && sshClientIP="localhost" && sshloop=1 #exit loop if we get too far up the tree
 	fi
 done
 
 #make sure there is no other running pullsync.
 if [ -f "$pidfile" ]; then
-	echo "Found existing pullsync process id `cat $pidfile` in $pidfile, double check that another sync isnt running. exiting..."
+	echo "Found existing pullsync process id $(cat $pidfile) in $pidfile, double check that another sync isnt running. exiting..."
 	exit 1
 fi
 
@@ -70,7 +69,7 @@ if [ $autoupdate = 1 ]; then
 		server_version=$(curl -s -r0-250 https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.DEVmf]*\)"/\1/')
 		echo "Detected server version as $server_version"
 		if [[ $server_version =~ $valid_version_format ]]; then # check for a valid version format
-			if [ ! $version = `echo -e "$version\n$server_version" | sort -V | tail -1` ]; then
+			if [ ! $version = $(echo -e "$version\n$server_version" | sort -V | tail -1) ]; then
 				echo $version is less than server $server_version, downloading new version to /root/pullsync.sh and executing.
 				wget -q https://github.com/ch604/pullsync/archive/master.zip -O /root/pullsync-master.zip
 				unzip /root/pullsync-master.zip pullsync-master/includes.pullsync/* -d /root/
@@ -107,8 +106,8 @@ fi
 
 #this group of commands makes sure we are on a licensed cpanel server. outside of a function so we quit early if non-cpanel.
 [ ! -f /etc/wwwacct.conf ] && echo "/etc/wwwacct.conf not found! Not a cpanel server?" && exit 99
-cpanel_main_ip=`grep "^ADDR\ [0-9]" /etc/wwwacct.conf | awk '{print $2}' | tr -d '\n'`
-[ "$cpanel_main_ip" = "" ] && cpanel_main_ip=`cat /var/cpanel/mainip`
+cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' /etc/wwwacct.conf | tr -d '\n')
+[ "$cpanel_main_ip" = "" ] && cpanel_main_ip=$(cat /var/cpanel/mainip)
 [ "$cpanel_main_ip" = "" ] && echo "Could not detect main IP from /etc/wwwacct.conf or /var/cpanel/mainip! Ensure the main IP is set up in WHM?" && exit 99
 
 # initalize working directory. $dir is a symlink to $dir.$starttime from last migration
@@ -142,8 +141,8 @@ printf "\e]0; pullsync-$(hostname) \a" 1>&2
 ###############
 
 #export functions for parallel
-export -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress apache_user_includes malware_scan fpmconvert
-export dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert phpextrafail comment_crons defaultea4profile log apacheextrafail fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync malwarescan skipsqlzip
+export -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_user malware_scan logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman human wpt_speedtest awkmedian ab_test errorlogit user_mysql_listgen wpt_initcompare finalfunction processprogress dbscan apache_user_includes fpmconvert progressbar
+export dir user_total remainingcount sshargs ip remote_tempdir rsyncargs rsyncspeed old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fpmconvert phpextrafail comment_crons malwarescan defaultea4profile log apacheextrafail fixperms starttime mysqldumpopts errlog dbbackup_schema initsyncwpt dopgsync skipsqlzip nodbscan start_disk expected_disk homemountpoints finaldiff
 
 # start the script after functions are defined.
 validate_license #make sure cpanel is licensed

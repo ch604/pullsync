@@ -34,7 +34,7 @@ argumentcheck() { # scan for command line options
 			*) echo "Invalid synctype: $synctype" && exitcleanup 9 ;;
 		esac
 	else
-		unset ip port synctype do_installs stopservices maintpage restartservices copydns runmarill malwarescan
+		unset ip port synctype do_installs stopservices maintpage restartservices copydns malwarescan runmarill
 		ec red "You didn't pass enough arguments!"
 		exitcleanup 9
 	fi
