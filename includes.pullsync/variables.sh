@@ -27,8 +27,7 @@ rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new
 rsyncspeed="3000"
 
 # at the conclusion of hands-off portions of syncs, a slack hook can be activated. uncomment add a url for your slack hook here.
-slackhook_url="https://hooks.slack.com/services/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"
-secteam_slackhook_url="https://hooks.slack.com/services/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"
+slackhook_url="https://hooks.slack.com/xxx"
 
 # the following files are rsynced over from old server to the $dir just after connection.
 filelist="/etc/apf
