@@ -14,10 +14,6 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	if [ "$nginxfound" ] && [ "$localea" = "EA4" ]; then
 		options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Nginx found on source server"`
 	fi
-	#FPM on openstack managed hosting cluster (9 10 11)
-	if [ -f $dir/iamopenstack ]; then
-		options[11]=on && cmd[8]=`echo "${cmd[8]}\n(4) Managed OpenStack Hosting detected, FPM required"`
-	fi
 	#SSP tweaks (15 16 17)
 	if grep -E -q ^SMTP_BLOCK\ ?=\ ?[\'\"]1[\'\"]$ $dir/etc/csf/csf.conf || grep -E -q ^smtpmailgidonly=1$ $dir/var/cpanel/cpanel.config; then
 		options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) SSP tweaks recommended since smtp tweak enabled"`
@@ -27,11 +23,6 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	#basic optimizations (12 13 14)
 	if [ ! "$localea" = "EA4" ]; then
 		unset options[14] options[13] options[12] && cmd[8]=`echo "${cmd[8]}\n(5) Basic optimization tweaks are not compatible with EA3"`
-	fi
-
-	#memcache and http2 and nginx not advised on openstack (0 1 2, 3 4 5, 6 7 8)
-	if [ -f $dir/iamopenstack ]; then
-		unset options[8] options [7] options [6] options[5] options[4] options[3] options[2] options[1] options[0] && cmd[8]=`echo "${cmd[8]}\n(1,2,3) Managed OpenStack Hosting detected, apache/php modules not advised"`
 	fi
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)

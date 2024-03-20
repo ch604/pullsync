@@ -21,10 +21,6 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 	[ ! -d $dir/var/cpanel/users ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 
-	# determine if the target server is lw openstack so we can control some options. send one ping (one ping only) to make sure we can reach the openstack controller before trying to curl.
-	[ ! "$(which jq 2> /dev/null)" ] && yum -y -q install jq
-	[ "$(which jq 2> /dev/null)" ] && [ $(ping 169.254.169.254 -c1 -W2 &> /dev/null; echo $?) -eq 0 ] && [ "$(curl -s http://169.254.169.254/openstack/2018-08-27/meta_data.json | jq '.[]' 2> /dev/null | awk -F\" '/mh_fileserver/ {print $4}')" = "host" ] && touch $dir/iamopenstack
-
 	case $synctype in
 		single|list|domainlist|all)
 			getuserlist
