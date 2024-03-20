@@ -1,5 +1,4 @@
-download_malscan() { #download the malware scanning tool
-	wget -q -O /root/migration_scan http://cmsv.liquidweb.com/migration_scan
-	chmod +x /root/migration_scan
-	[ ! -x /root/migration_scan ] && ec red "Download of migraton_scan failed! Not scanning!" | errorlogit 2 && unset malwarescan
+download_malscan() { #download the malware scanning tool. only the second worst function name in pullsync
+	wget -q -O /root/migration_malware_scan https://raw.githubusercontent.com/marcocesarato/PHP-Antimalware-Scanner/master/dist/scanner --no-check-certificate
+	[ -z /root/migration_malware_scan ] && ec red "Download of migraton_malware_scan failed! Not scanning!" | errorlogit 2 && unset malwarescan
 }

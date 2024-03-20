@@ -40,7 +40,6 @@ summarize() { #summarize the migrations run on this server
 			echo "source ip: $(cat /home/temp/$each/ip.txt)"
 			echo "source port: $(cat /home/temp/$each/port.txt)"
 			echo "old userlist ($(cat /home/temp/$each/$userlist.txt | wc -w)): $(cat /home/temp/$each/userlist.txt | tr '\n' ' ')"
-			echo "old ticket: $(cat /home/temp/$each/ticketnumber)"
 			echo ""
 		done >> $dir/summary.txt
 	else

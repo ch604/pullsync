@@ -27,7 +27,7 @@ rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new
 rsyncspeed="3000"
 
 # at the conclusion of hands-off portions of syncs, a slack hook can be activated. uncomment add a url for your slack hook here.
-slackhook_url="https://hooks.slack.com/xxx"
+#slackhook_url="https://hooks.slack.com/xxx"
 
 # the following files are rsynced over from old server to the $dir just after connection.
 filelist="/etc/apf
@@ -139,7 +139,6 @@ nocolor="\E[0m"; black="\033[0;30m"; grey="\033[1;30m"; red="\033[0;31m"; lightR
 valid_ip_format="^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
 valid_port_format="^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
 valid_version_format="^[0-9]+\.[0-9]+\.[0-9]+(mf|DEV)?$"
-valid_ticket_format="^[0-9]{8}$"
 
 #system users and services
 systemusers="root|bin|daemon|adm|lp|sync|shutdown|halt|mail|uucp|operator|games|gopher|ftp|nobody|dbus|vcsa|abrt|haldaemon|ntp|saslauth|postfix|sshd|tcpdump|named|mysql|cpanelhorde|mailnull|cpanel|cpanelphpmyadmin|cpanelphppgadmin|cpanelroundcube|mailman|cpanellogin|cpaneleximfilter|cpaneleximscanner|cpses|dovecot|dovenull|avahi-autoipd|polkitd|tss|rpc|nscd|systemd-bus-proxy|systemd-network|cpanelconnecttrack|postgres|apache|cpanelcabcache|systuser|system|avahi|pcap|smmsp|xfs|news|oprofile|memcached|rpm|nagios|clamav"

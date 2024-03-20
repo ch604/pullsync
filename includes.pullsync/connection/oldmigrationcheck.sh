@@ -13,8 +13,7 @@ oldmigrationcheck() { #always run during synctype_logic, to get old ip/port and 
 			local tempoldip=$(cat /home/temp/$each/ip.txt)
 			local tempoldport=$(cat /home/temp/$each/port.txt)
 			local tempoldcount=$(cat /home/temp/$each/userlist.txt | wc -w)
-			local temporigticket=$(cat /home/temp/$each/ticketnumber)
-			options+=($i "${each#*.} \Z2$tempoldip:$tempoldport\Zn count: \Z2$tempoldcount\Zn ticket: \Z2$temporigticket\Zn" off)
+			options+=($i "${each#*.} \Z2$tempoldip:$tempoldport\Zn count: \Z2$tempoldcount\ZnZn" off)
 			let i+=1
 		done
 		local cmd=(dialog --colors --nocancel --backtitle "pullsync" --title "Old Migrations" --radiolist "Select an old migration to pull connection details from:" 0 80 11)

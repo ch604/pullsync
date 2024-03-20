@@ -4,6 +4,8 @@ pullsync $version
 
 Migrate between cPanel servers
 
+CLI flags are currently in beta. Use unattended features at your own risk!
+
 Example initial sync:
 	bash pullsync.sh -t all -i 123.45.67.89 -k /path/to/private/keyfile [-p 22] [-m]
 
@@ -33,14 +35,11 @@ Currently supported flags:
 	-e		Run maintenance page engine on source server during final sync
 	-d		Copy dns back to source server
 
-	-z		Zendesk ticket number for slack reporting
 	-u		Slack user for slack reporting
 	-h		Display this help and exit
 
 The following issues will cause pullsync to fail after a sane startup:
 	* insufficient disk space on target/source
 	* dns clustering set up on target/source
-
-For more information, see https://git.sysres.liquidweb.com/migrations/pullsync/wikis/home
 "
 }

@@ -1,12 +1,6 @@
 synctype_logic() { #case statement for performing server to server sync tasks. gets specific variables and establishes ssh connection via oldmigrationcheck() before starting.
 	echo "synctype: $synctype" | logit
 	echo "Ping @\$user in slack upon successful completion? [blank for none, will instead ping @migration-team]: " | logit && rd lwuser
-	echo "Please enter your SF ticket number for this task [8 digit ticket REQUIRED]: " | logit && rd ticket
-	while [[ ! $ticket =~ $valid_ticket_format ]]; do
-		echo "Invalid ticket format, please re-enter:" | logit
-		rd ticket
-	done
-	[ "${ticket}" ] && echo ${ticket} >> $dir/ticketnumber && printf "\e]0; pullsync-$(hostname)-$ticket \a" 1>&2
 
 	oldmigrationcheck # see if any old migrations exist and option to use these for connection info
 	if [ "$oldip" ]; then
