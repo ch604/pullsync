@@ -4,14 +4,13 @@ optional_items_menu(){ #additional options for initial syncs
 			2 "Restore sites to dedicated IP addresses" off
 			3 "Scan php files for malware during initial sync" on
 			4 "Run marill automated testing after initial sync" on
-			5 "Add motd line for in-progress migration" on
+			5 "Add MOTD line for in-progress migration" on
 			6 "Run WebPageTest Compare during initial sync" off
 			7 "Use --dbbackup=schema for pkgacct" off
 			8 "Run fixperms for migrated accounts" off
-			9 "Scan for out of date CMS installs with versionfinder" on
-			10 "Convert Roundcube MySQL to sqlite on source" off
-			11 "Skip dbscan for database migrations" on
-			12 "Skip sql backup before import" off)
+			9 "Convert Roundcube MySQL to sqlite on source" off
+			10 "Skip dbscan for database migrations" on
+			11 "Skip sql backup before import" off)
 
 	#dedi ip check (3 4 5)
 	if [ ! "$synctype" = "single" ]; then
@@ -31,8 +30,8 @@ for ip in data["ip"]:
 		fi
 	fi
 
-	#phpscan (6 7 8) && marill (9 10 11) && cmscheck (24 25 26)
-	[ "$synctype" = "skeletons" ] && options[8]=off && options[11]=off && options[26]=off && cmd[8]=`echo "${cmd[8]}\n(3,4,9) No phpscan or marill needed on skeleton syncs"`
+	#phpscan (6 7 8) && marill (9 10 11)
+	[ "$synctype" = "skeletons" ] && options[8]=off && options[11]=off && cmd[8]=`echo "${cmd[8]}\n(3,4) No phpscan or marill needed on skeleton syncs"`
 
 	#motd (12 13 14)
 	grep -q pullsync /etc/motd && options[14]=off && cmd[8]=`echo "${cmd[8]}\n(5) motd for pullsync already exists"`
@@ -73,10 +72,9 @@ for ip in data["ip"]:
 			   initsyncwpt=1;;
 			7) dbbackup_schema=1;;
 			8) fixperms=1; download_fixperms;;
-			9) versionscan=1; download_versionfinder;;
-			10) rcubesqlite=1;;
-			11) nodbscan=1;;
-			12) skipsqlzip=1;;
+			9) rcubesqlite=1;;
+			10) nodbscan=1;;
+			11) skipsqlzip=1;;
 			*) :;;
 		esac
 	done

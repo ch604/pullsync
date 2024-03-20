@@ -15,9 +15,8 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 		4 "Run marill auto testing after sync" off
 		5 "Run fixperms.sh after homedir sync" off
 		6 "Use --delete on the mail folder (BETA)" off
-		7 "Scan for out of date CMS versions" off
-		8 "Don't use dbscan on database copy" on
-		9 "Don't backup databases before transfer" off)
+		7 "Don't use dbscan on database copy" on
+		8 "Don't backup databases before transfer" off)
 
 	[ -s /root/dirty_accounts.txt ] && options[8]=on && cmd[9]=`echo "${cmd[9]}\n(3) Found /root/dirty_accounts.txt"`
 	for user in $userlist; do
@@ -36,9 +35,8 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 			4) runmarill=1; download_marill;;
 			5) fixperms=1; download_fixperms;;
 			6) maildelete=1;;
-			7) versionscan=1; download_versionfinder;;
-			8) nodbscan=1;;
-			9) skipsqlzip=1;;
+			7) nodbscan=1;;
+			8) skipsqlzip=1;;
 			*) :;;
 		esac
 	done
@@ -52,7 +50,6 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	echo -e "to reattach, run (screen -r $STY).\n"
 	[ "$rsync_update" = "--update" ] && echo "* used --update for rsync"
 	[ $malwarescan ] && echo "* scanned php files for accounts in /root/dirty_accounts.txt for malware"
-	[ $versionscan ] && echo "* scanned for out of date CMS installs"
 	[ $runmarill ] && echo "* ran marill auto-testing"
 	[ $fixperms ] && echo -e "\n* RAN FIXPERMS UPON ACCOUNT ARRIVAL"
 	[ $maildelete ] && echo -e "\n* USED --delete ON THE MAIL FOLDER (BETA)"
@@ -112,9 +109,6 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 
 	# if tomcat was installed or exists, restart tomcat instances
 	[ -f /usr/local/cpanel/scripts/ea-tomcat85 ] && ec yellow "Restarting tomcat instances..." && /usr/local/cpanel/scripts/ea-tomcat85 all restart &> /dev/null
-
-	# versioncheck
-	[ $versionscan ] && outdated_versions
 
         # marill
         if [ $runmarill ]; then

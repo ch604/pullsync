@@ -25,9 +25,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			14 "Use --delete on the mail folder (BETA)" off
 			15 "Copy remote cPanel backup destinations (e.g. S3, FTP)" off
 			16 "Set domains on source server to 'remote' mail routing (BETA)" off
-			17 "Scan for out of date CMS versions" off
-			18 "Skip backup of local mysql dbs before import" off
-			19 "Don't use dbscan" on)
+			17 "Skip backup of local mysql dbs before import" off
+			16 "Don't use dbscan" on)
 		#dont restart services or copy dns for ip swaps
 		[ "$ipswap" ] && cmd[9]=$(echo "${cmd[9]}\n(3 8) IP swap selected") && options[8]=off && options[23]=off
 		#turn malware scan on if there were hits during initial sync
@@ -64,9 +63,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 				14)	maildelete=1;;
 				15)	copyremotebackups=1;;
 				16)	setremotemx=1;;
-				17)	versionscan=1; download_versionfinder;;
-				18)	skipsqlzip=1;;
-				19)	nodbscan=1;;
+				17)	skipsqlzip=1;;
+				18)	nodbscan=1;;
 				*)	:;;
 			esac
 		done
@@ -95,7 +93,6 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $doremovehc ] && echo "* removed lwHostsCheck files from all users"
 	[ $autossl ] && echo "* enabled AutoSSL for all users"
 	[ $malwarescan ] && echo "* scanned php files on all accounts for malware"
-	[ $versionscan ] && echo "* scanned for out of date CMS installs"
 	[ $runmarill ] && echo "* ran marill auto-testing"
 	[ $copyremotebackups ] && echo "* copied remote backup destinations"
 	[ $fixperms ] && echo -e "\n* RAN FIXPERMS UPON ACCOUNT ARRIVAL"
@@ -201,7 +198,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 			else
 				ec red "Bailing! NOT updating DNS or swapping IPs! Services will be restarted only if you said you wanted to originally!"
 				finalabort=1
-				unset ipswap autossl runmarill copydns copyremotebackups removemotd setremotemx versionscan
+				unset ipswap autossl runmarill copydns copyremotebackups removemotd setremotemx
 			fi
 		else
 			copybackdns
@@ -254,9 +251,6 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		nohup sh -c 'sleep 300 && /usr/local/cpanel/bin/whmapi1 start_autossl_check_for_all_users' &> /dev/null & #300s allows time for propagation
 	fi
 
-	# versioncheck
-	[ $versionscan ] && outdated_versions
-
 	#marill
 	if [ $runmarill ]; then
 		getlocaldomainlist
@@ -296,7 +290,6 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
 	[ -f $dir/missing_dbs.txt ] && ec red "Some databases were missing during final sync and were created and imported (cat $dir/missing_dbs.txt; cat $dir/missing_dbgrants.txt)"
 	[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually (cat $dir/dbmalware.txt)"
-	[ -s $dir/outdatedversions.txt ] && ec red "Some out of date CMS installs were found, could indicate security risk. Have customer update these (cat $dir/outdatedversions.txt)"
 	[ -s $dir/error.log ] && ec red "There is content in $dir/error.log! (cat $dir/error.log)" && cat $dir/error.log
 	[ $finalabort ] && ec red "You aborted the final sync!" && exitcleanup 120
 

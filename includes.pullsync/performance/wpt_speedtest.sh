@@ -1,7 +1,7 @@
 wpt_speedtest(){ #actually perform the webpagespeed test. test domain $1 using live dns, or optionally against IP $2 (usage: wpt_speedtest domain.com [123.45.67.89])
 	# specify server and location, and variables to use for the test
-	local testserver="https://performancetest.liquidweb.com"
-	local loc="Amsterdam" #Lansing, Amsterdam
+	local testserver="https://www.webpagetest.org"
+	local loc="ec2-us-east-1-catchpoint"
 	local wptargs="--data runs=3 --data noimages=1 --data ignoreSSL=1 --data location=$loc --data keep_test_private=1 --data video=0"
 
 	# if there is an IP specified, use it, otherwise use live dns
