@@ -10,18 +10,13 @@ To conduct testing on your target server, please modify the hosts file on your c
 
 These tutorials will walk you through the process of entering the new IP address for your domain(s):
 
- https://liquidweb.com/kb/dns-hosts-file/
- https://liquidweb.com/kb/edit-host-file-windows-10/
+ https://www.howtogeek.com/howto/27350/beginner-geek-how-to-edit-your-hosts-file/
 
 You will enter the lines found here: 
 
- http://${ip}/hostsfile.txt
+ http://${ip}/hostsfile.txt
 
-Browser cache must be cleared before proceeding:
-
- https://www.liquidweb.com/kb/how-to-clear-browser-cache-and-cookies/
-
-If you have trouble making these changes, our Support Team is on hand 24/7 at 800-580-4985 and would be happy to walk you through the process. When your testing is finished, you can follow the same instructions to remove the lines you added to your hosts file.
+When your testing is finished, you can follow the same instructions to remove the lines you added to your hosts file.
 
   PERFORMING TESTING:
 
@@ -35,23 +30,21 @@ Depending on your site, you may wish to test the following:
 * Comment on a post
 * Upload a file
 
-Should you notice any issues when performing the above tests; Don't worry; we are here to help!  Provide us with the full URL of the page and the specific error message or problem.
+Should you notice any issues when performing the above tests; Don't worry; we are here to help! Provide us with the full URL of the page and the specific error message or problem.
 
   TESTING CAVEATS:
 
 Please be advised of the following: 
 
-* Email from these domains may not be delivered. Once testing is complete, you will be able to connect to the live server to download your email.
-* Automatic SSL ordering mechanisms will not work at this stage.
-* Testing items that depend on 3rd party servers, such as CDNs, mail sending, and payment processing, will likely not work.
+* Email from these domains may not be delivered to you because of the hosts file changes. Once testing is complete, you will be able to connect to the live server to download your email after reverting the changes.
+* Automatic SSL ordering mechanisms will not work at this stage because DNS is not live on the target server.
+* Testing items that depend on 3rd party servers, such as CDNs, mail sending, and payment processing, will likely not work because of licensing permissions or security features.
 
   ONCE YOU FINISH TESTING:
 
-Please advise us when your testing is complete and we will schedule the final sync. Let us know what time works best for you so we can reserve it on our calendar. We dedicate a technician to this process, so please provide at least 24 hours' notice.
+Once testing is complete, you may undo the edits you made to your hosts file, and we can then schedule a time to do the final sync, at which time, DNS should also be updated. Please ensure you have sufficient access to change your DNS records if needed at the final sync. Please also know that we will not automatically terminate the old hosting solution for you; this must be requested separately once you are sure you no longer need the old server.
 
-While the final sync is in progress we will change the DNS zone files on your old server to point to your new server (if the DNS is hosted locally).
-
-Once the final sync is complete, we will ask you to change your DNS name server IPs at your registrar (if applicable) along with any remote DNS, and the migration will be complete.
+Since it is ideal to ensure a technician is dedicated to this final sync task, and so that we can start promptly at your desired time, we recommend scheduling a final sync at least 24 hours in advance. Let us know what time works best for you so that we can reserve it on our calendar. If you have any questions please let us know.
 
 We will not automatically terminate the old hosting solution; you must request this separately if you no longer need the old server.
 

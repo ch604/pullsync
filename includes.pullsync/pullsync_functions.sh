@@ -1,6 +1,5 @@
 #!/bin/bash
 # this file does nothing without pullsync.sh
-# https://git.sysres.liquidweb.com/migrations/pullsync/tree/multifile
 
 ###################
 # include functions

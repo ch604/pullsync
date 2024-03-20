@@ -8,7 +8,7 @@ jobnum=3
 refreshdelay=3
 
 # potential prefixes for natted ip warning check. add more with pipe separator, like "172.16|192.168" for good sed regex.
-natprefix="172.16"
+natprefix="172.16|192.168|10."
 
 # excluded users when selecting all users.  filtered out by egrep -vx. add more like this "system|root|alan|eric". HASH* is added to the function below so the wildcard is added properly.
 badusers="system|root|nobody"
@@ -27,7 +27,7 @@ rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new
 rsyncspeed="3000"
 
 # at the conclusion of hands-off portions of syncs, a slack hook can be activated. uncomment add a url for your slack hook here.
-#slackhook_url="https://hooks.slack.com/xxx"
+#slackhook_url="https://hooks.slack.com/services/your/url/goeshere"
 
 # the following files are rsynced over from old server to the $dir just after connection.
 filelist="/etc/apf
@@ -75,7 +75,6 @@ filelist="/etc/apf
 /usr/local/cpanel/version
 /usr/local/cpanel/3rdparty/etc/phpmyadmin/php.ini
 /usr/local/lib/php.ini
-/usr/local/lp/etc/lp-UID
 /usr/share/ssl
 /usr/my.cnf
 /var/cpanel/apps
@@ -141,5 +140,5 @@ valid_port_format="^([0-9]{1,4}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655
 valid_version_format="^[0-9]+\.[0-9]+\.[0-9]+(mf|DEV)?$"
 
 #system users and services
-systemusers="root|bin|daemon|adm|lp|sync|shutdown|halt|mail|uucp|operator|games|gopher|ftp|nobody|dbus|vcsa|abrt|haldaemon|ntp|saslauth|postfix|sshd|tcpdump|named|mysql|cpanelhorde|mailnull|cpanel|cpanelphpmyadmin|cpanelphppgadmin|cpanelroundcube|mailman|cpanellogin|cpaneleximfilter|cpaneleximscanner|cpses|dovecot|dovenull|avahi-autoipd|polkitd|tss|rpc|nscd|systemd-bus-proxy|systemd-network|cpanelconnecttrack|postgres|apache|cpanelcabcache|systuser|system|avahi|pcap|smmsp|xfs|news|oprofile|memcached|rpm|nagios|clamav"
+systemusers="root|bin|daemon|adm|sync|shutdown|halt|mail|uucp|operator|games|gopher|ftp|nobody|dbus|vcsa|abrt|haldaemon|ntp|saslauth|postfix|sshd|tcpdump|named|mysql|cpanelhorde|mailnull|cpanel|cpanelphpmyadmin|cpanelphppgadmin|cpanelroundcube|mailman|cpanellogin|cpaneleximfilter|cpaneleximscanner|cpses|dovecot|dovenull|avahi-autoipd|polkitd|tss|rpc|nscd|systemd-bus-proxy|systemd-network|cpanelconnecttrack|postgres|apache|cpanelcabcache|systuser|system|avahi|pcap|smmsp|xfs|news|oprofile|memcached|rpm|nagios|clamav"
 systemservices="anacron|bandmin|bluetooth|nfslock|microcode_ctl|readahead_early|rpcidmapd|yum-updatesd|kudzu|firstboot|hidd|rawdevices|udev-post|acpid|haldaemon|haldemon|messagebus|netfs|network|portreserve|blk-availability|filelimits|autofs|cpuspeed|cups|mcelogd|rpcbind|rpcgssd|stunnel|microcode|restorecond|syslog|isdn|lvm2-monitor|avahi-daemon|ip6tables|ntpd|iscsi|iscsid|kcare|mysql|mysqld|tuned|mariadbd|mariadb"
