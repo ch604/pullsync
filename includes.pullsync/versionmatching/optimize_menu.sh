@@ -5,7 +5,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 			3 "Install nginx proxy for EA4 (EXPERIMENTAL)" off
 			4 "Use FPM for all accounts (converts migrated domains!)" off
 			5 "Turn on keepalive, mod_expires, and mod_deflate" off
-			6 "Server Secure Plus tweaks" off
+			6 "Security tweaks" off
 			7 "Install mod_pagespeed" off
 			8 "Install mpm_event for EA4" on)
 
@@ -14,9 +14,9 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	if [ "$nginxfound" ] && [ "$localea" = "EA4" ]; then
 		options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Nginx found on source server"`
 	fi
-	#SSP tweaks (15 16 17)
+	#security tweaks (15 16 17)
 	if grep -E -q ^SMTP_BLOCK\ ?=\ ?[\'\"]1[\'\"]$ $dir/etc/csf/csf.conf || grep -E -q ^smtpmailgidonly=1$ $dir/var/cpanel/cpanel.config; then
-		options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) SSP tweaks recommended since smtp tweak enabled"`
+		options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) Security tweaks recommended since smtp tweak enabled"`
 	fi
 
 	# turn things off back to front
@@ -37,7 +37,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 			3)	nginxproxy=1;;
 			4)	fpmdefault=1;;
 			5)	basicoptimize=1;;
-			6)	ssp_tweaks=1;;
+			6)	security_tweaks=1;;
 			7)	pagespeed=1;;
 			8)	mpmevent=1;;
 			*)	:;;

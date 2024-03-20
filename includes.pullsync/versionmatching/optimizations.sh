@@ -46,8 +46,8 @@ optimizations(){ #server optimizations separated from installs() in case version
 		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
 	fi
 	#serversecure plus tweaks
-	if [ $ssp_tweaks ]; then
-		ec yellow "Enabling ServerSecure Plus security settings (only the setting tweaks)..."
+	if [ $security_tweaks ]; then
+		ec yellow "Enabling security settings..."
 		#csf
 		perl -i -p -e 's/SMTP_BLOCK = "0"/SMTP_BLOCK = "1"/g' /etc/csf/csf.conf
 		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=smtpmailgidonly value=0 &> /dev/null

@@ -116,7 +116,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $memcache ] && echo "* installed memcache and its php connectors"
 		[ $fpmdefault ] && echo "* set all sites to use php-fpm"
 		[ $basicoptimize ] && echo "* turned on keepalive, mod_deflate, and mod_expires"
-		[ $ssp_tweaks ] && echo "* turned on serversecure plus tweaks"
+		[ $security_tweaks ] && echo "* turned on serversecure plus tweaks"
 		[ $pagespeed ] && echo "* installed mod_pagespeed"
 		[ $do_mysqlcalc ] && echo "* calculated best ibps/kbs for mysql"
 		echo -e "\nadded server security:"

@@ -49,7 +49,6 @@ noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users,
 
 	#enabled services
 	ec yellow " Enabled services..."
-	# skip core services
 	# get enabled services with systemctl or chkconfig
 	if [ "$(sssh 'which systemctl 2> /dev/null')" ]; then
 		sssh "systemctl list-unit-files" | awk '$2 == "enabled" {print $1}' | egrep -v '(target|socket|path)$' | sed -e 's/\.service$//g' | egrep -v "(^${systemservices}$)" > $dir/remoterunlist.txt
