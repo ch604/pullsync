@@ -76,12 +76,11 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	sssh "php -m 2>&1; php -i 2>&1" > $dir/remote_php_details.txt
 
 	# extra mysql stuff, look for remote profiles.
-#	[ ! $localmysql == $remotemysql ] && ec red "Mysql versions do not match."
-#	[ ! "$localmysqlrelease" = "$remotemysqlrelease" ] && ec lightRed "Mysql releases do not match! Fix this before continuing if the customer cares about their mysql fork!"
+	[ ! $localmysql == $remotemysql ] && ec red "Mysql versions do not match."
+	[ ! "$localmysqlrelease" = "$remotemysqlrelease" ] && ec lightRed "Mysql releases do not match! Fix this before continuing if the customer cares about their mysql fork!"
 	if [ "$remotemysqlrelease" = "MySQL" ] && [[ $remotemysql =~ ^8\. ]]; then
 		if [ ! "$localmysqlrelease" = "MySQL" ] || [[ ! $localmysql =~ ^8\. ]]; then
 			ec lightRed "Source is using MySQL 8 and target isnt! ($localmysqlrelease $localmysql). Please change the target to MySQL 8 before continuing."
-			exitcleanup 132
 		fi
 	fi
 	say_ok
@@ -107,7 +106,7 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	dnsclustering
 
 	# now that we have a dns file, we can check for modcloudflare install
-	if [[ ! "$synctype" = "single" && ! "$synctype" = "skeletons" ]] && [ "$domainlist" ] && [ ! "$localea" = "EA4" ] && [ ! -f $dir/iamopenstack ]; then
+	if [[ ! "$synctype" = "single" && ! "$synctype" = "skeletons" ]] && [ "$domainlist" ] && [ ! "$localea" = "EA4" ]; then
 		[ "$modcloudflarefound" ] || grep -q cloudflare_module $dir/usr/local/apache/conf/includes/pre_main_global.conf 2> /dev/null || grep -q cloudflare.com $dir/source_resolve.txt $dir/not_here_resolve.txt 2> /dev/null && modcloudflare=1
 	fi
 
@@ -133,11 +132,6 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 
 	# cloudlinux
 	cloudlinux_check
-
-	# underused ip check
-	if [ -e $dir/usr/local/lp/etc/lp-UID ]; then #skip check on non-lw sources
-		underused_ips
-	fi
 
 	# detect security features
 	securityfeatures

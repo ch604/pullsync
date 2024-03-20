@@ -1,10 +1,10 @@
 backup_check() { #detect if backups are enabled and optionally turn them on
 	ec yellow "Checking backup configuration..."
-	# print is this a storm server, usually you do not want cp backups.
-	if df | awk '{print $1}' | grep -qE 'vda[0-9]'; then
-		ec lightBlue "This appears to be a Storm Server."
+		e# print is this a virtual server, usually you do not want cp backups.
+	if lscpu | grep -q ^Hypervisor\ vendor; then
+		ec lightBlue "This appears to be a virtual server."
 	else
-		ec blue "This appears to be a Dedicated Server."
+		ec blue "This appears to be a dedicated server."
 	fi
 
 	# need to ensure backups are on and accounts are set to be backed up
@@ -17,14 +17,8 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 			ec red "Remote server has a remote backup destination (s3)!" | errorlogit 3
 			say_ok
 		fi
-		if [ -f "$dir/usr/local/lp/etc/lp-UID" ] && awk '{print $2}' "$dir/etc/fstab" | grep -q /backup; then #source is lw and there is a backup mount point
-			if sssh "df" | awk '{print $1}' | grep -qE 'vdb[0-9]'; then
-				ec red "Remote server appears to have a Block Storage Device and a mount for /backup! If target is a storm server, you might want to bring this over." | errorlogit 4
-				say_ok
-			elif ! sssh "df" | awk '{print $1}' | grep -qE 'vda[0-9]'; then
-				ec red "Source server appears to be a dedicated server and has a mount point for /backup! If target is a storm server, consider adding a Block Storage Device, if there isn't one already." | errorlogit 4
-				say_ok
-			fi
+		if awk '{print $2}' "$dir/etc/fstab" | grep -q $sourcebackupdir; then #source has a backup mount point
+			ec red "Source server has a separate mount point for $sourcebackupdir!" | errorlogit 4
 		fi
 	else
 		ec white "Remote cPanel backups are disabled."
@@ -53,10 +47,6 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 					ec green "Done!"
 				fi
 			fi
-#		elif [ "$autopilot" ] && [ $do_installs ]; then
-			# disabled automatically turning on backups in case of storm server or no backup disk
-#			/usr/local/cpanel/bin/whmapi1 backup_config_set backupenable=1 backupaccts=1 2>&1 | stderrlogit 3
-#			enabledbackups=1
 		fi
 	fi
 }

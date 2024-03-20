@@ -86,7 +86,7 @@ detect_apps() { # look for common extra applications
 	#next, remove items already installed and put them in a separate list
 	ec yellow "Trimming already-installed programs..."
 	psfile2=$(mktemp)
-	ps acx > $psfile
+	ps acx > $psfile2
 	[ "$ffmpeg" ] && which ffmpeg &> /dev/null && unset ffmpeg && echo "ffmpeg" >> $dir/skippedinstall.txt
 	[ "$imagick" ] && which convert &> /dev/null && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
 	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
@@ -103,20 +103,6 @@ detect_apps() { # look for common extra applications
 	[ "$tomcat" ] && ls /usr/local/cpanel/scripts/ea-tomcat85 &> /dev/null && unset tomcat && echo "tomcat" >> $dir/skippedinstall.txt
 	[ "$cpanelsolr" ] && service cpanel-dovecot-solr status &> /dev/null && unset cpanelsolr && echo "cpanelsolr" >> $dir/skippedinstall.txt
 	rm -f $psfile2
-
-	#adjust if openstack detected to remove incompatible things
-	if [ -f $dir/iamopenstack ]; then
-		ec yellow "Managed Cloud OpenStack target server detected, unsetting some incompatible things..."
-		[ "$imagick" ] && unset imagick && echo "imagick" >> $dir/skippedinstall.txt
-		[ "$memcache" ] && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
-		[ "$redis" ] && unset redis && echo "redis" >> $dir/skippedinstall.txt
-		[ "$java" ] && unset java javaver && echo "java" >> $dir/skippedinstall.txt
-		[ "$solr" ] && unset solr && echo "solr" >> $dir/skippedinstall.txt
-		[ "$postgres" ] && unset postgres && echo "postgres" >> $dir/skippedinstall.txt
-		[ "$nodejs" ] && unset nodejs npm && echo "nodejs" >> $dir/skippedinstall.txt
-		[ "$tomcat" ] && unset tomcat && echo "tomcat" >> $dir/skippedinstall.txt
-		[ "$apc" ] && unset apc && echo "apc" >> $dir/skippedinstall.txt
-	fi
 
 	#print out the programs we detected
 	ec yellow "Program scan results:"
