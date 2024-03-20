@@ -5,13 +5,18 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 			3 "Install nginx proxy for EA4 (EXPERIMENTAL)" off
 			4 "Use FPM for all accounts (converts migrated domains!)" off
 			5 "Turn on keepalive, mod_expires, and mod_deflate" off
-			6 "Security tweaks" off
-			7 "Install mod_pagespeed" off)
+			6 "Server Secure Plus tweaks" off
+			7 "Install mod_pagespeed" off
+			8 "Install mpm_event for EA4" on)
 
 	# turn things on front to back
 	#nginx on source (6 7 8)
 	if [ "$nginxfound" ] && [ "$localea" = "EA4" ]; then
 		options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Nginx found on source server"`
+	fi
+	#FPM on openstack managed hosting cluster (9 10 11)
+	if [ -f $dir/iamopenstack ]; then
+		options[11]=on && cmd[8]=`echo "${cmd[8]}\n(4) Managed OpenStack Hosting detected, FPM required"`
 	fi
 	#SSP tweaks (15 16 17)
 	if grep -E -q ^SMTP_BLOCK\ ?=\ ?[\'\"]1[\'\"]$ $dir/etc/csf/csf.conf || grep -E -q ^smtpmailgidonly=1$ $dir/var/cpanel/cpanel.config; then
@@ -22,6 +27,11 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	#basic optimizations (12 13 14)
 	if [ ! "$localea" = "EA4" ]; then
 		unset options[14] options[13] options[12] && cmd[8]=`echo "${cmd[8]}\n(5) Basic optimization tweaks are not compatible with EA3"`
+	fi
+
+	#memcache and http2 and nginx not advised on openstack (0 1 2, 3 4 5, 6 7 8)
+	if [ -f $dir/iamopenstack ]; then
+		unset options[8] options [7] options [6] options[5] options[4] options[3] options[2] options[1] options[0] && cmd[8]=`echo "${cmd[8]}\n(1,2,3) Managed OpenStack Hosting detected, apache/php modules not advised"`
 	fi
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -38,6 +48,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 			5)	basicoptimize=1;;
 			6)	ssp_tweaks=1;;
 			7)	pagespeed=1;;
+			8)	mpmevent=1;;
 			*)	:;;
 		esac
 	done

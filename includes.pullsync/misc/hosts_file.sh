@@ -5,7 +5,7 @@ hosts_file() { #creates testing info for user $1, also generates line for runnin
 		local user_IP=`grep ^IP /var/cpanel/users/$user |cut -d= -f2`
 		#check for natted ips
 		if [ -f /var/cpanel/cpnat ] && grep -Eq ^$user_IP\ [0-9]+ /var/cpanel/cpnat; then
-			user_IP=$(grep -E ^$user_IP\ [0-9]+ /var/cpanel/cpnat | awk '{print $2}')
+			user_IP=$(awk '/^'$user_IP' [0-9]+/ {print $2}' /var/cpanel/cpnat)
 		fi
 		local user_domains=`grep ^DNS /var/cpanel/users/$user |cut -d= -f2 |grep -v \*`
 		#per user way
@@ -16,10 +16,16 @@ hosts_file() { #creates testing info for user $1, also generates line for runnin
 	  	echo "" | tee -a $hostsfile
 		#one line per domain
 		for domain in $user_domains; do
-			echo "$user_IP $domain" >> $hostsfile_alt
-			echo "$user_IP www.$domain" >> $hostsfile_alt
+			echo "$user_IP $domain www.$domain" >> $hostsfile_alt
 			echo "${domain}:${user_IP}" >> $dir/marilldomains.txt
 		done
+		if [ $initsyncwpt ]; then #this is included here because hosts_file already collects the necessary ips and domains
+			ec brown "$progress Comparing performance of target domains to source..."
+			for domain in $user_domains; do
+				wpt_speedtest $domain $user_IP
+				wpt_speedtest $domain
+			done
+		fi
 	else
 		ec lightRed "Cpanel user file for $user not found, not generating hosts file entries!" | errorlogit 3
 	fi

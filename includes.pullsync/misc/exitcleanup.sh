@@ -1,4 +1,4 @@
-exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans up ssh sessions, unsets exported variables.
+exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans up ssh sessions, unsets exported variables, and runs the slackhook() to ping completion.
 	#remove pullsync key from remote authorized keys on remote server
 	if [ -f $dir/ip.txt ] && [ -f $dir/keyname.txt ]; then
 		ec yellow "Removing remote pullsync ssh keys..."
@@ -15,7 +15,7 @@ exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans 
 	fi
 	if [ ! "$autopilot" ]; then
 		ec yellow "Killing remnant SSH processes..."
-		for connection in `ps x | grep ssh | grep pullsync | grep -v grep | awk '{print $1}'`; do
+		for connection in $(ps x | awk '/ssh/ && /pullsync/ && !/ awk / {print $1}'); do
 			echo "$connection" | logit
 			kill $connection
 		done
@@ -23,12 +23,14 @@ exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans 
 	ec yellow "Removing local pullsync ssh keys..."
 	[ -f /root/.ssh/config ] && sed -i '/\#added\ by\ pullsync/,+4d' /root/.ssh/config
 	\rm -f /root/.ssh/pullsync*
+	#restore whm contact during control_c if needed
+	[ "$1" = "130" ] && restorecontact
 	#determine if noop or failed connection, change foldername and remake symlink
 	[ ! -f $dir/ip.txt ] && ec yellow "No-op detected, renaming folder..." && mv "$dir.$starttime" "$noopdir.$starttime" && \rm -f "$dir" && ln -s "$noopdir.$starttime" "$dir"
 	#add cleanup cron
 	ec yellow "Adding cleanup cron..."
 	cat > /etc/cron.d/pullsync-cleanup << EOF
-30 0 * * * root /bin/bash -c 'if [ ! "\$(find /home/temp/ -maxdepth 1 -type d -mtime -14 \( -name "pullsync*" -o -name "noop-pullsync*" \))" -a ! -f /home/temp/pullsync/pullsync.pid ]; then \\rm -rf /root/includes.pullsync/; \\rm -f /root/migration_malware_scan; \\rm -f /root/pullsync.sh; \\rm -f /etc/cron.d/pullsync-cleanup; fi'
+30 0 * * * root /bin/bash -c 'if [ ! "\$(find /home/temp/ -maxdepth 1 -type d -mtime -14 \( -name "pullsync*" -o -name "noop-pullsync*" \))" -a ! -f /home/temp/pullsync/pullsync.pid ]; then \\rm -rf /root/includes.pullsync/; \\rm -f /root/pullsync.sh; \\rm -f /etc/cron.d/pullsync-cleanup; fi'
 EOF
 	#print disk usage of all temp data
 	local dirsize=$(du -shc /home/temp/pullsync.* /home/temp/noop-pullsync.* 2>/dev/null | tail -1 | awk '{print $1}')
@@ -40,7 +42,7 @@ EOF
 	ec white "Started $starttime"
 	ec white "Ended `date +%F.%T`"
 	ec lightGreen "Done!"
-	if [ ! $1 ] && [ "$slackhook_url" ]; then #if no special exit code, and url set, ping slack
+	if [ ! $1 ]; then #if no special exit code, ping slack
 		ec yellow "Posting completion to slack channel..."
 		[ -f $dir/error.log ] && slackhook ff3333 || slackhook
 	fi
@@ -48,7 +50,7 @@ EOF
 	echo -en "\a" # sound the terimal bell
 	[[ "$1" ]] && echo "exit code: $1" | logit
 	#unset exported functions/variables
-	unset -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_2 malware_scan logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman errorlogit user_mysql_listgen finalfunction processprogress fpmconvert apache_user_includes
-	unset dir user_total remainingcount sshargs ip remote_tempdir rsyncargs old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fcgiconvert comment_crons malwarescan defaultea4profile log solrver fixperms starttime mysqldumpopts errlog dbbackup_schema dopgsync skipsqlzip
+	unset -f packagefunction rsync_homedir hosts_file ec ecnl rsync_homedir_wrapper rsync_email mysql_dbsync mysql_dbsync_user malware_scan logit ts sssh install_ssl resetea4versions sanitize_dblist nameserver_registrar eternallog stderrlogit nonhuman human wpt_speedtest awkmedian ab_test errorlogit user_mysql_listgen wpt_initcompare finalfunction processprogress dbscan apache_user_includes fpmconvert progressbar
+	unset dir user_total remainingcount sshargs ip remote_tempdir rsyncargs rsyncspeed old_main_ip ded_ip_check single_dedip synctype rsync_update rsync_excludes hostsfile hostsfile_alt nocolor black grey red lightRed green lightGreen brown yellow blue lightBlue purple lightPurple cyan lightCyan white greyBg dblist_restore fpmconvert comment_crons malwarescan defaultea4profile log fixperms starttime mysqldumpopts errlog dbbackup_schema initsyncwpt dopgsync skipsqlzip nodbscan start_disk expected_disk homemountpoints finaldiff
 	exit $1
 }

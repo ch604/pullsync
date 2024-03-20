@@ -6,12 +6,12 @@ ea4phphandlercompare() { #attempt to compare php handler on ea4
 		ec green "PHP handlers already match!"
 	elif /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $remotephphandler; then
 		ec green "Remote PHP handler already compiled into EA and will be matched"
-		matchhandler=$remotephphandler
-	elif [ "$remotephphandler" = "fcgi" ] || [ "$remotephphandler" = "dso" ]; then
-		[ "$remotephphandler" = "dso" ] && ec red "DSO is not available on this machine!"
+		matchhandler=1
+	elif [ "$remotephphandler" = "dso" ]; then
+		ec red "DSO is not available on this machine!"
 		if yesNo "Use PHP-FPM?"; then
-			matchhandler=cgi #cant use fcgi globally yet, will have to set it up per domain upon arrival
-			fcgiconvert=1
+			matchhandler=1
+			fpmconvert=1 #cant use fpm globally yet, will have to set it up per domain upon arrival
 			/usr/local/cpanel/bin/whmapi1 php_set_default_accounts_to_fpm default_accounts_to_fpm=1 &> /dev/null
 			ec green "PHP-FPM will be installed via yum and set up as accounts arrive."
 		fi

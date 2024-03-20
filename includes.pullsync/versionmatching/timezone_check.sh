@@ -1,6 +1,6 @@
 timezone_check() { #compare timezones and ask to match them
-	[ -f $dir/etc/sysconfig/clock ] && remotetimezonefile=`cat $dir/etc/sysconfig/clock | grep ^ZONE | cut -d\" -f2` || remotetimezonefile=`sssh "[ -x /bin/timedatectl ] && timedatectl | grep zone\: | cut -d\: -f2 | awk '{print $1}'"`
-	[ -f /etc/sysconfig/clock ] && localtimezonefile=`cat /etc/sysconfig/clock | grep ^ZONE | cut -d\" -f2` || localtimezonefile=`[ -x /bin/timedatectl ] && timedatectl | grep zone\: | cut -d\: -f2 | awk '{print $1}'`
+	[ -f $dir/etc/sysconfig/clock ] && remotetimezonefile=$(awk -F\" '/^ZONE/ {print $2}' $dir/etc/sysconfig/clock) || remotetimezonefile=$(sssh "[ -x /bin/timedatectl ] && timedatectl" | awk '/zone:/ {print $3}')
+	[ -f /etc/sysconfig/clock ] && localtimezonefile=$(awk -F\" '/^ZONE/ {print $2}' /etc/sysconfig/clock) || localtimezonefile=$([ -x /bin/timedatectl ] && timedatectl | awk '/zone:/ {print $3}')
 	remotetimezone=`sssh "date +%z"`
 	localtimezone=`date +%z`
 	ec white "Local timezone:	${localtimezone} (${localtimezonefile})"

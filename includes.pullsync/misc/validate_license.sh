@@ -8,9 +8,9 @@ validate_license() {
 	/usr/local/cpanel/cpkeyclt &> /dev/null
 	cpnat_check
 	if grep -Eq ^$cpanel_main_ip\ [0-9]+ /var/cpanel/cpnat 2> /dev/null; then
-		licensetestip=$(grep -E ^${cpanel_main_ip}\ [0-9]+ /var/cpanel/cpnat | awk '{print $2}')
+		licensetestip=$(awk '/^'$cpanel_main_ip' [0-9]+/ {print $2}' /var/cpanel/cpnat)
 	else
-		licensetestip=${cpanel_main_ip}
+		licensetestip=$cpanel_main_ip
 	fi
 	# see if the main ip has an active license
 	curl -sS -L https://verify.cpanel.net/app/verify?ip=${licensetestip} > $dir/validate_license_output.txt

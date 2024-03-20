@@ -13,7 +13,7 @@ sslcert_check() { # print cert info for all ssls in httpd.conf
 				openssl x509 -noout -in $dir$crt -issuer  -subject  -dates > $crtout
 				# set variable if using autossl
 				grep -q -e "O=Let's Encrypt" -e "O=cPanel, Inc." $crtout && usingautossl=1
-				local enddate=$(date -d "$(grep notAfter $crtout | cut -d\= -f2)" +"%s")
+				local enddate=$(date -d "$(awk -F= '/notAfter/ {print $2}' $crtout)" +"%s")
 				# determine if any certs are expired
 				[ "$enddate" -lt "$now" ] && local expiredcert=1
 				rm -f $crtout

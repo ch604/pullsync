@@ -5,7 +5,7 @@ copybackdns() { #only called during final sync, copy zonefiles of copied domains
 		ec yellow "Copying zone files back to old server..."
 		for domain in $domainlist; do
 			if [ -f "/var/named/${domain}.db" ]; then
-				sed -i -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'`date +%Y%m%d%H`'/g' /var/named/$domain.db
+				sed -i -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'$(date +%Y%m%d%H)'/g' /var/named/$domain.db
 				rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" /var/named/$domain.db $ip:/var/named/
 			fi
 		done

@@ -7,8 +7,20 @@ syncprogress() { #prints the sync status every few seconds over the same window,
 		refreshdelay=$(cat $dir/refreshdelay); [[ ! $refreshdelay =~ ^[0-9]+$ || $refreshdelay -gt 60 ]] && refreshdelay=3
 		# get a list of running parallel processes (packagefunction), getting the unique list of process numbers and usernames
 		local runningprocs=`ps faux | grep packagefunction | egrep -v '(parallel|grep)' | awk '{print $(NF-2), $(NF-1)}' | sort -u`
-		# put that variable into processprogress()
+		# put that variable into processprogress() to print the users
 		processprogress
+		# print progress indicators for disk usage and total account count
+		local current_disk=0
+		for each in $(echo $homemountpoints); do
+			local z=$(df $each | tail -n1 | awk '{print $3}')
+			current_disk=$(( $current_disk + $z ))
+		done
+		ecnl yellow "Disk progress (start/current/expected): $(human $((start_disk*1024)))/$(human $((current_disk*1024)))/$(human $((expected_disk*1024)))$c"
+		progressbar $((current_disk-start_disk)) $((expected_disk-start_disk))
+		local restoredcount=$(\ls -A /var/cpanel/users | grep -c $(for each in $(cat $dir/userlist.txt); do echo -ne "-e $each "; done))
+		ecnl yellow "Restored users: $restoredcount/$user_total$c"
+		progressbar $restoredcount $user_total
+		echo -e "$c"
 		if [ -s $hostsfile ] ; then
 			# if anything was written to the hosts file, list the last few lines so spot testing can be done
 			ecnl white "Last 3 hosts file lines:$c"
@@ -40,13 +52,13 @@ syncprogress() { #prints the sync status every few seconds over the same window,
 		# check for stuck transfers
 		if [ ! -z $recheckpid ]; then
 			# there was a potentially stuck session found from the 'else' statement. check for it now
-			if [ "$recheckpid" = "`ps fax | grep view_transfer | grep -v grep | awk '{print $1}'`" ]; then
+			if [ "$recheckpid" = "`ps fax | grep view_transfer 2>/dev/null | grep -v grep | awk '{print $1}'`" ]; then
 				# if the active view_transfer matches the one from the last check, increment count
 				(( recheck += 1 ))
 				if [ "$recheck" = "9" ]; then
 					# restore has been stuck for 30 seconds with finished child, kill the parent
 					ec red "Killing stuck transfer_session ${active_restorepkg}..."
-					echo "killed $active_restorepkg pid $recheckpid: `ps fax | grep view_transfer | grep -v grep`" >> errorlogit 2
+					echo "killed $active_restorepkg pid $recheckpid: `ps fax | grep view_transfer 2>/dev/null | grep -v grep`" >> errorlogit 2
 					kill $recheckpid 2>&1 | stderrlogit 2
 					unset recheckpid recheck active_restorepkg # unset variables to escape this loop next time
 				fi
@@ -56,10 +68,10 @@ syncprogress() { #prints the sync status every few seconds over the same window,
 		else
 			echo -e "$c" # clear text from last kill if any
 			# get the session id of the restorepkg in progress
-			active_restorepkg=`ps fax | grep view_transfer | grep -v grep | awk '{print $NF}' | head -1`
+			active_restorepkg=`ps fax | grep view_transfer 2>/dev/null | grep -v grep | awk '{print $NF}' | head -1`
 			if [ ! -z $active_restorepkg ] && [ -f /var/cpanel/transfer_sessions/$active_restorepkg/item-RESTORE* ]; then
 				# active restore session with child process done, might be stuck. get the pid number to recheck.
-				recheckpid=`ps fax | grep view_transfer | grep -v grep | awk '{print $1}' | head -1`
+				recheckpid=`ps fax | grep view_transfer 2>/dev/null | grep -v grep | awk '{print $1}' | head -1`
 				[ -z $recheckpid ] && unset recheckpid recheck active_restorepkg # view_transfer ended cleanly before we could get to it
 			else
 				unset recheckpid recheck active_restorepkg # no active restore session

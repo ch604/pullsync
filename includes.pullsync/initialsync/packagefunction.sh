@@ -4,7 +4,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 	local restorepkg_args="--allow_reseller"
 	local pkgacct_args="--skiphomedir"
 	[ $dbbackup_schema ] && pkgacct_args="$pkgacct_args --dbbackup=schema"
-	local old_user_ip=$(grep ^IP= $dir/var/cpanel/users/$user | cut -d= -f2)
+	local old_user_ip=$(awk -F= '/^IP=/ {print $2}' $dir/var/cpanel/users/$user)
 	[ "$remainingcount" ] && local progress="$(($1 + $(cat $dir/realresellers.txt | wc -w) ))/$user_total | $user:" || local progress="$1/$user_total | $user:"
 	# package the remote account and locate it on the remote server
 	ec lightBlue "$progress Packaging $user..." | tee -a $dir/log/pkgacct.$user.log
@@ -28,7 +28,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 				local shortprog=$(echo "$progress" | awk '{print $1}')
 				if [ $dbbackup_schema ]; then
 					# bring over dbs if they were skipped for pkgacct
-					sem --id datamove${user} -j 2 -u mysql_dbsync_2 $user $shortprog >> $dir/log/dblog.$user.log
+					sem --id datamove${user} -j 2 -u mysql_dbsync_user $user $shortprog >> $dir/log/dblog.$user.log
 					sem --id datamove${user} -j 2 -u rsync_homedir $user $shortprog
 					sem --wait --id datamove${user}
 				else

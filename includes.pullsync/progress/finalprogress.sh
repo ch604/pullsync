@@ -9,14 +9,23 @@ finalprogress() { #same as syncprogress(), but for final syncs.
 		local runningprocs=`ps faux | grep finalfunction | egrep -v '(parallel|grep)' | awk '{print $(NF-2), $(NF-1)}' | sort -u`
 		# put that list into processprogress()
 		processprogress
-		#tell tech which accounts are done
-		ecnl green "Completed users:$c"
+		# disk progress
+		local current_disk=0
+		for each in $(echo $homemountpoints); do
+			local z=$(df $each | tail -n1 | awk '{print $3}')
+			current_disk=$(( $current_disk + $z ))
+		done
+		ecnl yellow "Disk progress (start/current/expected): $(human $((start_disk*1024)))/$(human $((current_disk*1024)))/$(human $((expected_disk*1024)))$c"
+		progressbar $((current_disk-start_disk)) $((expected_disk-start_disk))
+		# tell tech which accounts are done
+		ecnl green "Completed users: $(cat $dir/final_complete_users.txt | wc -w)/$user_total$c"
+		progressbar $(cat $dir/final_complete_users.txt | wc -w) $user_total
 		echo -e "$(cat $dir/final_complete_users.txt | tr '\n' ' ')$c"
-		#invert count to clear off extra data when you go from 3 to 2 restores, for instance
+		# invert count to clear off extra data when you go from 3 to 2 restores, for instance
 		for each in `seq $numprocs 2`; do
 			echo -e "$c\n$c\n$c"
 		done
-		#clear to the bottom
+		# clear to the bottom
 		for each in `seq 30 $(tput lines)`; do
 			echo -e "$c"
 		done

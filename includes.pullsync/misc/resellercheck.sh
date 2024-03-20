@@ -5,7 +5,7 @@ resellercheck() { #check for resellers in $userlist, place in a separate file so
 		echo $userlist > $dir/nonresellers.txt
 		realresellers=""
 		for i in $resellers; do
-			check=`cat $dir/nonresellers.txt | grep -E '(\ |^)$i(\ |$)'`
+			check=`grep -E '(\ |^)$i(\ |$)' $dir/nonresellers.txt`
 			if [[ $check != "" ]]; then
 				sed -i "s/\(^\|\s\)$i\($\|\s\)/ /g" $dir/nonresellers.txt
 				realresellers="$realresellers $i"

@@ -9,7 +9,7 @@ dnscheck(){ #skip on versionmatching, as there will be no $domainlist. check the
 		# set source_ips if not just checking DNS
 		[ "$ip" ] && source_ips=`sssh "/scripts/ipusage" | awk '{print $1}'` || source_ips="0.0.0.0"
 		if [ -f /var/cpanel/cpnat ]; then
-			target_ips=$(for i in $(/scripts/ipusage | awk '{print $1}'); do grep -Eq ^$i\ [0-9]+ /var/cpanel/cpnat && grep ^$i\  /var/cpanel/cpnat | awk '{print $2}' || echo $i; done)
+			target_ips=$(for i in $(/scripts/ipusage | awk '{print $1}'); do grep -Eq ^$i\ [0-9]+ /var/cpanel/cpnat && awk '/^'$i' / {print $2}' /var/cpanel/cpnat || echo $i; done)
 		else
 			target_ips=$(/scripts/ipusage | awk '{print $1}')
 		fi

@@ -1,10 +1,8 @@
 whitelist_source() { #allow unfettered connections to $ip
 	ec yellow "Whitelisting source IP in firewall..."
-	if [ `which csf 2> /dev/null` ] ; then
-		ec yellow "CSF found"
+	if [ $(which csf 2> /dev/null) ] ; then
 		csf -a $ip 2>&1 | stderrlogit 4
-	elif [ `which apf 2> /dev/null` ]; then
-		ec yellow "APF Found"
+	elif [ $(which apf 2> /dev/null) ]; then
 		apf -a $ip 2>&1 | stderrlogit 4
 		apf -r &> /dev/null &
 	else

@@ -1,52 +1,60 @@
 Hello,
 
-I have finished the initial migration of your data. Please continue reading to get details on how to test the migrated data.
+Welcome to the testing phase of the migration process! Please continue reading for important instructions.
 
-Your migration is not yet complete; the sites are still live at their original location. You will need to take an action in order to complete your migration. If DNS is updated prematurely, a final sync of data may not be possible.
+Your site is not yet live on your new server. Your action is required before we can complete the migration. Please test and inspect the content of the target server. We want to ensure that your site is working to your specifications. Switching DNS prematurely may prevent a final migration from taking place.
 
-Now is the time for you to inspect your sites to make sure they are working correctly on the new server. The preferred and most accurate method is to modify the hosts file on your home or office computer by entering the new IP for your domain(s).
+  GETTING SET UP FOR TESTING:
 
-  GETTING SET UP FOR TESTING:
+To conduct testing on your target server, please modify the hosts file on your computer. This is the most accurate way to test functionality of the new machine.
 
-This tutorial will walk you through the edit of your local hosts file:
+These tutorials will walk you through the process of entering the new IP address for your domain(s):
 
- https://www.howtogeek.com/howto/27350/beginner-geek-how-to-edit-your-hosts-file/
+ https://liquidweb.com/kb/dns-hosts-file/
+ https://liquidweb.com/kb/edit-host-file-windows-10/
 
-I have created a page of the lines you will need to enter into the hosts file on your local computer. That page can be found here: 
+You will enter the lines found here: 
 
- http://${ip}/hostsfile.txt
+ http://${ip}/hostsfile.txt
 
-The process of editing your hosts file is as simple as adding a few lines to a text file through a text editor. This change will tell your browser what IP address you want to load a domain from instead of looking it up from a DNS server.
+Browser cache must be cleared before proceeding:
 
-I have also created a file on your domains to display if you are resolving to the correct server. The list of those files can be found here:
+ https://www.liquidweb.com/kb/how-to-clear-browser-cache-and-cookies/
 
- http://${ip}/migration_test_urls.html
+If you have trouble making these changes, our Support Team is on hand 24/7 at 800-580-4985 and would be happy to walk you through the process. When your testing is finished, you can follow the same instructions to remove the lines you added to your hosts file.
 
-If you have correctly edited your hosts file you should see a message declaring you are reaching the new server. Please note some sites may use redirects that may not allow our test urls to show correctly. You can still test the actual site in this case. You can also use a browser plugin, such as ShowIP, to tell you the IP address of the site you are visiting, and double confirm that you are reaching the new server.
+  PERFORMING TESTING:
 
-Using this hosts file method for testing, it will be necessary to clear the cache in your browser before proceeding, or use a private browsing tab.
+Depending on your site, you may wish to test the following:
 
-  PERFORMING TESTING:
+* Visit each link on your home page and ensure that it loads without error
+* If your site runs a CMS such as WordPress or Magento, log into the administrative area
+* If your site has a shopping cart, add an item and test your checkout process
+* Test any forms on the site
+* Create a post
+* Comment on a post
+* Upload a file
 
-Once the hosts file is setup, you can go to the site as you normally would to see the site as is on the new server. Please test the functionality of the site and let us know if there are any issues, or if everything is working as expected. As the new server environment is slightly different from the old, some errors are expected during this phase. We are happy to help troubleshoot them. 
+Should you notice any issues when performing the above tests; Don't worry; we are here to help!  Provide us with the full URL of the page and the specific error message or problem.
 
-Depending on the makeup of your site, you may wish to test the following:
+  TESTING CAVEATS:
 
- * The home page and sub pages
- * Logging in
- * Making a post or comment
- * Uploading an image
- * Adding items to the cart and checking out
- * etc.
+Please be advised of the following: 
 
-  TESTING CAVEATS:
+* Email from these domains may not be delivered. Once testing is complete, you will be able to connect to the live server to download your email.
+* Automatic SSL ordering mechanisms will not work at this stage.
+* Testing items that depend on 3rd party servers, such as CDNs, mail sending, and payment processing, will likely not work.
 
-Please be advised, while you have the testing entries in your hosts file, email from those domains may not come through to you as normal. Once you remove the entries from your hosts file, you will be able to connect back to the live server and your email will download. Additionally, any automatic SSL ordering mechanisms will not work at this stage, as the sites on the target machine have no live DNS to reference for automatic verification. If enabled, these mechanisms will work only after sites begin to resolve to the new machine. Finally, testing items that depend on 3rd party servers, such as CDNs, mail sending, and payment processing, will likely not work, since public DNS for your sites is still directed towards the origin server.
+  ONCE YOU FINISH TESTING:
 
-  ONCE YOU FINISH TESTING:
+Please advise us when your testing is complete and we will schedule the final sync. Let us know what time works best for you so we can reserve it on our calendar. We dedicate a technician to this process, so please provide at least 24 hours' notice.
 
-Once testing is complete, you may undo the edits you made to your hosts file, and we can then schedule a time to do the final sync, at which time, DNS should also be updated. Please ensure you have sufficient access to change your DNS records if needed at the final sync. Please also know that we will not automatically terminate the old hosting solution for you; this must be requested separately once you are sure you no longer need the old server.
+While the final sync is in progress we will change the DNS zone files on your old server to point to your new server (if the DNS is hosted locally).
 
-Since it is ideal to ensure a technician is dedicated to this final sync task, and so that we can start promptly at your desired time, we recommend scheduling a final sync at least 24 hours in advance. Let us know what time works best for you so that we can reserve it on our calendar. If you have any questions please let us know.
+Once the final sync is complete, we will ask you to change your DNS name server IPs at your registrar (if applicable) along with any remote DNS, and the migration will be complete.
+
+We will not automatically terminate the old hosting solution; you must request this separately if you no longer need the old server.
+
+If you have any questions, please let us know.
 
 Thanks!

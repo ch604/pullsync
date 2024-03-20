@@ -1,4 +1,5 @@
 haste() { #upload stdin to a pastebin, return the url as stdout. usage: myurl=$(echo "foo bar baz" | haste) ; echo $myurl
+	# update if different haste server in use
 	pastebin_url="liquidwebpagetest.com"
 	if ! host $pastebin_url &> /dev/null; then
 		# if haste server cant be resolved, use the ip as a backup

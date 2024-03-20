@@ -1,15 +1,24 @@
 installs() { # install all of the things we found and enabled
+	# download plbake since we need it for a lot of stuff
+	ec yellow "Downloading plbake..."
+	wget -q -O /scripts/plbake http://files.liquidweb.com/scripts/plBake/plBake
+	chmod 700 /scripts/plbake
+	ec yellow "Installing EPEL repo..."
+	yum -y install epel-release 2>&1 | stderrlogit 4
+
 	# tweak
 	if [ $copytweak ]; then
 		ec yellow "Copying tweak settings, may take a minute..."
 		# backup HOMEDIR or HOMEMATCH so we can reset it after
 		local homevariables=$(grep -e ^HOMEMATCH\  -e ^HOMEDIR\  /etc/wwwacct.conf)
+		# backup update preferences
+		local cpupdate=$(cat /etc/cpupdate.conf)
 		# check the available modules to execute the correct backup function
-		modules=`sssh "/usr/local/cpanel/bin/cpconftool --list-modules"`
+		modules=$(sssh "/usr/local/cpanel/bin/cpconftool --list-modules")
 		if [ "$(echo $modules)" = "cpanel::system::tweaksettings cpanel::smtp::exim" ] || [ "$(echo $modules)" = "cpanel::smtp::exim cpanel::system::tweaksettings" ]; then
-			output=`sssh "/usr/local/cpanel/bin/cpconftool --backup"`
+			output=$(sssh "/usr/local/cpanel/bin/cpconftool --backup")
 		elif [ "$(echo $modules | tr ' ' '\n' | grep cpanel::system::whmconf)" = "cpanel::system::whmconf" ] ; then
-			output=`sssh "/usr/local/cpanel/bin/cpconftool --backup --modules=cpanel::smtp::exim,cpanel::system::whmconf"`
+			output=$(sssh "/usr/local/cpanel/bin/cpconftool --backup --modules=cpanel::smtp::exim,cpanel::system::whmconf")
 		else
 			ec red "Could not confirm expected modules will be restored! Aborting WHM tweak settings copy." | errorlogit 2
 			ec red "Expected \"cpanel::system::tweaksettings cpanel::smtp::exim\" or \"cpanel::system::whmconf\""
@@ -17,7 +26,7 @@ installs() { # install all of the things we found and enabled
 		fi
 		# check the output of the backup to ensure success
 		if echo $output | grep -q 'Backup Successful'; then
-			cpconfbackup=`echo $output |awk '{print $3}'`
+			cpconfbackup=$(echo $output |awk '{print $3}')
 			# copy over the backup
 			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:$cpconfbackup $dir/
 			# combat tar timestamp errors from clock drift
@@ -34,7 +43,7 @@ installs() { # install all of the things we found and enabled
 				if [ "$backupexitcode2" = "0" ]; then
 					ec green "Success!"
 					# if custom exim filter, copy it over
-					exim_filter="$(grep ^system_filter\  /etc/exim.conf | awk '{print $3}')"
+					exim_filter="$(awk '/^system_filter / {print $3}' /etc/exim.conf)"
 					if [ ! "$exim_filter" = "/etc/cpanel_exim_system_filter" ]; then
 						rsync $rsyncargs --bwlimit=$rsyncspeed $ip:$eximfilter $eximfilter
 					fi
@@ -52,6 +61,8 @@ installs() { # install all of the things we found and enabled
 						whmapi1 set_tweaksetting key=apache_ssl_port value=0.0.0.0:443 2>&1 | stderrlogit 3
 						/scripts/restartsrv_apache 2>&1 | stderrlogit 3
 					fi
+					# make sure we wont accidentally downgrade cpanel from current to lts/stable by restoring the update preferences
+					echo "$cpupdate" > /etc/cpupdate.conf
 				else
 					ec red "Restore of WHM tweak settings failed. See $dir/tweaksettings.log for details, and $dir/whm-config-backup-all-original.tar.gz for the original settings." | errorlogit 2
 				fi
@@ -107,8 +118,8 @@ installs() { # install all of the things we found and enabled
 			cp -a $dir/etc/alwaysrelay /etc/
 		fi
 		if [ "$(sssh "which dovecot 2> /dev/null")" ]; then # dovecot is the only available option in whm now, assume target has dovecot"
-			local source_ciphers=$(sssh "dovecot -a | grep ^ssl_cipher_list\ =\ " | awk '{print $3}')
-			local target_ciphers=$(dovecot -a | grep ^ssl_cipher_list\ =\  | awk '{print $3}')
+			local source_ciphers=$(sssh "dovecot -a" | awk '/^ssl_cipher_list = / {print $3}')
+			local target_ciphers=$(dovecot -a | awk '/^ssl_cipher_list = / {print $3}')
 			if [ "$(echo $source_ciphers | tr ':' '\n' | sort)" != "$(echo $target_ciphers | tr ':' '\n' | sort)" ]; then
 				ec yellow " dovecot ciphers"
 				/usr/local/cpanel/bin/set-tls-settings --cipher-suites=$source_ciphers --restart dovecot 2>&1 | stderrlogit 3
@@ -122,7 +133,7 @@ installs() { # install all of the things we found and enabled
 
 	# csf rules
 	if [ $csfimport ]; then
-		ec yellow "Importing CSF whitelist..."
+		ec yellow "Importing CSF allow and deny lists..."
 		# outline the imported lines in case they need to be removed
 		{ echo -e "\n######## following lines imported from pullsync on $starttime\n"; cat $dir/etc/csf/csf.allow; echo -e "\n######## end pullsync import\n"; } >> /etc/csf/csf.allow
 		{ echo -e "\n######## following lines imported from pullsync on $starttime\n"; cat $dir/etc/csf/csf.deny; echo -e "\n######## end pullsync import\n"; } >> /etc/csf/csf.deny
@@ -157,7 +168,7 @@ installs() { # install all of the things we found and enabled
 		done
 		[ "$(pgrep ntpd)" ] && service ntpd restart 2>&1 | stderrlogit 3
 		# get the remote timezone to compare
-		remote_tz_check=`sssh "date +%z"`
+		remote_tz_check=$(sssh "date +%z")
 		if [ "$remote_tz_check" = "$(date +%z)" ]; then
 			ec green "Success!"
 		else
@@ -169,7 +180,7 @@ installs() { # install all of the things we found and enabled
 	if [ $upgrademysql ]; then
 		ec yellow "Upgrading MySQL..."
 		# start the upgrade in the background
-		upgradeid="$(/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$remotemysql | grep upgrade_id\: | awk '{print $2}')"
+		upgradeid="$(/usr/local/cpanel/bin/whmapi1 start_background_mysql_upgrade version=$remotemysql | awk '/upgrade_id:/ {print $2}')"
 		if [ ! "$upgradeid" ]; then
 			# upgrade couldnt start
 			ec red "Couldn't initiate MySQL upgrade, didn't get an upgrade process id!" | errorlogit 2
@@ -177,7 +188,7 @@ installs() { # install all of the things we found and enabled
 		while true; do
 			# check the status every few seconds
 			sleep 8
-			local mysqlupstatus="$(/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status upgrade_id=${upgradeid} | grep state\: | awk '{print $2}')"
+			local mysqlupstatus="$(/usr/local/cpanel/bin/whmapi1 background_mysql_upgrade_status upgrade_id=${upgradeid} | awk '/state:/ {print $2}')"
 			case $mysqlupstatus in
 				inprogress)	echo -n ".";;
 				failed)		ec red "MySQL upgrade failed! (less /var/cpanel/logs/${upgradeid})" | errorlogit 2 && break;;
@@ -191,7 +202,7 @@ installs() { # install all of the things we found and enabled
 	if [ $match_sqlmode ]; then
 		ec yellow "Matching sql_mode and innodb_strict_mode..."
 		# sqlmode
-		remotesqlmode=$(sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}')
+		remotesqlmode="$(sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}')"
 		if [ -f /usr/my.cnf ] && grep -iq ^sql_mode /usr/my.cnf; then
 			# there is a /usr/my.cnf, and sql_mode is set there
 			sed -i.syncbak '/^sql_mode/s/^/#/' /usr/my.cnf
@@ -208,7 +219,8 @@ installs() { # install all of the things we found and enabled
 		# innodb strict
 		remoteinnodbstrict=$(sssh "mysql -BNe 'show variables like \"innodb_strict_mode\"'" | awk '{print $2}')
 		if [ -f /usr/my.cnf ] && grep -iq ^innodb_strict_mode /usr/my.cnf; then
-			sed -i.syncbak '/^innodb_strict_mode/s/^/#/' /usr/my.cnf
+			[ ! -f /usr/my.cnf.syncbak ] && cp -a /usr/my.cnf{,.syncbak}
+			sed -i '/^innodb_strict_mode/s/^/#/' /usr/my.cnf
 			echo "innodb_strict_mode=\"$remoteinnodbstrict\"" >> /usr/my.cnf
 		elif grep -iq ^innodb_strict_mode /etc/my.cnf; then
 			[ ! -f /etc/my.cnf.syncbak ] && cp -a /etc/my.cnf{,.syncbak}
@@ -219,9 +231,28 @@ installs() { # install all of the things we found and enabled
 		fi
 		/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
 		ec white "Waiting for mysql to come back, please be patient..."
-		sleep 3
-		# sleep until mysql is back
-		while ! mysqladmin status 2> /dev/null; do sleep 1; done
+		# sleep until mysql is back, up to 30 seconds
+		sleep 5
+		local t=5
+		while [[ $t -gt 0 ]]; do
+			(( t -= 1 ))
+			mysqladmin status &> /dev/null
+			[[ $? -eq 0 ]] && break
+			if [[ $t -eq 0 ]]; then
+				ec lightRed "Mysql didnt come back, undoing..." | errorlogit 3
+				if [ -f /usr/my.cnf.syncbak ]; then
+					mv -f /usr/my.cnf{.syncbak,}
+				elif [ -f /etc/my.cnf.syncbak ]; then
+					mv -f /etc/my.cnf{.syncbak,}
+				else
+			       		ec lightRed "Mysql didnt come back! And I cant find my.cnf.syncbak! AAAAH" | errorlogit 1
+					exitcleanup
+				fi
+				/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
+				sleep 15
+			fi
+			sleep 5
+		done
 		if [ "$(mysql -BNe 'show variables like "sql_mode"' | awk '{print $2}')" = "$remotesqlmode" ]; then
 			# sql_mode variables match
 			ec green "Success!"
@@ -239,7 +270,7 @@ installs() { # install all of the things we found and enabled
 	[ $upcp ] && ec yellow "Running Upcp..." && /scripts/upcp
 
 	# java
-	[ "$java" ] && ec yellow "Installing Java..." && yum -y -q install java-1.8.0-openjdk
+	[ "$java" ] && ec yellow "Installing Java..." && /scripts/plbake java --installjava$javaver
 
 	# cpanel solr
 	if [ "$installcpanelsolr" ]; then
@@ -302,7 +333,7 @@ installs() { # install all of the things we found and enabled
 			ec red "MySQL failed to restart, variable change failed! Bad my.cnf at /etc/my.cnf.pullsync.failedvariablechange. Reverting my.cnf..." | errorlogit 3
 			cp -a /etc/my.cnf{,.pullsync.failedvariablechange}
 			mv /etc/my.cnf{.pullsync.variablechange.bak,}
-			/scripts/restartsrv_mysql
+			/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
 		else
 			ec green "Success!"
 		fi
@@ -311,7 +342,7 @@ installs() { # install all of the things we found and enabled
 	# ea4
 	if [ "$ea" ]; then # run ea4
 		ec yellow "Installing supporting functions for EA4..."
-		yum -y -q install ea-profiles-cpanel ea-config-tools 2>&1 | stderrlogit 4
+		yum -y -q --skip-broken install ea-profiles-cpanel ea-config-tools 2>&1 | stderrlogit 4
 		ec yellow "Backing up current config..."
 		/usr/local/bin/ea_current_to_profile --output=/etc/cpanel/ea4/profiles/custom/pullsync-backup.json 2>&1 | stderrlogit 3
 		if [ $defaultea4 ]; then
@@ -319,7 +350,7 @@ installs() { # install all of the things we found and enabled
 			ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json 2>&1 | tee -a $dir/ea4.profile.install.log
 			localea=EA4
 			ea4phpextras
-			#apacheextras
+			apacheextras
 		else
 			if [ ! -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
 				ec red "Couldn't find migration.json! Skipping EA4..." | errorlogit 2
@@ -327,7 +358,7 @@ installs() { # install all of the things we found and enabled
 				# use the custom migrated profile
 				ec yellow "Running EA4..."
 				ea_install_profile --install /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | tee -a $dir/ea4.profile.install.log
-				if [ `which php 2> /dev/null` ] ; then
+				if [ $(which php 2> /dev/null) ] ; then
 					ec green "Success!"
 					localea=EA4
 					ea4phpextras
@@ -353,28 +384,44 @@ installs() { # install all of the things we found and enabled
 	# tomcat
 	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85
 
+	# modsec
+	if [ $modsecimport ]; then
+		ec yellow "Copying modsec2 whitelist.conf..."
+		# set modsec folder per ea version
+		[ "$localea" = "EA4" ] && modsecroot="/etc/apache2/conf.d/modsec2" || modsecroot="/usr/local/apache/conf/modsec2"
+		cp -a $modsecroot/whitelist.conf{,.pullsync.bak}
+		# copy in the content of either modsec whitelist if either has size
+		if [ -s $dir/usr/local/apache/conf/modsec2/whitelist.conf ]; then
+			cat $dir/usr/local/apache/conf/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
+		elif [ -s $dir/etc/apache2/conf.d/modsec2/whitelist.conf ]; then
+			cat $dir/etc/apache2/conf.d/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
+		else
+			ec red "Neither EA3 or EA4 modsec2 whitelist from source had content!" | errorlogit 4
+		fi
+		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
+		if [ ! "${PIPESTATUS[0]}" = "0" ]; then
+			# apache restart failed because of some addition to the whitelist, revert
+			ec red "Couldn't restart apache! Reverting changes..."
+			mv -f $modsecroot/whitelist.conf{.pullsync.bak,}
+			/scripts/restartsrv_apache 2>&1 | stderrlogit 3
+		fi
+	fi
 
 	# modcloudflare
 	[ "$modcloudflare" ] && ec yellow "Installing mod_cloudflare plugin..." && yum -y -q install lw-mod_cloudflare-cpanel.noarch 2>&1 | stderrlogit 4
 
-	# ffmpeg; install ffmpeg-php via yum and php plugins via make
-	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG in separate screen..." && screen -S ffmpeg -d -m bash -c "yum -y -q --nogpgcheck localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d "\"").noarch.rpm && yum -y -q install ffmpeg ffmpeg-devel &&
+	# ffmpeg; install ffmpeg binary only
+	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG..." && yum --enablerepo=epel -y -q localinstall localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm --eval %rhel).noarch.rpm 2>&1 | stderrlogit 4 && yum -y -q install ffmpeg ffmpeg-devel 2>&1 | stderrlogit 4
+
+	# imagick; install magickwand via plbake and php plugins via make or pecl
+	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q remove lw-ImageMagick* ImageMagick ImageMagick-devel
+yum -y -q install ImageMagick ImageMagick-devel &&
 [ -f /etc/cpanel/ea4/is_ea4 ] &&
 cd /usr/local/src &&
-git clone https://github.com/tony2001/ffmpeg-php.git &&
-cd ffmpeg-php &&
-for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php7); do
-	/opt/cpanel/\$each/root/usr/bin/phpize
-	./configure --with-php-config=/opt/cpanel/\$each/root/usr/bin/php-config --enable-skip-gd-check &&
-	make && make install &&
-	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q ffmpeg || echo 'extension=ffmpeg.so' >> /opt/cpanel/\$each/root/etc/php.d/20-ffmpeg.ini)
-	make clean
-done"
-
-	# imagick
-	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q install ImageMagick ImageMagick-devel pcre-devel &&
-[ -f /etc/cpanel/ea4/is_ea4 ] &&
-for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php7); do
+wget http://files.liquidweb.com/scripts/plBake/packages/imagemagick/MagickWandForPHP-1.0.9-2.tar.gz &&
+tar -zxvf MagickWandForPHP-1.0.9-2.tar.gz &&
+cd MagickWandForPHP-1.0.9 &&
+for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -e php4 -e php5); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install imagick
 	list=\$(grep -E -Rl ^extension=[\\\"]?imagick.so[\\\"]?$ /opt/cpanel/\$each/root/etc/php.d/)
 	count=\$(echo \"\$list\" | wc -l)
@@ -393,79 +440,95 @@ for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1);
 done"
 
 	# apc; install extension via pecl
-	[ "$apc" ] && ec yellow "Installing APC/APCu in separate screen..." && screen -S apc -d -m bash -c "for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php7); do
+	[ "$apc" ] && ec yellow "Installing APC/APCu in separate screen..." && screen -S apc -d -m bash -c "for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -e php4 -e php5); do
 	printf '\\n\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install apcu-4.0.10 &&
 	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q -x apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
 done
-for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep php7); do
+for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v -e php4 -e php5); do
 	printf '\\n\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install apcu &&
 	(/opt/cpanel/\$each/root/usr/bin/php -m | grep -q -x apcu || echo -e 'extension=\"apcu.so\"\\napcu.enabled = 1' > /opt/cpanel/\$each/root/etc/php.d/apcu.ini)
 done"
 
 	# sodium; install via epel and pecl
-	[ "$sodium" ] && ec yellow "Installing PHP libsodium in a separate screen..." && screen -S sodium -d -m bash -c "yum -y install epel-release && yum --enablerepo=epel -y install libsodium libsodium-devel && for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v php5 ); do /opt/cpanel/$each/root/usr/bin/pecl install libsodium; done; /scripts/restartsrv_apache_php_fpm"
+	[ "$sodium" ] && ec yellow "Installing PHP libsodium in a separate screen..." && screen -S sodium -d -m bash -c "yum --enablerepo=epel -y install libsodium libsodium-devel && for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v -e php5 -e php4 ); do /opt/cpanel/$each/root/usr/bin/pecl install libsodium; done; /scripts/restartsrv_apache_php_fpm"
 
-	# solr
-	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "cd /usr/local/src &&
-rm -rf /usr/local/src/solr-*
-wget https://archive.apache.org/dist/lucene/solr/6.6.0/solr-6.6.0.tgz &&
-tar -xvf solr-6.6.0.tgz &&
-cd /usr/local/src/solr-6.6.0/bin/ &&
-./install_solr_service.sh /usr/local/src/solr-6.6.0.tgz &&
-service solr start &&
-systemctl enable solr &&
+	# solr; install via plbake and extensions via make
+	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "/scripts/plbake solr8
+cd /usr/local/src &&
+wget http://pecl.php.net/get/solr &&
+tar -zxvf solr &&
+cd solr-* &&
 [ -f /etc/cpanel/ea4/is_ea4 ] &&
-yum -y -q install libcurl-devel &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
-	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install solr
+	/opt/cpanel/\$each/root/usr/bin/phpize &&
+	./configure --with-curl=/opt/curlssl --with-libxml-dir=/opt/xml2/ --with-php-config=/opt/cpanel/\$each/root/usr/bin/php-config &&
+	make && make install &&
+	echo 'extension=solr.so' >> /opt/cpanel/\$each/root/etc/php.d/20-solr.ini &&
+	make clean
 done
-[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install solr"
+[ ! -f /etc/cpanel/ea4/is_ea4 ] && phpize && ./configure --with-curl=/opt/curlssl --with-libxml-dir=/opt/xml2/ && make && make install"
 
 	# redis; install via epel and extensions via pecl
-	[ "$redis" ] && ec yellow "Installing redis in separate screen..." && screen -S redis -d -m bash -c "yum -y install epel-release &&
-yum --enablerepo=epel -y install redis &&
+	[ "$redis" ] && ec yellow "Installing redis in separate screen..." && screen -S redis -d -m bash -c "yum --enablerepo=epel -y install redis &&
 service redis start &&
 systemctl enable redis &&
 [ -f /etc/cpanel/ea4/is_ea4 ] &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
-	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install redis &&
+	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install redis
 done
 [ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install redis"
 
-	# elasticsearch; install elasticsearch and nodejs10, install elasticdump on both machines, dump on source, rsync datadir to target, load on target
+	# nodejs before elasticsearch, just in case
+	if [ $nodejs ]; then
+		ec yellow "Installing Node.js and npm, and global npm packages detected on source..."
+		# setup node with yum
+		yum -q -y install ea4-nodejs gcc-c++ make 2>&1 | stderrlogit 4
+		[ ! -e /usr/bin/node ] && ln -s $(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/node /usr/bin/
+		[ ! -e /usr/bin/npm ] && ln -s $(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/npm /usr/bin/
+		if [ $(node -v &>/dev/null; echo $?) -eq 0 ]; then
+			# install success, install npm packages one by one globally
+			for each in $npmlist; do
+				echo $each | logit
+				npm install $each -g 2>&1 | stderrlogit 3
+			done
+		else
+			ec red "Install of node or npm failed!" | errorlogit 3
+		fi
+	fi
+
+	# elasticsearch; install elasticsearch and nodejs, install elasticdump on both machines, dump on source, rsync datadir to target, load on target
 	[ "$elasticsearch" ] && ec yellow "Installing elasticsearch in a separate screen..." && screen -S elasticsearch -d -m bash -c "echo '[elasticsearch]
-name=Elasticsearch repository for 7.x packages
-baseurl=https://artifacts.elastic.co/packages/7.x/yum
+name=Elasticsearch repository for 8.x packages
+baseurl=https://artifacts.elastic.co/packages/8.x/yum
 gpgcheck=1
 gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
 enabled=1
 autorefresh=1
 type=rpm-md' > /etc/yum.repos.d/elasticsearch.repo &&
-yum -y install elasticsearch ea-nodejs10 &&
+rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch &&
+yum -y install elasticsearch ea4-nodejs &&
 sed -i 's|\${ES_TMPDIR}|/var/lib/elasticsearch|g' /etc/elasticsearch/jvm.options &&
 systemctl enable elasticsearch &&
 systemctl start elasticsearch &&
 echo \"elasticsearch:1\" >> /etc/chkserv.d/chkservd.conf &&
 echo \"service[elasticsearch]=x,x,x,/bin/systemctl restart elasticsearch.service,elasticsearch,elasticsearch\" >> /etc/chkserv.d/elasticsearch &&
-PATH=\$PATH:/opt/cpanel/ea-nodejs10/bin/ &&
+PATH=\$PATH:\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/ &&
 npm install elasticdump -g &&
-ssh ${sshargs} ${ip} \"[ -f /etc/cpanel/ea4/is_ea4 ] && PATH=\\\$(echo \\\$PATH:/opt/cpanel/ea-nodejs10/bin/) && yum -y install ea-nodejs10 && npm install elasticdump -g && mkdir $remote_tempdir/elastic && multielasticdump --direction=dump --input=http://localhost:9200 --output=$remote_tempdir/elastic/\" &&
+ssh ${sshargs} ${ip} \"[ -f /etc/cpanel/ea4/is_ea4 ] && yum -y install ea4-nodejs && PATH=\\\$(echo \\\$PATH:\\\$(find /opt/cpanel/ -maxdepth 1 | grep nodejs)/bin/) && npm install elasticdump -g && mkdir $remote_tempdir/elastic && multielasticdump --direction=dump --input=http://localhost:9200 --output=$remote_tempdir/elastic/\" &&
 rsync $rsyncargs --bwlimit=$rsyncspeed -e \"ssh $sshargs\" $ip:$remote_tempdir/elastic $dir/ &&
 multielasticdump --direction=load --input=$dir/elastic --output=http://localhost:9200"
 
 	# wkhtmltopdf
-	[ "$wkhtmltopdf" ] && ec yellow "Installing wkhtmltopdf..." && yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.centos$(grep ^VERSION_ID /etc/os-release | cut -d= -f2 | tr -d "\"").x86_64.rpm
+	[ "$wkhtmltopdf" ] && ec yellow "Installing wkhtmltopdf..." && /scripts/plbake wkhtmltox
 
 	# pdftk
 	if [ "$pdftk" ]; then
 		ec yellow "Installing pdftk..."
 		# rpm install per os major version
-		if [ $(echo $local_os | tr -d '[a-zA-Z() ]' | cut -d. -f1) -eq 7 ]; then
-			yum -y localinstall https://www.linuxglobal.com/static/blog/pdftk-2.02-1.el7.x86_64.rpm 2>&1 | stderrlogit 4
-		elif [ $(echo $local_os | tr -d '[a-zA-Z() ]' | cut -d. -f1) -eq 6 ]; then
-			yum -y localinstall https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/pdftk-2.02-1.el6.x86_64.rpm 2>&1 | stderrlogit 4
+		if [ $(rpm --eval %rhel) -eq 6 ]; then
+			yum -y -q localinstall https://www.pdflabs.com/tools/pdftk-the-pdf-toolkit/pdftk-2.02-1.el6.x86_64.rpm 2>&1 | stderrlogit 4
 		else
-			ec red "Couldnt detect your OS major version for pdftk install!" | errorlogit 3
+			yum --enablerepo=epel -y -q install pdftk-java 2>&1 | stderrlogit 4
 		fi
 	fi
 
@@ -524,7 +587,7 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 	# pear
 	ec yellow "Matching PEAR packages in separate screen..."
 	# get a list of pear modules, install in screen
-	sssh "pear list" | egrep [0-9]{1}.[0-9]{1} | awk '{print $1}' | tr '\n' ' ' > $dir/pearlist.txt
+	sssh "pear list" | awk '/[0-9]+.[0-9]+/ {print $1}' | tr '\n' ' ' > $dir/pearlist.txt
 	screen -S pearinstall -d -m bash -c "if [ -f /etc/cpanel/ea4/is_ea4 ]; then for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do /opt/cpanel/\$each/root/usr/bin/pear install \$(cat $dir/pearlist.txt); done; else; pear install \$(cat $dir/pearlist.txt); fi"
 
 	# cpan
@@ -533,7 +596,7 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 	sssh "perl -w -e 'use ExtUtils::Installed;my \$inst = ExtUtils::Installed->new();my @modules = \$inst->modules();foreach \$module (@modules){print \$module . \"\\n\";}'" > $dir/cpanlist.remote.txt
 	perl -w -e 'use ExtUtils::Installed;my $inst = ExtUtils::Installed->new();my @modules = $inst->modules();foreach $module (@modules){print $module . "\n";}' > $dir/cpanlist.local.txt
 	# get the list of modules not yet on target
-	cat $dir/cpanlist.remote.txt | grep -vx -f $dir/cpanlist.local.txt | tr '\n' ' ' > $dir/cpanlist.toinstall.txt
+	grep -vx -f $dir/cpanlist.local.txt $dir/cpanlist.remote.txt | tr '\n' ' ' > $dir/cpanlist.toinstall.txt
 	# set the timeout to 30s to ensure that any modules that are interactive installs will get defaults set
 	grep -q inactivity_timeout /usr/share/perl5/CPAN/Config.pm && sed -i 's/\([ ]*'\''inactivity_timeout'\''\ =>\ q\[\).*/\130]\,/' /usr/share/perl5/CPAN/Config.pm || sed -i '/CPAN::Config/a \ \ '\''inactivity_timeout'\''\ =>\ q[30]\,' /usr/share/perl5/CPAN/Config.pm
 	# execute the install
@@ -549,14 +612,21 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 			ec yellow "Passenger gem detected on source, installing separately..."
 			sed -i '/passenger/d' $dir/gemlist.txt
 			if [ "$localea" = "EA4" ]; then
-				yum -y -q install ea-ruby24-mod_passenger 2>&1 | stderrlogit 4
-				/bin/ls -A /var/cpanel/features/ | while read list; do
+				# switch to apache-based install for el9+
+				if [ $(rpm --eval %rhel) -ge 9 ]; then
+					yum -y -q install ea-apache24-mod-passenger 2>&1 | stderrlogit 4
+				else
+					yum -y -q install ea-ruby24-mod_passenger 2>&1 | stderrlogit 4
+				fi
+				/bin/ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
 					/scripts/featuremod --feature passengerapps --value enable --list "$list"
 				done
+			else #ea3
+				screen -S passenger -d -m /scripts/plbake passenger
 			fi
 		fi
 		# install any rails versions first
-		[ -s $dir/railslist.txt ] && ec yellow "Installing rails separately..." && for ver in `cat $dir/railslist.txt`; do gem install rails -v $ver 2>&1 | stderrlogit 3; done
+		[ -s $dir/railslist.txt ] && ec yellow "Installing rails separately..." && for ver in $(cat $dir/railslist.txt); do gem install rails -v $ver 2>&1 | stderrlogit 3; done
 		ec yellow "Matching ruby gems in separate screen..."
 		# install remaining gems
 		screen -S geminstall -d -m gem install $(cat $dir/gemlist.txt | tr '\n' ' ') --silent
@@ -568,10 +638,10 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 		# add chkservd script
 		echo "service[exim-26]=26,QUIT,220,/usr/local/cpanel/scripts/restartsrv_exim" > /etc/chkserv.d/exim-26
 		# open ports
-		if [ `which csf 2> /dev/null` ]; then
+		if [ $(which csf 2> /dev/null) ]; then
 			sed -i 's/\([",]25,\)/\126,/g' /etc/csf/csf.conf
 			csf -ra 2>&1 | stderrlogit 4
-		elif [ `which apf 2> /dev/null` ]; then
+		elif [ $(which apf 2> /dev/null) ]; then
 			sed -i 's/25,/25,26,/g' /etc/apf/conf.apf
 			apf -r &> /dev/null &
 		fi
@@ -586,23 +656,6 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 		sed -i.pullsync.bak 's/^daemon_smtp_ports.*/daemon_smtp_ports\ =\ 25\ :\ 26\ :\ 465\ :\ 587/g' /etc/exim.conf
 		/scripts/restartsrv_chkservd 2>&1 | stderrlogit 4
 		/usr/local/cpanel/scripts/restartsrv_exim 2>&1 | stderrlogit 3
-	fi
-
-	# nodejs
-	if [ $nodejs ]; then
-		ec yellow "Installing Node.js and npm, and global npm packages detected on source..."
-		# setup node 4.x with yum
-		curl --silent --location https://rpm.nodesource.com/setup_4.x | bash - 2>&1 | stderrlogit 3
-		yum -q -y install nodejs npm gcc-c++ make 2>&1 | stderrlogit 4
-		if [ `which node 2> /dev/null` ]; then
-			# install success, install npm packages one by one globally
-			for each in $npmlist; do
-				echo $each | logit
-				npm install $each -g 2>&1 | stderrlogit 3
-			done
-		else
-			ec red "Install of node or npm failed!" | errorlogit 3
-		fi
 	fi
 
 	# loadwatch

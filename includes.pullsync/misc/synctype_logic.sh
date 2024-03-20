@@ -1,6 +1,12 @@
 synctype_logic() { #case statement for performing server to server sync tasks. gets specific variables and establishes ssh connection via oldmigrationcheck() before starting.
 	echo "synctype: $synctype" | logit
-	printf "\e]0; pullsync-$(hostname) \a" 1>&2
+	echo "Ping @\$user in slack upon successful completion? [blank for none, will instead ping @migration-team]: " | logit && rd lwuser
+	echo "Please enter your SF ticket number for this task [8 digit ticket REQUIRED]: " | logit && rd ticket
+	while [[ ! $ticket =~ $valid_ticket_format ]]; do
+		echo "Invalid ticket format, please re-enter:" | logit
+		rd ticket
+	done
+	[ "${ticket}" ] && echo ${ticket} >> $dir/ticketnumber && printf "\e]0; pullsync-$(hostname)-$ticket \a" 1>&2
 
 	oldmigrationcheck # see if any old migrations exist and option to use these for connection info
 	if [ "$oldip" ]; then
@@ -20,6 +26,10 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 	ec yellow "Transferring some config files over from old server to $dir"
 	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 	[ ! -d $dir/var/cpanel/users ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+
+	# determine if the target server is lw openstack so we can control some options. send one ping (one ping only) to make sure we can reach the openstack controller before trying to curl.
+	[ ! "$(which jq 2> /dev/null)" ] && yum -y -q install jq
+	[ "$(which jq 2> /dev/null)" ] && [ $(ping 169.254.169.254 -c1 -W2 &> /dev/null; echo $?) -eq 0 ] && [ "$(curl -s http://169.254.169.254/openstack/2018-08-27/meta_data.json | jq '.[]' 2> /dev/null | awk -F\" '/mh_fileserver/ {print $4}')" = "host" ] && touch $dir/iamopenstack
 
 	case $synctype in
 		single|list|domainlist|all)
@@ -62,7 +72,8 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			securityfeatures
 			dnsclustering
 			cpnat_check
-			[ ! "$ipswap" -a ! "$stormipswap" ] && dnscheck
+			#skip dnscheck if theres already a nameserver_summary.txt copied from olddir, or if ipswap set
+			[ ! "$ipswap" -a ! "$stormipswap" -a ! "$dummyipswap" ] && [ ! -f $dir/nameserver_summary.txt ] && dnscheck
 			printrdns
 			finalsync_main
 			;;
@@ -93,12 +104,14 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			getuserlist
 			unowneddbs
 			mysql_listgen
+			if yesNo "Do you want to use dbscan during the transfer?"; then unset nodbscan; else nodbscan=1; fi
 			if yesNo "Do you want to backup sql files before import? (recommended)"; then unset skipsqlzip; else skipsqlzip=1; fi
 			misc_ticket_note
 			lastpullsyncmotd
 			parallel_mysql_dbsync
 			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly, please recheck:" && cat $dir/dbdump_fails.txt
 			[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
+			[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually:" && cat $dir/dbmalware.txt
 			for user in $userlist; do
 				eternallog $user
 			done

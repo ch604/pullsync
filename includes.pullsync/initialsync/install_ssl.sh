@@ -4,9 +4,9 @@ install_ssl() { #install ssls for restored account. $1 is username.
 	for domain in ${user_domains}; do
 		# check for ssl from old server
 		if [ -f ${dir}/var/cpanel/userdata/${domain}_SSL ]; then
-			certfile=$(grep ^sslcertificatefile\: ${dir}/var/cpanel/userdata/${domain}_SSL | awk '{print $2}')
-			keyfile=$(grep ^sslcertificatekeyfile\:  ${dir}/var/cpanel/userdata/${domain}_SSL | awk '{print $2}')
-			cabundle=$(grep ^sslcacertificatefile\: ${dir}/var/cpanel/userdata/${domain}_SSL | awk '{print $2}')
+			certfile=$(awk '/^sslcertificatefile:/ {print $2}' ${dir}/var/cpanel/userdata/${domain}_SSL)
+			keyfile=$(awk '/^sslcertificatekeyfile:/ {print $2}'  ${dir}/var/cpanel/userdata/${domain}_SSL)
+			cabundle=$(awk '/^sslcacertificatefile:/ {print $2}' ${dir}/var/cpanel/userdata/${domain}_SSL)
 			if [ "${cabundle}" -a "${keyfile}" -a "${cabundle}" ]; then
 				# if all necessary files exist, install ssl through whmapi
 				ec white "Installing SSL certificate for ${domain}..."

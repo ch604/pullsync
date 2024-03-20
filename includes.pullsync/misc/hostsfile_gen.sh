@@ -1,15 +1,15 @@
 hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_file(), generates a testing reply to customer, and uploads both via haste(). run as part of initial sync, and as own function. requires userlist, domainlist, cpanel_main_ip
 	#hostscheck
 	if [ "$userlist" ]; then
-		ec yellow "Adding HostsCheck.php to migrated users..."
-		cp -a /root/includes.pullsync/text_files/hostsCheck.txt $dir/HostsCheck.php
+		ec yellow "Adding lwHostsCheck.php to migrated users..."
+		cp -a /root/includes.pullsync/text_files/hostsCheck.txt $dir/lwHostsCheck.php
 		for user in $userlist; do
 			local userhome_local=`grep ^$user: /etc/passwd | tail -n1 |cut -d: -f6`
 			docroots=`grep DocumentRoot /usr/local/apache/conf/httpd.conf |grep $userhome_local| awk '{print $2}'`
 			for docroot in $docroots; do
-				cp -a $dir/HostsCheck.php $docroot/
-				chown $user. $docroot/HostsCheck.php
-				chmod 644 $docroot/HostsCheck.php
+				cp -a $dir/lwHostsCheck.php $docroot/
+				chown $user. $docroot/lwHostsCheck.php
+				chmod 644 $docroot/lwHostsCheck.php
 			done
 		done
 #		ec yellow "Ensuring short_open_tag..."
@@ -19,7 +19,7 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 #			unset file
 #		done
 	else
-		ec red "Warning: Userlist variable not detected when creating test file!"
+		ec red "Warning: Userlist variable not detected when creating lw test file!"
 	fi
 
 	#test urls
@@ -27,7 +27,7 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	if [ "$domainlist" ]; then
 		ec yellow "Generating migration test urls..."
 		for domain in $domainlist; do
-			echo "http://$domain/HostsCheck.php" >> /usr/local/apache/htdocs/migration_test_urls.html
+			echo "http://$domain/lwHostsCheck.php" >> /usr/local/apache/htdocs/migration_test_urls.html
 		done
 		test_urls=`cat /usr/local/apache/htdocs/migration_test_urls.html |haste`
 		#save hastbin url in $dir
@@ -48,23 +48,50 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	sed -i -e "s|http://\${ip}/hostsfile.txt|$hostsfile_url|" $dir/pullsync_reply.txt
 	sed -i -e "s|http://\${ip}/migration_test_urls.html|$test_urls|" $dir/pullsync_reply.txt
 
-	#add stanza if malware found
-	if ([ -s /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt); then
+	#remove final sync message
+	if [ $remove_final_sync_message ]; then
+		sed -i -e '/ONCE YOU FINISH TESTING/,$d' -e "s/Switching\ DNS\ prematurely\ may\ prevent\ a\ final\ migration\ from\ taking\ place\.//" $dir/pullsync_reply.txt
+		cat >> $dir/pullsync_reply.txt <<EOF
+  ONCE YOU FINISH TESTING:
+
+Once testing is complete, DNS for the migrated domains can be updated to make the new server live at your convenience. This is done at the current nameservers for each domain; let us know if you need help determining where your nameservers are. If you are planning to change nameservers, please let us know, and we can provide additional details on switching to Liquid Web's nameservers, or setting up your own custom nameservers.
+
+We will not automatically terminate the old hosting solution; you must request this separately if you no longer need the old server.
+
+Please let us know if you have any questions.
+EOF
+	fi
+
+	#add stanza if malware or outdated installs found
+	if ([ -s /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt) || [ -f $dir/outdatedinstalls.txt ]; then
 		cat >> $dir/pullsync_reply.txt <<EOF
 
   IMPORTANT:
 
-To help ensure our network's security, during migrations, we perform basic malware scanning on migrated accounts as they arrive. One or more of the accounts for this migration contained malware signatures:
+To help ensure our network's security, during migrations, we perform basic malware scanning and outdated CMS version checking on migrated accounts as they arrive. One or more of the accounts for this migration contained one or more of these security variances.
+EOF
+		if [ -s /root/dirty_accounts.txt ] && grep -q -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt; then
+			cat >> $dir/pullsync_reply.txt <<EOF
+
+The following accounts were found to contain malware signatures, which were automatically cleaned:
 
 $(grep -E -e "^$(echo $userlist | sed -e 's/\ /|/g')$" /root/dirty_accounts.txt)
-
-Your developer should be contacted to help thoroughly scan and clean these files. If you have any questions about this, please let us know.
 EOF
-	fi
+		fi
+		if [ -f $dir/outdatedinstalls.txt ]; then
+			cat >> $dir/pullsync_reply.txt <<EOF
 
-	#remove final sync message
-	if [ $remove_final_sync_message ]; then
-		sed -i -e "s/\ If\ DNS\ is\ updated\ prematurely,\ a\ final\ sync\ of\ data\ may\ not\ be\ possible.$//" -e "/^Since\ it\ is/,+1d" -e "/^Once\ testing\ is/c\Once testing is complete, DNS for the migrated domains can be updated to make the new server live at your convenience. This is done at the current nameservers for each domain; let us know if you need help determining where your nameservers are. If you are planning to change nameservers, please let us know, and we can provide additional details on switching to Liquid Web\'s nameservers, or setting up your own custom nameservers. Please also know that we will not automatically terminate the old hosting solution for you; this must be requested separately once you are sure you no longer need the old server." $dir/pullsync_reply.txt
+The following accounts have out of date CMS installations, which have not been altered; you or your developer should address them to ensure the security of these accounts:
+
+$(cat $dir/outdatedinstalls.txt | awk '{print $3}' | awk -F\/ '{print $3}' | sort -u)
+EOF
+		fi
+		cat >> $dir/pullsync_reply.txt <<EOF
+
+If you have any questions about any of the above information, please let us know.
+
+Thanks!
+EOF
 	fi
 
 

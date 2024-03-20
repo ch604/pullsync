@@ -21,7 +21,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 		for dom in $domainlist; do
 			#if the domain being migrated is already owned, exit
 			if grep -q ^$dom\:\  /etc/userdatadomains; then
-				ec lightRed "Error: Domain $dom already exists on this server! (owned by $(grep ^$dom\:\  /etc/userdatadomains | awk -F": |==" '{print $2}'))" | errorlogit 1
+				ec lightRed "Error: Domain $dom already exists on this server! (owned by $(awk -F": |==" '/^'$dom': / {print $2}' /etc/userdatadomains))" | errorlogit 1
 				echo $dom >> $dir/conflicts.dom.txt
 				error_encountered=1
 			fi
@@ -29,15 +29,15 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 
 		ec yellow "Checking for license limits..."
 		local target_usercount=$(/bin/ls -A /var/cpanel/users/ | egrep -v "^HASH" | egrep -vx "${badusers}" | wc -w)
-		local licensetype=$(grep \"center\"\>cPanel\  $dir/validate_license_output.txt | awk '{print $3}')
+		local licensetype=$(awk '/"center">cPanel / {print $3}' $dir/validate_license_output.txt)
 		local licenselimit=0
 		case $licensetype in
 			"Admin") licenselimit=5;;
 			"Pro") licenselimit=30;;
 			"Plus") licenselimit=50;;
-			"Premier") licenselimit=$(grep \"center\"\>cPanel\  $dir/validate_license_output.txt | awk '{print $5}' | cut -d\< -f1);;
+			"Premier") licenselimit=$(awk -F" |<" '/"center">cPanel / {print $6}' $dir/validate_license_output.txt);;
 			"") :;; #old license type, unlimited, will skip rest of check
-			*) :;;
+			*) :;; #includes 'autoscale' and 'development'
 		esac
 		if [ ! $licenselimit = 0 ] && [ $(($licenselimit - $target_usercount)) -lt $(echo $userlist | wc -w) ]; then
 			ec lightRed "You will go over the cPanel license limit! ($target_usercount existing users plus $(echo $userlist | wc -w) migrated users is more than $licenselimit license limit!)" | errorlogit 1
@@ -65,7 +65,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 			fi
 		done
 		ec yellow " Domains..."
-		for dom in $(for user in $userlist; do grep ^DNS.*= $dir/var/cpanel/users/$user | cut -d= -f2; done); do
+		for dom in $(for user in $userlist; do awk -F= '/^DNS.*=/ {print $2}' $dir/var/cpanel/users/$user; done); do
 			#ensure all domains bieing migrated have owners
 			if [ ! "$(/scripts/whoowns $dom)" ]; then
 				local sourceuser=$(grep -l ^DNS.*=${dom} $dir/var/cpanel/users/* | awk -F\/ '{print $NF}')
@@ -75,7 +75,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 			fi
 		done
 #		ec yellow " Zonefile changes..."
-#		for dom in $(for user in $userlist; do grep ^DNS.*= $dir/var/cpanel/users/$user | cut -d= -f2; done); do
+#		for dom in $(for user in $userlist; do awk -F= '/^DNS.*=/ {print $2}' $dir/var/cpanel/users/$user; done); do
 #			#test zonefiles for differences, skipping serial number, nameserver lines, and anything adjusted to the new IP
 #			if [ "$(diff -q -I Serial\ Number -I NS -I $(grep ^${dom}\: /etc/userdatadomains | awk -F'==|:' '{print $9}') /var/named/$dom.db $dir/var/named/$dom.db)" ]; then
 #				local sourceuser=$(grep -l ^DNS.*=${dom} $dir/var/cpanel/users/* | awk -F\/ '{print $NF}')
@@ -94,7 +94,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 		(
 		hostname
 		grep ^'ADDR ' /etc/wwwacct.conf
-		for cpuser in `cat $dir/conflicts.txt 2> /dev/null`; do
+		[ -f $dir/conflicts.txt ] && for cpuser in `cat $dir/conflicts.txt 2> /dev/null`; do
 			echo -e "\n----------\n#${cpuser}\n#accounting.log:"
 			grep :${cpuser}$ /var/cpanel/accounting.log
 			echo -e "\n#userdatadomains:"
@@ -104,7 +104,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 				echo -e \\t $i\\t $(echo `dig @8.8.8.8 NS +short $i | sed 's/\.$//g' | tail -2|sort`\ `dig @8.8.8.8 +short $i | grep -v [a-zA-Z] | tail -1`| grep -v \ \  | column -t )\\n\\t $(echo \#MX:\ `dig MX $i |egrep '^[a-zA-Z0-9].*(MX|A)'|awk '{print $NF}'` | sed -e 's/  / /g'  | column -t)\\n
 			done
 		done
-		for dom in `cat $dir/conflicts.dom.txt 2> /dev/null`; do
+		[ -f $dir/conflicts.dom.txt ] && for dom in `cat $dir/conflicts.dom.txt 2> /dev/null`; do
 			echo -e "\n----------\n#${dom}\n#accounting.log:"
 			grep :${dom}: /var/cpanel/accounting.log
 			echo -e "\n#userdatadomains:"

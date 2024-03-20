@@ -22,7 +22,7 @@ nsprog_check() { # local nameserver setting check
 		fi
 
 		# check the nameserver binary
-		sssh "[ ! -x /scripts/setupnameserver ]" && sourcenstype=bind || sourcenstype=$(sssh "/scripts/setupnameserver --current | awk '{print \$4}'")
+		sssh "[ ! -x /scripts/setupnameserver ]" && sourcenstype=bind || sourcenstype=$(sssh "/scripts/setupnameserver --current" | awk '{print $4}')
 		localnstype=`/scripts/setupnameserver --current | awk '{print $4}'`
 		if [ ! "$localnstype" = "$sourcenstype" ] ; then
 			ec yellow "Source server nameserver type:"
