@@ -1,6 +1,5 @@
 download_marill() { #download the marill program
-	[ ! -d /root/bin ] && mkdir -p /root/bin
-	wget -q http://files.liquidweb.com/migrations/marill -O /root/bin/marill
-	chmod +x /root/bin/marill
-	[ ! -s /root/bin/marill ] && ec red "Could not fetch marill, skipping auto-testing." && unset runmarill
+	ec yellow "Installing marill from liam.sh..."
+	yum localinstall https://liam.sh/ghr/marill_0.1.1_linux_amd64.rpm
+	[ ! "$(which marill 2> /dev/null)" ] && ec red "Could not fetch marill, skipping auto-testing." && unset runmarill
 }

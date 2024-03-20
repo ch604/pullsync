@@ -1,6 +1,5 @@
 synctype_logic() { #case statement for performing server to server sync tasks. gets specific variables and establishes ssh connection via oldmigrationcheck() before starting.
 	echo "synctype: $synctype" | logit
-	echo "Ping @\$user in slack upon successful completion? [blank for none, will instead ping @migration-team]: " | logit && rd lwuser
 
 	oldmigrationcheck # see if any old migrations exist and option to use these for connection info
 	if [ "$oldip" ]; then
@@ -63,7 +62,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			dnsclustering
 			cpnat_check
 			#skip dnscheck if theres already a nameserver_summary.txt copied from olddir, or if ipswap set
-			[ ! "$ipswap" -a ! "$stormipswap" -a ! "$dummyipswap" ] && [ ! -f $dir/nameserver_summary.txt ] && dnscheck
+			[ ! "$ipswap" ] && [ ! -f $dir/nameserver_summary.txt ] && dnscheck
 			printrdns
 			finalsync_main
 			;;

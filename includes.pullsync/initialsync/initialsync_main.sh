@@ -128,7 +128,6 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	fi
 	[ $rcubesqlite ] && echo -e "\nconverted source roundcube storage to sqlite"
 	[ $malwarescan ] && echo -e "\nscanned php files for malware during sync"
-	[ $versionscan ] && echo -e "\nscanned for out of date CMS installs"
 	[ $fixperms ] && echo -e "\nran fixperms on all docroots"
 	[ $runmarill ] && echo -e "\nran marill auto-tests after sync"
 	[ $initsyncwpt ] && echo -e "\nchecked operation of sites with WPT during sync"
@@ -289,7 +288,6 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 
 	# generate ticket response and perform automatic testing
 	hostsfile_gen
-	[ $versionscan ] && outdated_versions
 	[ $runmarill ] && marill_gen
 	[ $initsyncwpt ] && wpt_initcompare
 }
