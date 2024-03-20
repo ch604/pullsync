@@ -69,7 +69,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	mv /etc/remotedomains{,.ipswap}
 	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/named /var/
 	rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/localdomains $dir/etc/remotedomains /etc/
-	sed -i.lwbak -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'$(date +%Y%m%d%H)'/g' /var/named/*.db
+	sed -i.pullsync.bak -e 's/^\$TTL.*/$TTL 300/g' -e 's/[0-9]\{10\}/'$(date +%Y%m%d%H)'/g' /var/named/*.db
 	/scripts/rebuilddnsconfig
 	rndc reload 2>&1 | stderrlogit 4
 	[ -f /var/cpanel/usensd ] && ( nsdc rebuild && nsdc reload ) 2>&1 | stderrlogit 4

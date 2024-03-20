@@ -139,7 +139,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			ec yellow "Hey I'm gonna dos your server now. I'll run 5 concurrent connections for 10 seconds per domain, all against the local ip. This is gonna be problematic if the target is already hosting sites."
 			useallusers
 			getlocaldomainlist
-			yum -y -q install ea-apache24-tools 2> /dev/null
+			yum -y -q install ea-apache24-tools 2>&1 | stderrlogit 4
 			> $hostsfile_alt
 			for user in $userlist; do
 				hosts_file $user &> /dev/null
@@ -153,7 +153,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			ec yellow "Hey I'm gonna dos your source server now. I'll run 5 concurrent connections for 10 seconds per domain, ALL AGAINST LIVE DNS. YOU MIGHT MESS UP SOMEONES DAY REAL BAD IF YOU DO A LOT OF DOMAINS."
 			useallusers
 			getlocaldomainlist
-			yum -y -q install ea-apache24-tools 2> /dev/null
+			yum -y -q install ea-apache24-tools 2>&1 | stderrlogit 4
 			if yesNo "Are you sure you want to continue? DID YOU HEAR ME SAY DOS?"; then
 				ab_test_remotewrapper
 			fi

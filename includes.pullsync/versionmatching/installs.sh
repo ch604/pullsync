@@ -1,8 +1,4 @@
 installs() { # install all of the things we found and enabled
-	# download plbake since we need it for a lot of stuff
-	ec yellow "Downloading plbake..."
-	wget -q -O /scripts/plbake http://files.liquidweb.com/scripts/plBake/plBake
-	chmod 700 /scripts/plbake
 	ec yellow "Installing EPEL repo..."
 	yum -y install epel-release 2>&1 | stderrlogit 4
 
@@ -201,32 +197,29 @@ installs() { # install all of the things we found and enabled
 	# mysql settings
 	if [ $match_sqlmode ]; then
 		ec yellow "Matching sql_mode and innodb_strict_mode..."
+		cp -a /etc/my.cnf{,.syncbak} 2> /dev/null
+		cp -a /usr/my.cnf{,.syncbak} 2> /dev/null
 		# sqlmode
 		remotesqlmode="$(sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}')"
 		if [ -f /usr/my.cnf ] && grep -iq ^sql_mode /usr/my.cnf; then
 			# there is a /usr/my.cnf, and sql_mode is set there
-			sed -i.syncbak '/^sql_mode/s/^/#/' /usr/my.cnf
+			sed -i '/^sql_mode/s/^/#/' /usr/my.cnf
 			echo "sql_mode=\"$remotesqlmode\"" >> /usr/my.cnf
 		elif grep -iq ^sql_mode /etc/my.cnf; then
 			# sql_mode is set in /etc/my.cnf
-			cp -a /etc/my.cnf{,.syncbak}
 			sed -i 's/^sql_mode.*/sql_mode=\"'$remotesqlmode'\"/' /etc/my.cnf
 		else
 			# sql_mode wasnt found anywhere, just set it
-			cp -a /etc/my.cnf{,.syncbak}
 			sed -i '/\[mysqld\]/a sql_mode=\"'$remotesqlmode'\"' /etc/my.cnf
 		fi
 		# innodb strict
 		remoteinnodbstrict=$(sssh "mysql -BNe 'show variables like \"innodb_strict_mode\"'" | awk '{print $2}')
 		if [ -f /usr/my.cnf ] && grep -iq ^innodb_strict_mode /usr/my.cnf; then
-			[ ! -f /usr/my.cnf.syncbak ] && cp -a /usr/my.cnf{,.syncbak}
 			sed -i '/^innodb_strict_mode/s/^/#/' /usr/my.cnf
 			echo "innodb_strict_mode=\"$remoteinnodbstrict\"" >> /usr/my.cnf
 		elif grep -iq ^innodb_strict_mode /etc/my.cnf; then
-			[ ! -f /etc/my.cnf.syncbak ] && cp -a /etc/my.cnf{,.syncbak}
 			sed -i 's/^innodb_strict_mode.*/innodb_strict_mode=\"'$remoteinnodbstrict'\"/' /etc/my.cnf
 		else
-			[ ! -f /etc/my.cnf.syncbak ] && cp -a /etc/my.cnf{,.syncbak}
 			sed -i '/\[mysqld\]/a innodb_strict_mode=\"'$remoteinnodbstrict'\"' /etc/my.cnf
 		fi
 		/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
@@ -240,10 +233,9 @@ installs() { # install all of the things we found and enabled
 			[[ $? -eq 0 ]] && break
 			if [[ $t -eq 0 ]]; then
 				ec lightRed "Mysql didnt come back, undoing..." | errorlogit 3
-				if [ -f /usr/my.cnf.syncbak ]; then
-					mv -f /usr/my.cnf{.syncbak,}
-				elif [ -f /etc/my.cnf.syncbak ]; then
-					mv -f /etc/my.cnf{.syncbak,}
+				if [ -f /usr/my.cnf.syncbak ] -o [ -f /etc/my.cnf.syncbak ]; then
+					mv -f /usr/my.cnf{.syncbak,} 2> /dev/null
+					mv -f /etc/my.cnf{.syncbak,} 2> /dev/null
 				else
 			       		ec lightRed "Mysql didnt come back! And I cant find my.cnf.syncbak! AAAAH" | errorlogit 1
 					exitcleanup
@@ -270,7 +262,17 @@ installs() { # install all of the things we found and enabled
 	[ $upcp ] && ec yellow "Running Upcp..." && /scripts/upcp
 
 	# java
-	[ "$java" ] && ec yellow "Installing Java..." && /scripts/plbake java --installjava$javaver
+	if [ "$java" ]; then
+		ec yellow "Installing Java..."
+		if [ "$(rpm --eval %rhel)" -ge 9 ]; then
+			yum -y -q install java-17-openjdk 2>&1 | stderrlogit 4
+		elif [ "$(rpm --eval %rhel)" -eq 8 ]; then
+			yum -y -q install java-11-openjdk 2>&1 | stderrlogit 4
+		else
+			yum -y -q install java-1.8.0-openjdk 2>&1 | stderrlogit 4
+		fi
+
+	fi
 
 	# cpanel solr
 	if [ "$installcpanelsolr" ]; then
@@ -382,7 +384,7 @@ installs() { # install all of the things we found and enabled
 	fi
 
 	# tomcat
-	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85
+	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85 2>&1 | stderrlogit 4
 
 	# modsec
 	if [ $modsecimport ]; then
@@ -411,7 +413,7 @@ installs() { # install all of the things we found and enabled
 	[ "$modcloudflare" ] && ec yellow "Installing mod_cloudflare plugin..." && yum -y -q install lw-mod_cloudflare-cpanel.noarch 2>&1 | stderrlogit 4
 
 	# ffmpeg; install ffmpeg binary only
-	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG..." && yum --enablerepo=epel -y -q localinstall localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm --eval %rhel).noarch.rpm 2>&1 | stderrlogit 4 && yum -y -q install ffmpeg ffmpeg-devel 2>&1 | stderrlogit 4
+	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG..." && yum --enablerepo=epel -y -q localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm --eval %rhel).noarch.rpm 2>&1 | stderrlogit 4 && yum -y -q install ffmpeg ffmpeg-devel 2>&1 | stderrlogit 4
 
 	# imagick; install magickwand via plbake and php plugins via make or pecl
 	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q remove lw-ImageMagick* ImageMagick ImageMagick-devel

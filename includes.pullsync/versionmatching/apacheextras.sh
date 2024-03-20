@@ -30,9 +30,9 @@ apacheextras() { #run after successful ea, copies extra apache things not part o
 	if [ "$remotehttpd_di" ]; then
 		ec yellow "Copying DirectoryIndex priority..."
 		if [ "$localea" = "EA4" ]; then
-			sed -i.lwbak '/\"directoryindex\"\ \:/ s/\:\ \"[a-zA-Z0-9\ \.]*\"/\:\ \"'"$remotehttpd_di"'\"/' /etc/cpanel/ea4/ea4.conf
+			sed -i.pullsync.bak '/\"directoryindex\"\ \:/ s/\:\ \"[a-zA-Z0-9\ \.]*\"/\:\ \"'"$remotehttpd_di"'\"/' /etc/cpanel/ea4/ea4.conf
 		else
-			sed -i.lwbak "s/\s*[\"\']\?directoryindex[\"\']\?\:\ [\"\']\?[a-zA-Z0-9\.\ ]\+[\"\']\?$/$remotehttpd_di/" /var/cpanel/conf/apache/main
+			sed -i.pullsync.bak "s/\s*[\"\']\?directoryindex[\"\']\?\:\ [\"\']\?[a-zA-Z0-9\.\ ]\+[\"\']\?$/$remotehttpd_di/" /var/cpanel/conf/apache/main
 		fi
 		/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 		httpd -t 2>&1 | stderrlogit 4
@@ -43,8 +43,8 @@ apacheextras() { #run after successful ea, copies extra apache things not part o
 		else
 			# restart failed, revert
 			ec red "Couldn't validate config after adjusting DirectoryIndex priority! Reverting changes..." | errorlogit 3
-			mv -f /var/cpanel/conf/apache/main{.lwbak,}
-			mv -f /etc/cpanel/ea4/ea4.conf{.lwbak,}
+			[ -f /var/cpanel/conf/apache/main.pullsync.bak ] && mv -f /var/cpanel/conf/apache/main{.pullsync.bak,}
+			[ -f /etc/cpanel/ea4/ea4.conf.pullsync.bak ] && mv -f /etc/cpanel/ea4/ea4.conf{.pullsync.bak,}
 			/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 			/scripts/restartsrv_apache 2>&1 | stderrlogit 4
 		fi

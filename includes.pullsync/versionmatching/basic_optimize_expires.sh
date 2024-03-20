@@ -1,6 +1,6 @@
 basic_optimize_expires(){ #turn on mod_expires by adding a custom config
 	# if the file already exists, back it up
-	[ -s /etc/apache2/conf.d/expires.conf ] && mv /etc/apache2/conf.d/expires.conf{,.lwbak}
+	[ -s /etc/apache2/conf.d/expires.conf ] && mv /etc/apache2/conf.d/expires.conf{,.pullsync.bak}
 	cat >> /etc/apache2/conf.d/expires.conf << EOF
 <IfModule mod_expires.c>
   ExpiresActive on

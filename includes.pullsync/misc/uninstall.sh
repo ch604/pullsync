@@ -15,6 +15,10 @@ uninstall() { #cleanup all data from pullsync
 			for file in userlist.txt dns.txt domainlist.txt; do \rm -f /root/$file 2>&1; done
 			for file in hosts.txt hostsfile.txt moxxi.sh; do \rm -f /usr/local/apache/htdocs/$file 2>&1; done
 			\rm -f /etc/chkserv.d/chkservd.conf.pullsync.bak 2>&1
+			\rm -f /etc/cpanel/ea4/ea4.conf.pullsync.bak 2>&1
+			\rm -f /var/cpanel/conf/apache/main.pullsync.bak 2>&1
+			\rm -f /etc/apache2/conf.d/deflate.conf.pullsync.bak 2>&1
+			\rm -f /etc/apache2/conf.d/expires.conf.pullsync.bak 2>&1
 			\rm -f /etc/exim.conf.pullsync.bak 2>&1
 			\rm -f /usr/my.cnf.syncbak /etc/my.cnf.syncbak 2>&1
 			\rm -f /etc/cpbackup.conf.syncbak 2>&1

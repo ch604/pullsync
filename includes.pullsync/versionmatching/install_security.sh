@@ -1,11 +1,4 @@
 install_security() { #install optional security settings
-	if [ $enable_modsec ]; then
-		ec yellow "Enabling LW ModSec ruleset..."
-		#fresh target server ought have ea4, no need to detect
-		yum -y -q --skip-broken install lp-modsec2-rules-ea4 ea-config-tools 2>&1 | stderrlogit 3
-		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
-	fi
-
 	if [ $enable_modevasive ]; then
 		ec yellow "Installing mod_evasive with default options..."
 		yum -y -q install ea-apache24-mod_evasive 2>&1 | stderrlogit 3
