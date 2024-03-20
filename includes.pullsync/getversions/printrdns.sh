@@ -5,6 +5,6 @@ printrdns() { #show rdns and warn if unset
 	for each in `/usr/local/cpanel/bin/whmapi1 listips | awk '/public_ip: / {print $2}'`; do
 		echo "${each}: $(dig +short -x ${each})"
 	done | column -t | tee $dir/rdns_local.txt | logit
-	[ ! "$(cat $dir/rdns_local.txt | awk '{print $2}')" ] && ec red "You don't have rDNS set up! Set this up in Billing -> DNS -> Reverse Zone Tools to direct to the hostname."
+	[ ! "$(cat $dir/rdns_local.txt | awk '{print $2}')" ] && ec red "You don't have rDNS set up!"
 	say_ok
 }
