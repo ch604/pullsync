@@ -59,7 +59,6 @@ optimizations(){ #server optimizations separated from installs() in case version
 		perl -i -p -e 's/SAFECHAINUPDATE = "0"/SAFECHAINUPDATE = "1"/g' /etc/csf/csf.conf
 		perl -i -p -e 's/PT_ALL_USERS = "0"/PT_ALL_USERS = "1"/g' /etc/csf/csf.conf
 		perl -i -p -e 's/RESTRICT_SYSLOG = "0"/RESTRICT_SYSLOG = "2"/g' /etc/csf/csf.conf
-		echo "10.30.83.5" >> /etc/csf/csf.ignore
 		/scripts/smtpmailgidonly off
 		csf -ra 2>&1 >/dev/null
 		#whm tweaks
