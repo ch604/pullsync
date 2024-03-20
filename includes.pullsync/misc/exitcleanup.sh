@@ -30,7 +30,7 @@ exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans 
 	#add cleanup cron
 	ec yellow "Adding cleanup cron..."
 	cat > /etc/cron.d/pullsync-cleanup << EOF
-30 0 * * * root /bin/bash -c 'if [ ! "\$(find /home/temp/ -maxdepth 1 -type d -mtime -14 \( -name "pullsync*" -o -name "noop-pullsync*" \))" -a ! -f /home/temp/pullsync/pullsync.pid ]; then \\rm -rf /root/includes.pullsync/; \\rm -f /root/pullsync.sh; \\rm -f /etc/cron.d/pullsync-cleanup; fi'
+30 0 * * * root /bin/bash -c 'if [ ! "\$(find /home/temp/ -maxdepth 1 -type d -mtime -14 \( -name "pullsync*" -o -name "noop-pullsync*" \))" -a ! -f /home/temp/pullsync/pullsync.pid ]; then \\rm -rf /root/includes.pullsync/; \\rm -f /root/migration_malware_scan; \\rm -f /root/pullsync.sh; \\rm -f /etc/cron.d/pullsync-cleanup; fi'
 EOF
 	#print disk usage of all temp data
 	local dirsize=$(du -shc /home/temp/pullsync.* /home/temp/noop-pullsync.* 2>/dev/null | tail -1 | awk '{print $1}')
@@ -42,7 +42,7 @@ EOF
 	ec white "Started $starttime"
 	ec white "Ended `date +%F.%T`"
 	ec lightGreen "Done!"
-	if [ ! $1 ]; then #if no special exit code, ping slack
+	if [ ! $1 ] && [ "$slackhook_url" ]; then #if no special exit code and slackhook set, ping slack
 		ec yellow "Posting completion to slack channel..."
 		[ -f $dir/error.log ] && slackhook ff3333 || slackhook
 	fi

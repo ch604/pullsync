@@ -1,11 +1,10 @@
 argumentcheck() { # scan for command line options
-	while getopts :t:u:i:p:k:mhserdl:xy opt; do
+	while getopts :t:i:p:k:mhserdl:xy opt; do
 		case $opt in
 			h) displayhelp && exitcleanup 9 ;;
 			i) ip=$OPTARG ;;
 			p) port=$OPTARG ;;
 			k) keyfile=$OPTARG ;;
-			u) lwuser=$OPTARG ;;
 			t) synctype=$OPTARG ;;
 			x) malwarescan=1 ;;
 			y) runmarill=1 ;;
@@ -35,7 +34,7 @@ argumentcheck() { # scan for command line options
 			*) echo "Invalid synctype: $synctype" && exitcleanup 9 ;;
 		esac
 	else
-		unset ip port lwuser synctype do_installs stopservices maintpage restartservices copydns malwarescan runmarill
+		unset ip port synctype do_installs stopservices maintpage restartservices copydns malwarescan runmarill
 		ec red "You didn't pass enough arguments!"
 		exitcleanup 9
 	fi
