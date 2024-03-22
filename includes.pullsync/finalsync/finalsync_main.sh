@@ -179,7 +179,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	ec green "Final syncs complete!"
 
 	#cleanup functions
-	if [ "$localea" = "EA4" ] && [ "$remoteea" = "EA4" ]; then
+	if [ "$remoteea" = "EA4" ]; then
 		ec yellow "Resetting .htaccess files for EA4 versions..."
 		screen -S resetea4 -d -m resetea4versions
 	fi

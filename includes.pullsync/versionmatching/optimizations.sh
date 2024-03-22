@@ -84,24 +84,10 @@ optimizations(){ #server optimizations separated from installs() in case version
 			grep -q ^disable_functions\  $file && sed -ri 's/^(disable_functions\ =\ )""/\1"show_source,system,shell_exec,passthru,exec,phpinfo,proc_open,allow_url_fopen,ini_set"/' $file || echo "disable_functions = \"show_source,system,shell_exec,passthru,exec,phpinfo,proc_open,allow_url_fopen,ini_set\"" >> $file
 		done
 		#httpd tweaks
-		if [ "$localea" = "EA4" ]; then
-			sed -i '/\"traceenable\"\ \:/ s/[oO]n/Off/' /etc/cpanel/ea4/ea4.conf
-			sed -i '/\"serversignature\"\ \:/ s/[oO]n/Off/' /etc/cpanel/ea4/ea4.conf
-			sed -i '/\"servertokens\"\ \:/ s/\:\ \"[a-zA-Z]*\"/\:\ \"ProductOnly\"/' /etc/cpanel/ea4/ea4.conf
-			sed -i '/\"fileetag\"\ \:/ s/\:\ \"[a-zA-Z]*\"/\:\ \"None\"/' /etc/cpanel/ea4/ea4.conf
-		else #local ea3
-			if [ -s /var/cpanel/conf/apache/local ]; then
-				sed -i '/\"traceenable\"\:/ s/[oO]n/Off/' /var/cpanel/conf/apache/local
-				sed -i '/\"serversignature\"\:/ s/[oO]n/Off/' /var/cpanel/conf/apache/local
-				sed -i '/\"servertokens\"\:/ s/'\''[a-zA-Z]*'\''/'\''ProductOnly'\''/' /var/cpanel/conf/apache/local
-				sed -i '/\"fileetag\"\:/ s/'\''[a-zA-Z]*'\''/'\''None'\''/' /var/cpanel/conf/apache/local
-			else
-				echo '"traceenable": Off' >> /var/cpanel/conf/apache/local
-				echo '"serversignature": Off' >> /var/cpanel/conf/apache/local
-				echo "\"servertokens\": 'ProductOnly'" >> /var/cpanel/conf/apache/local
-				echo "\"fileetag\": 'None'" >> /var/cpanel/conf/apache/local
-			fi
-		fi
+		sed -i '/\"traceenable\"\ \:/ s/[oO]n/Off/' /etc/cpanel/ea4/ea4.conf
+		sed -i '/\"serversignature\"\ \:/ s/[oO]n/Off/' /etc/cpanel/ea4/ea4.conf
+		sed -i '/\"servertokens\"\ \:/ s/\:\ \"[a-zA-Z]*\"/\:\ \"ProductOnly\"/' /etc/cpanel/ea4/ea4.conf
+		sed -i '/\"fileetag\"\ \:/ s/\:\ \"[a-zA-Z]*\"/\:\ \"None\"/' /etc/cpanel/ea4/ea4.conf
 		/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
 	fi

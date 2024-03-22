@@ -129,7 +129,7 @@ remote_tempdir="/home/temp/pullsynctmp.$starttime" # cpmove files are created he
 hostsfile="/usr/local/apache/htdocs/hosts.txt"
 hostsfile_alt="/usr/local/apache/htdocs/hostsfile.txt"
 sshargs="-o GSSAPIAuthentication=no" #disable "POSSIBLE BREAKIN ATTEMPT" messages and first host key acceptance
-proglist="ffmpeg imagick memcache cmc cmm cmq cse mailscanner java cpanelsolr postgres modcloudflare nodejs npm tomcat redis solr pdftk elasticsearch wkhtmltopdf apc sodium maldet spamassassin"
+proglist="ffmpeg imagick memcache cmc cmm cmq cse mailscanner java cpanelsolr postgres modremoteip nodejs npm tomcat redis solr pdftk elasticsearch wkhtmltopdf apc sodium maldet spamassassin"
 
 #colors
 nocolor="\E[0m"; black="\033[0;30m"; grey="\033[1;30m"; red="\033[0;31m"; lightRed="\033[1;31m"; green="\033[0;32m"; lightGreen="\033[1;32m"; brown="\033[0;33m"; yellow="\033[1;33m"; blue="\033[0;34m"; lightBlue="\033[1;34m"; purple="\033[0;35m"; lightPurple="\033[1;35m"; cyan="\033[0;36m"; lightCyan="\033[1;36m"; white="\033[1;37m"; greyBg="\033[1;37;40m"

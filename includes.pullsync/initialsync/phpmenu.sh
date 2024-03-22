@@ -1,5 +1,5 @@
 phpmenu(){ #menu to select how to run EA. auto selects option based on what is set source and target
-	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "EasyApache Menu" --radiolist "Select options for EasyApache profile matching. Sane options have been selected based on your source and target, but modify as needed.\n\nLocal EA : $localea\nRemote EA: $remoteea\n\nLocal PHP : $localphp\nRemote PHP: $remotephp\n\nLocal Handler : $localphphandler\nRemote Handler: $remotephphandler\n\nKeep in mind that if remote profile conversion fails, a default profile will be installed. The script will always attempt to adjust the default PHP version if EA4 is the target and EA is not skipped. If the source PHP version is too low or otherwise not available, 8.1 will be used as the default." 0 0 6)
+	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "EasyApache Menu" --radiolist "Select options for EasyApache profile matching. Sane options have been selected based on your source and target, but modify as needed.\n\nLocal EA : EA4\nRemote EA: $remoteea\n\nLocal PHP : $localphp\nRemote PHP: $remotephp\n\nLocal Handler : $localphphandler\nRemote Handler: $remotephphandler\n\nKeep in mind that if remote profile conversion fails, a default profile will be installed. The script will always attempt to adjust the default PHP version if EA4 is the target and EA is not skipped. If the source PHP version is too low or otherwise not available, 8.1 will be used as the default." 0 0 6)
 	local options=( 1 "Skip EA and PHP settings matching" off
 			2 "Install remote EA3/4 profile" off
 			3 "Install default EA4 profile" off
@@ -22,7 +22,7 @@ phpmenu(){ #menu to select how to run EA. auto selects option based on what is s
 			ea=1;;
 		4)	noeaextras=1
 			matchhandler=1
-			unset ea migrateea4 matchhandler fpmconvert ea3;;
-		*)	unset ea migrateea4 matchhandler fpmconvert ea3;;
+			unset ea matchhandler fpmconvert;;
+		*)	unset ea matchhandler fpmconvert;;
 	esac
 }

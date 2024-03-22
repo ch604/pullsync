@@ -349,29 +349,26 @@ installs() { # install all of the things we found and enabled
 		/usr/local/bin/ea_current_to_profile --output=/etc/cpanel/ea4/profiles/custom/pullsync-backup.json 2>&1 | stderrlogit 3
 		if [ $defaultea4 ]; then
 			# use the default profile
+			ec yellow "Running EA4..."
 			ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json 2>&1 | tee -a $dir/ea4.profile.install.log
-			localea=EA4
 			ea4phpextras
 			apacheextras
-		else
-			if [ ! -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
+		elif [ ! -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
 				ec red "Couldn't find migration.json! Skipping EA4..." | errorlogit 2
+		else
+			# use the custom migrated profile
+			ec yellow "Running EA4..."
+			ea_install_profile --install /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | tee -a $dir/ea4.profile.install.log
+			if [ $(which php 2> /dev/null) ] ; then
+				ec green "Success!"
+				ea4phpextras
+				apacheextras
 			else
-				# use the custom migrated profile
-				ec yellow "Running EA4..."
-				ea_install_profile --install /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | tee -a $dir/ea4.profile.install.log
-				if [ $(which php 2> /dev/null) ] ; then
-					ec green "Success!"
-					localea=EA4
-					ea4phpextras
-					apacheextras
-				else
-					ec red "EA failed! (cant find php binary) Installing default profile... (less $dir/ea4.profile.install.log)" | errorlogit 2
-					yum -y -q install ea-profiles-cpanel 2>&1 | stderrlogit 4
-					ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json
-					ea4phpextras
-					apacheextras
-				fi
+				ec red "EA failed! (cant find php binary) Installing default profile... (less $dir/ea4.profile.install.log)" | errorlogit 2
+				yum -y -q install ea-profiles-cpanel 2>&1 | stderrlogit 4
+				ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json 2>&1 | tee -a $dir/ea4.profile.install.log
+				ea4phpextras
+				apacheextras
 			fi
 		fi
 	fi
@@ -384,17 +381,26 @@ installs() { # install all of the things we found and enabled
 	fi
 
 	# tomcat
-	[ "$tomcat" ] && [ "$localea" = "EA4" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85 2>&1 | stderrlogit 4
+	[ "$tomcat" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85 2>&1 | stderrlogit 4
 
-	# modcloudflare
-	[ "$modcloudflare" ] && ec yellow "Installing mod_cloudflare plugin..." && yum -y -q install lw-mod_cloudflare-cpanel.noarch 2>&1 | stderrlogit 4
+	# modremoteip/modcloudflare
+	if [ "$modremoteip" ]; then
+		ec yellow "Installing mod_remoteip plugin with cloudflare support..."
+		yum -y -q install ea-apache24-mod_remoteip 2>&1 | stderrlogit 4
+		echo "RemoteIPHeader CF-Connecting-IP" >> /etc/apache2/conf.modules.d/370_mod_remoteip.conf
+		for cfip in $(curl -s https://www.cloudflare.com/ips-v4) $(curl -s https://www.cloudflare.com/ips-v6); do
+			echo "RemoteIPTrustedProxy $cfip" >> /etc/apache2/conf.modules.d/370_mod_remoteip.conf
+		done
+		sed -i '/\"logformat_/ s/\"%h/\"%a/' /etc/cpanel/ea4/ea4.conf
+		/scripts/rebuildhttpdconf 2>&1 | stderrlogit 4
+		/scripts/restartsrv_apache 2>&1 | stderrlogit 4
+	fi
 
 	# ffmpeg; install ffmpeg binary only
 	[ "$ffmpeg" ] && ec yellow "Installing FFMPEG..." && yum --enablerepo=epel -y -q localinstall --nogpgcheck https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm --eval %rhel).noarch.rpm 2>&1 | stderrlogit 4 && yum -y -q install ffmpeg ffmpeg-devel 2>&1 | stderrlogit 4
 
 	# imagick
 	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q install ImageMagick ImageMagick-devel pcre-devel &&
-[ -f /etc/cpanel/ea4/is_ea4 ] &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -e php4 -e php5); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install imagick
 	list=\$(grep -E -Rl ^extension=[\\\"]?imagick.so[\\\"]?$ /opt/cpanel/\$each/root/etc/php.d/)
@@ -428,7 +434,6 @@ cd /usr/local/src/solr-8.9.0/bin/ &&
 /install_solr_service.sh /usr/local/src/solr-8.9.0.tgz &&
 systemctl enable solr &&
 systemctl start solr &&
-[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install solr ||
 yum -y -q install libcurl-devel &&
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install solr
@@ -438,7 +443,6 @@ done"
 	[ "$redis" ] && ec yellow "Installing redis in separate screen..." && screen -S redis -d -m bash -c "yum --enablerepo=epel -y install redis &&
 service redis start &&
 systemctl enable redis &&
-[ ! -f /etc/cpanel/ea4/is_ea4 ] && pecl install redis ||
 for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install redis
 done"
@@ -558,7 +562,7 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 	ec yellow "Matching PEAR packages in separate screen..."
 	# get a list of pear modules, install in screen
 	sssh "pear list" | awk '/[0-9]+.[0-9]+/ {print $1}' | tr '\n' ' ' > $dir/pearlist.txt
-	screen -S pearinstall -d -m bash -c "if [ -f /etc/cpanel/ea4/is_ea4 ]; then for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do /opt/cpanel/\$each/root/usr/bin/pear install \$(cat $dir/pearlist.txt); done; else; pear install \$(cat $dir/pearlist.txt); fi"
+	screen -S pearinstall -d -m bash -c "for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do /opt/cpanel/\$each/root/usr/bin/pear install \$(cat $dir/pearlist.txt); done"
 
 	# cpan
 	ec yellow "Matching CPAN packages in separate screen..."
@@ -578,20 +582,17 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 		sssh "gem list" | awk '{print $1}' | sed -e '/rails/d' -e '/\*/d' > $dir/gemlist.txt
 		sssh "gem list rails" | grep ^rails\  | sed -e 's/rails//' -e 's/[() ]//g' | tr ',' '\n' > $dir/railslist.txt
 		if grep -q passenger $dir/gemlist.txt; then
-			# install passenger per ea version
 			ec yellow "Passenger gem detected on source, installing separately..."
 			sed -i '/passenger/d' $dir/gemlist.txt
-			if [ "$localea" = "EA4" ]; then
-				# switch to apache-based install for el9+
-				if [ $(rpm --eval %rhel) -ge 9 ]; then
-					yum -y -q install ea-apache24-mod-passenger 2>&1 | stderrlogit 4
-				else
-					yum -y -q install ea-ruby24-mod_passenger 2>&1 | stderrlogit 4
-				fi
-				/bin/ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
-					/scripts/featuremod --feature passengerapps --value enable --list "$list"
-				done
+			# switch to apache-based install for el9+
+			if [ $(rpm --eval %rhel) -ge 9 ]; then
+				yum -y -q install ea-apache24-mod-passenger 2>&1 | stderrlogit 4
+			else
+				yum -y -q install ea-ruby24-mod_passenger 2>&1 | stderrlogit 4
 			fi
+			/bin/ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
+				/scripts/featuremod --feature passengerapps --value enable --list "$list"
+			done
 		fi
 		# install any rails versions first
 		[ -s $dir/railslist.txt ] && ec yellow "Installing rails separately..." && for ver in $(cat $dir/railslist.txt); do gem install rails -v $ver 2>&1 | stderrlogit 3; done

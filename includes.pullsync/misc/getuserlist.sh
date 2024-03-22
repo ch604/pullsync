@@ -11,7 +11,7 @@ getuserlist() { # get user list for different sync types
 		cp -rp $domainlistfile $dir/
 		#get users from a domainlist, $dir/etc/userdomains needs to exist already
 		userlist=$(for domain in $(cat $domainlistfile); do
-	  		grep ^$domain: $dir/etc/userdomains |cut -d\  -f2
+			awk -F" " '/^'$domain':/ {print $2}' $dir/etc/userdomains
 		done | sort -u | egrep -vx "${badusers}")
 	#all users
 	elif [[ "$synctype" == "all" || "$synctype" == "email" ]] ; then
@@ -74,7 +74,7 @@ getuserlist() { # get user list for different sync types
 	[ "$(echo $userlist | wc -w)" = "0" ] && ec red "Userlist is blank! What are you trying to do here? Really?" && exitcleanup 4
 	if [ "$synctype" == "domainlist" ]; then
 		#warn if there are extra domains attached to the users being synced for domainlist syncs
-		extrasd=$(for each in $userlist; do grep :\ $each$ $dir/etc/userdomains; done | cut -d\: -f1)
+		extrasd=$(for each in $userlist; do awk -F: '/:\ '$each'$/ {print $1}' $dir/etc/userdomains; done)
 		for each in $(cat $domainlistfile); do
 			extrasd=$(echo $extrasd | tr ' ' '\n' | grep -vx $each)
 		done

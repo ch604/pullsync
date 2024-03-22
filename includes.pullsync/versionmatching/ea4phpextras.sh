@@ -4,7 +4,7 @@ ea4phpextras() { #run after ea4 to match handler, default version, and variables
 	if /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $niceremotephp; then
 		# remote php default available on target
 		ec yellow "Matching default PHP version to $niceremotephp..."
-		local newdefault=`/usr/local/cpanel/bin/rebuild_phpconf --available | grep $niceremotephp | cut -d: -f1`
+		local newdefault=`/usr/local/cpanel/bin/rebuild_phpconf --available | awk -F: '/'$niceremotephp'/ {print $1}'`
 		/usr/local/cpanel/bin/rebuild_phpconf --default $newdefault
 	elif /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q ea-php81; then
 		# php81 available on target
@@ -56,7 +56,7 @@ ea4phpextras() { #run after ea4 to match handler, default version, and variables
 		fi
 	else
 		# remote server using ea4. collect modules for all versions.
-		for ver in $(sssh "/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1"); do
+		for ver in $(sssh "/usr/local/cpanel/bin/rebuild_phpconf --available" | cut -d: -f1); do
 			if [ -d /opt/cpanel/$ver ]; then
 				# same version is installed on target
 				local target_modules=$(/opt/cpanel/$ver/root/usr/bin/php -m 2> /dev/null | grep -v -e ^$ -e "\[" -e "(" | tr '\n' '|' | sed -e 's/|$//' -e 's/\ /\\\ /g')

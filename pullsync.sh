@@ -4,8 +4,8 @@
 # based on initialsync by abrevick@liquidweb.com and various other migrations team members; thank you!
 # https://github.com/ch604/pullsync
 
-# last updated: Mar 20 2024
-version="8.3.4"
+# last updated: Mar 21 2024
+version="8.3.6"
 
 ############
 # root check
@@ -112,7 +112,7 @@ cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' /etc/wwwacct.conf | tr -d '\n')
 [ "$cpanel_main_ip" = "" ] && echo "Could not detect main IP from /etc/wwwacct.conf or /var/cpanel/mainip! Ensure the main IP is set up in WHM?" && exit 99
 
 # initalize working directory. $dir is a symlink to $dir.$starttime from last migration
-[ -d "$dir" ] && rm -f $dir # remove old symlink
+[ -d "$dir" -o -L "$dir" ] && rm -f $dir # remove old symlink
 [ -d $dir.$starttime ] && echo "ERROR: $dir.$starttime already exists! Did you go back in time?" && exit 1
 mkdir -p -m600 "$dir.$starttime"
 ln -s "$dir.$starttime" "$dir"

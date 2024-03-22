@@ -39,7 +39,7 @@ detect_apps() { # look for common extra applications
 	lswsfound=`grep -Ee '(litespeed|lsws|lshttpd)' $psfile`
 	mongodfound=`grep -e 'mongod' $psfile`
 	mssqlfound=`grep -e 'sqlservr' $psfile`
-	modcloudflarefound=`sssh "httpd -M 2> /dev/null | grep cloudflare"`
+	modremoteip=`sssh "httpd -M 2> /dev/null" | grep -E '(cloudflare|remoteip|rpaf)'_module`
 	[ -f $dir/var/cpanel/apps/cxs.conf ] && cxsfound=/var/cpanel/apps/cxs.conf
 	rvsbfound=`sssh "[ -d /var/cpanel/rvglobalsoft/rvsitebuilder/ ] && echo 1"`
 	[ -f $dir/var/cpanel/domainmap ] && domainmap=1

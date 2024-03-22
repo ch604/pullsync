@@ -11,7 +11,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 
 	# turn things on front to back
 	#nginx on source (6 7 8)
-	if [ "$nginxfound" ] && [ "$localea" = "EA4" ]; then
+	if [ "$nginxfound" ]; then
 		options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Nginx found on source server"`
 	fi
 	#security tweaks (15 16 17)
@@ -20,10 +20,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	fi
 
 	# turn things off back to front
-	#basic optimizations (12 13 14)
-	if [ ! "$localea" = "EA4" ]; then
-		unset options[14] options[13] options[12] && cmd[8]=`echo "${cmd[8]}\n(5) Basic optimization tweaks are not compatible with EA3"`
-	fi
+	#nothing at the mo...
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	[ $? != 0 ] && exitcleanup 99

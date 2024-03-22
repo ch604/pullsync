@@ -2,7 +2,7 @@ apache_user_includes() { #scan for per-user includes in apache and import to tar
 	local user=$1
 	local user_domains=$(grep ^DNS /var/cpanel/users/${user} |cut -d= -f2 |grep -v \*)
 	[ -h $dir/usr/local/apache/conf/userdata ] && local udfolder="$dir/etc/apache2/conf.d/userdata" || local udfolder="$dir/usr/local/apache/conf/userdata"
-	[ "$localea" = "EA4" ] && local localudfolder="/etc/apache2/conf.d/userdata" || local localudfolder="/usr/local/apache/conf/userdata"
+	local localudfolder="/etc/apache2/conf.d/userdata"
 	#if user has no includes folder for 2_4, fuggedaboudit
 	[ -d $udfolder/std/2_4/$user -o -d $udfolder/ssl/2_4/$user ] || return
 	for domain in ${user_domains}; do

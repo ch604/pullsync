@@ -2,7 +2,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 	local user=$1
 	local progress="$2 | $user:"
 	if [ -f "$dir/etc/passwd" ]; then
-		local userhome_remote=`grep ^$user: $dir/etc/passwd | tail -n1 |cut -d: -f6`
+		local userhome_remote=`awk -F: '/^'$user':/ {print $6}' $dir/etc/passwd`
 		local userhome_local=`eval echo ~${user}`
 		# check if cpanel user exists
 		if [ -f $dir/var/cpanel/users/$user ] && [ -f /var/cpanel/users/$user ] && [ $userhome_local ] && [ $userhome_remote ] && [ -d $userhome_local ] && sssh "[ -d $userhome_remote ]"; then
@@ -58,7 +58,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 					ec brown "$progress Linux password changed, updating on target..." | errorlogit 4
 					echo $remotehash | chpasswd -e 2>&1 | stderrlogit 3
 				fi
-				for dom in $(grep \ ${user}$ /etc/userdomains | cut -d: -f1); do
+				for dom in $(awk -F: '/ '${user}'$/ {print $1}' /etc/userdomains); do
 					rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/etc/valiases/$dom /etc/valiases/ --update 2>&1 | stderrlogit 4
 				done
 			fi

@@ -22,7 +22,6 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	localmysqlrelease=`eval $mysqlreleasecmd`
 	echo $localmysqlrelease | grep -qi -e MariaDB -e Percona || localmysqlrelease="MySQL"
 	localphp=` eval $phpcmd`
-	localea="EA4"
 	localphphandler=`eval $ea4phphandlercmd`
 	localcpanel=`cat /usr/local/cpanel/version`
 	localmodsec=`eval $modsec_cmd`
@@ -35,7 +34,6 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	Local Phphandler: $localphphandler
 	Local Mysql     : $localmysqlrelease $localmysql
 	Local Cpanel    : $localcpanel
-	Local EasyApache: $localea
 	Local Modsec    : $localmodsec
 	Local OS        : $local_os
 	Local Memory	: $local_mem M
@@ -104,11 +102,6 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	dnscheck
 	printrdns
 	dnsclustering
-
-	# now that we have a dns file, we can check for modcloudflare install
-	if [[ ! "$synctype" = "single" && ! "$synctype" = "skeletons" ]] && [ "$domainlist" ] && [ ! "$localea" = "EA4" ]; then
-		[ "$modcloudflarefound" ] || grep -q cloudflare_module $dir/usr/local/apache/conf/includes/pre_main_global.conf 2> /dev/null || grep -q cloudflare.com $dir/source_resolve.txt $dir/not_here_resolve.txt 2> /dev/null && modcloudflare=1
-	fi
 
 	# ipv6 checks
 	if sssh "cat /etc/sysconfig/network" | grep -qi ^NETWORKING_IPV6=YES; then

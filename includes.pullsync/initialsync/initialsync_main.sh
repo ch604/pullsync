@@ -82,7 +82,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ "$tomcat" ] && echo "* installed ea-tomcat85"
 		[ "$postgres" ] && echo "* installed postgresql"
 		[ "$includeschanges" ] && echo "* replaced files in /usr/local/apache/conf/includes/"
-		[ "$modcloudflare" ] && echo "* installed mod_cloudflare"
+		[ "$modremoteip" ] && echo "* installed mod_remoteip (with cloudflare support)"
 		[ "$match_sqlmode" ] && echo "* matched sql_mode and innodb_strict_mode"
 		[ "$ea" ] && echo "* ran easyapache"
 		[ $matchhandler ] && echo "* matched php handlers"
