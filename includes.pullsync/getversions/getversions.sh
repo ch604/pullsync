@@ -22,8 +22,8 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	localmysqlrelease=`eval $mysqlreleasecmd`
 	echo $localmysqlrelease | grep -qi -e MariaDB -e Percona || localmysqlrelease="MySQL"
 	localphp=` eval $phpcmd`
-	[ -f /etc/cpanel/ea4/is_ea4 ] && localea=EA4 || localea=EA3
-	[ "$localea" = "EA4" ] && localphphandler=`eval $ea4phphandlercmd` || localphphandler=`eval $phphandlercmd`
+	localea="EA4"
+	localphphandler=`eval $ea4phphandlercmd`
 	localcpanel=`cat /usr/local/cpanel/version`
 	localmodsec=`eval $modsec_cmd`
 	local_os=`eval $os_cmd`

@@ -106,6 +106,7 @@ fi
 
 #this group of commands makes sure we are on a licensed cpanel server. outside of a function so we quit early if non-cpanel.
 [ ! -f /etc/wwwacct.conf ] && echo "/etc/wwwacct.conf not found! Not a cpanel server?" && exit 99
+[ ! -f /etc/cpanel/ea4/is_ea4 ] && echo "Is this a cPanel server??? If it is, its not running EA4, which is another problem altogether. Fix this before continuing." && exit 99
 cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' /etc/wwwacct.conf | tr -d '\n')
 [ "$cpanel_main_ip" = "" ] && cpanel_main_ip=$(cat /var/cpanel/mainip)
 [ "$cpanel_main_ip" = "" ] && echo "Could not detect main IP from /etc/wwwacct.conf or /var/cpanel/mainip! Ensure the main IP is set up in WHM?" && exit 99
