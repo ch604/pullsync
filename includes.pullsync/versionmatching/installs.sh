@@ -351,7 +351,7 @@ installs() { # install all of the things we found and enabled
 			# use the default profile
 			ec yellow "Running EA4..."
 			ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json 2>&1 | tee -a $dir/ea4.profile.install.log
-			ea4phpextras
+			phpextras
 			apacheextras
 		elif [ ! -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
 				ec red "Couldn't find migration.json! Skipping EA4..." | errorlogit 2
@@ -361,13 +361,13 @@ installs() { # install all of the things we found and enabled
 			ea_install_profile --install /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | tee -a $dir/ea4.profile.install.log
 			if [ $(which php 2> /dev/null) ] ; then
 				ec green "Success!"
-				ea4phpextras
+				phpextras
 				apacheextras
 			else
 				ec red "EA failed! (cant find php binary) Installing default profile... (less $dir/ea4.profile.install.log)" | errorlogit 2
 				yum -y -q install ea-profiles-cpanel 2>&1 | stderrlogit 4
 				ea_install_profile --install /etc/cpanel/ea4/profiles/cpanel/default.json 2>&1 | tee -a $dir/ea4.profile.install.log
-				ea4phpextras
+				phpextras
 				apacheextras
 			fi
 		fi
@@ -376,7 +376,7 @@ installs() { # install all of the things we found and enabled
 	# non-ea php settings matching
 	if [ $noeaextras ]; then
 		# run the php extras and apache extras without running ea
-		ea4phpextras
+		phpextras
 		apacheextras
 	fi
 

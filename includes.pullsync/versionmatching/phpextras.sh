@@ -1,4 +1,4 @@
-ea4phpextras() { #run after ea4 to match handler, default version, and variables
+phpextras() { #run after ea4 to match handler, default version, and variables
 	niceremotephp=$(echo $remotephp | cut -d. -f1-2 | tr -d '.')
 	# change default version
 	if /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $niceremotephp; then
