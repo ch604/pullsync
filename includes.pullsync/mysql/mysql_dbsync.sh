@@ -10,12 +10,18 @@ mysql_dbsync(){ # syncs the database passed as $1. if the db doesnt exist, creat
 		ssh ${sshargs} -n ${ip} "mysql -e 'set global net_write_timeout=600'; mysql -e 'set global net_read_timeout=300'" 2>&1 | stderrlogit 3
 	done
 
-	if [ ! "$(mysql -e 'show databases;' |egrep -x "${db}")" ]; then
+	# make sure db actually exists on source, otherwise log and return
+	if [ ! "$(sssh "mysql -e 'show databases;'" | egrep -x "${db}")" ]; then
+		ec red "$progress Mysql db $db does not exist on source server! Can't copy what you can't find!" | errorlogit 2
+		return
+	fi
+
+	if [ ! "$(mysql -e 'show databases;' | egrep -x "${db}")" ]; then
 		# create db if it does not exist, and copy its grants
-		ec red "$progress Mysql db $db does not exist on this server! Creating and mapping..."
+		ec red "$progress Mysql db $db does not exist on this server! Creating and mapping..." | errorlogit 3
 		echo "$db" >> $dir/missing_dbs.txt
 		mysqladmin create "$db"
-		local user=`ssh ${sshargs} -n ${ip} "grep -l \"$db\" /var/cpanel/databases/* 2> /dev/null | egrep -v '(dbindex.db|grants_|users.db)' | cut -d\/ -f5 | cut -d. -f1 | uniq"`
+		local user=$(ssh ${sshargs} -n ${ip} "grep -l \"$db\" /var/cpanel/databases/* 2> /dev/null | egrep -v '(dbindex.db|grants_|users.db)' | cut -d\/ -f5 | cut -d. -f1 | uniq")
 		[ "$user" ] && /usr/local/cpanel/bin/dbmaptool $user --type mysql --dbs "$db" || ec red "$progress Couldn't detect user, skipping $db map"
 		ec red "$progress Collecting grants..."
 		local mysqluser=$(egrep \`$(echo "$db" | sed -e 's/_/\\\\_/')\` $dir/pre_dbdumps/mysql.grants.remote.sql | grep -v \'$user\' | cut -d\' -f2 | uniq | head -1)
@@ -41,11 +47,10 @@ mysql_dbsync(){ # syncs the database passed as $1. if the db doesnt exist, creat
 		declare -a status=( ${DUMP##*:} )
 		if [ ! "${status[0]}" = "0" ]; then
 			# second dump failed too, mark as failed
-			ec lightRed "$progress routines for $db returned non-zero exit code. Might be corrupt."
+			ec lightRed "$progress routines for $db returned non-zero exit code. Might be corrupt." | errorlogit 3
 			echo "${status[@]}"
 			tail -n3 $dir/log/dbsync.log
 			echo "$db ROUTINES" >> $dir/dbdump_fails.txt
-			echo "[ERROR] $db ROUTINES failed to dump properly!" >> $dir/error.log
 		fi
 	fi
 
@@ -77,22 +82,20 @@ mysql_dbsync(){ # syncs the database passed as $1. if the db doesnt exist, creat
 			DUMP=$( ssh ${sshargs} -n -C ${ip} "mysqldump $mysqldumpopts \"$db\" \"$tb\"" 2>> $dir/log/dbsync.log | mysql "$db" 2>> $dir/log/dbsync.log; printf :%s "${PIPESTATUS[*]}" )
 			if [ ! "${status[0]}" = "0" ]; then
 				# second dump failed too, mark as failed
-				ec red "$progress Second dump of $db.$tb returned non-zero exit code!"
+				ec red "$progress Second dump of $db.$tb returned non-zero exit code!" | errorlogit 2
 				echo "${status[@]}"
 				tail -n3 $dir/log/dbsync.log
 				echo "$db.$tb" >> $dir/dbdump_fails.txt
-				echo "[ERROR] $db.$tb failed to dump properly!" >> $dir/error.log
 			else
 				ec green "$progress Second dump of $db.$tb was ok!"
 			fi
 		fi
 		if [ "${status[0]}" = "0" ] && [ ! "${status[$((${#status[@]} - 1))]}" = "0" ]; then
 			# dump succeeded but import failed, mark as failed
-			ec red "$progress Dump of $db.$tb completed but import returned non-zero exit code!"
+			ec red "$progress Dump of $db.$tb completed but import returned non-zero exit code!" | errorlogit 2
 			echo "${status[@]}"
 			tail -n3 $dir/log/dbsync.log
 			echo "$db.$tb" >> $dir/dbdump_fails.txt
-			echo "[ERROR] $db.$tb failed to dump properly!" >> $dir/error.log
 		fi
 		let n+=1
 	done

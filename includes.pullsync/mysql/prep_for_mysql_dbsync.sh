@@ -5,7 +5,7 @@ prep_for_mysql_dbsync(){ #get ready for a sync by setting variables and backing 
 	ec yellow "Backing up local grants..."
 	mkdir -p -m600 $dir/pre_dbdumps
 	# determine mysqldump version
-	local mysqldumpver=`sssh 'mysqldump --version |cut -d" " -f6 |cut -d, -f1'`
+	local mysqldumpver=$(sssh 'mysqldump --version | cut -d" " -f6 | cut -d, -f1')
 	# test source version over/under 5.0.42 and set options appropriately
 	[ $mysqldumpver != $(echo -e "$mysqldumpver\n5.0.42" | sort -V | head -1) ] && mysqldumpopts="--opt --routines --force --log-error=$remote_tempdir/dbdump.log --max_allowed_packet=1000000000" || mysqldumpopts="--opt -Q"
 	#back up grants

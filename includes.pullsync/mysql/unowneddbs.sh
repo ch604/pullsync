@@ -18,7 +18,7 @@ unowneddbs() { #check for dbs that are not owned by any cpanel user
 	if [ -s $dir/unowneddbs.txt ] && [ ! "$autopilot" ]; then
 		ec yellow "Found unowned databases! (logged to $dir/unowneddbs.txt)" | errorlogit 3
 		# continue if these dbs are already in the include file, otherwise prompt tech to add/sync them
-		if [ $(diff -q <(sort $dir/unowneddbs.txt) <(sort /root/db_include.txt) &> /dev/null; echo $?) -eq 1 ]; then #files are different in either direction
+		if [ $(diff -q <(sort $dir/unowneddbs.txt 2> /dev/null) <(sort /root/db_include.txt 2> /dev/null) &> /dev/null; echo $?) -eq 1 ]; then #files are different in either direction
 			# warn if there are already dbs in list
 			[ -s /root/db_include.txt ] && ec lightRed "Careful! /root/db_include.txt already has $(cat /root/db_include.txt | wc -l) lines in it!" || ec yellow "/root/db_include.txt appears to be empty currently."
 			if yesNo "Combine ALL of these detected databases to /root/db_include.txt to be synced during final, update, and mysql-only syncs?"; then
