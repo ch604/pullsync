@@ -2,12 +2,12 @@ hosts_file() { #creates testing info for user $1, also generates line for runnin
 	local user=$1
 	ec yellow "$progress Generating hosts file entries for $user"
 	if [ -f /var/cpanel/users/$user ]; then
-		local user_IP=`grep ^IP /var/cpanel/users/$user |cut -d= -f2`
+		local user_IP=$(grep ^IP /var/cpanel/users/$user | cut -d= -f2)
 		#check for natted ips
 		if [ -f /var/cpanel/cpnat ] && grep -Eq ^$user_IP\ [0-9]+ /var/cpanel/cpnat; then
 			user_IP=$(awk '/^'$user_IP' [0-9]+/ {print $2}' /var/cpanel/cpnat)
 		fi
-		local user_domains=`grep ^DNS /var/cpanel/users/$user |cut -d= -f2 |grep -v \*`
+		local user_domains=$(grep ^DNS /var/cpanel/users/$user | cut -d= -f2 | grep -v \*)
 		#per user way
 		echo -n "$user_IP " | tee -a $hostsfile
 		echo $user_domains | while read DOMAIN ; do

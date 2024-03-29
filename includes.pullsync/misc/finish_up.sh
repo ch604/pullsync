@@ -11,7 +11,7 @@ finish_up() { #run after every clean exit through main(), performs tidying up fu
 		ec yellow "Setting up A record for hostname..."
 		#reset the cpanel_main_ip variable if there was an ip swap
 		[ "$ipswap" ] && cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' /etc/wwwacct.conf | tr -d '\n')
-		[ "$cpanel_main_ip" = "" ] && cpanel_main_ip=`cat /var/cpanel/mainip`
+		[ "$cpanel_main_ip" = "" ] && cpanel_main_ip=$(cat /var/cpanel/mainip)
 		adjust_dns_record $(hostname) $cpanel_main_ip
 		if [ ! -f /var/cpanel/useclusteringdns ] && [ ! -d /var/cpanel/cluster/root/config/ ]; then #no clustering only
 			ec yellow "Setting up A records for nameservers..."

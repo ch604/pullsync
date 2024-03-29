@@ -28,7 +28,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 		done
 
 		ec yellow "Checking for license limits..."
-		local target_usercount=$(/bin/ls -A /var/cpanel/users/ | egrep -v "^HASH" | egrep -vx "${badusers}" | wc -w)
+		local target_usercount=$(\ls -A /var/cpanel/users/ | egrep -v "^HASH" | egrep -vx "${badusers}" | wc -w)
 		local licensetype=$(awk '/"center">cPanel / {print $3}' $dir/validate_license_output.txt)
 		local licenselimit=0
 		case $licensetype in
@@ -48,7 +48,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 	if [[ "$synctype" =~ "final" || "$synctype" == "update" ]]; then #matches final and prefinal
 		ec yellow "Checking for excess users..."
 		for each in $userlist; do
-			if [ ! "$(ls /var/cpanel/users/$each 2> /dev/null)" ]; then
+			if [ ! "$(\ls /var/cpanel/users/$each 2> /dev/null)" ]; then
 				ec lightRed "Error: $each was selected for a final sync, but does not exist on target!"
 				echo $each >> $dir/finaluserremoved.txt
 				final_target_user_missing=1
@@ -56,7 +56,7 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 		done
 		ec yellow "Checking for unsynced items..."
 		ec yellow " Users..."
-		for each in $(/bin/ls -A $dir/var/cpanel/users/ | egrep -v "^HASH" | egrep -vx "${badusers}"); do
+		for each in $(\ls -A $dir/var/cpanel/users/ | egrep -v "^HASH" | egrep -vx "${badusers}"); do
 			#ensure all accounts on source are in userlist
 			if ! echo $userlist | tr ' ' '\n' | grep -q -x $each; then
 				ec lightRed "Error: $each exists on source, but is not in userlist!" | errorlogit 2
@@ -94,23 +94,23 @@ accountconflicts() { #called by getuserlist, make sure there are no collisions w
 		(
 		hostname
 		grep ^'ADDR ' /etc/wwwacct.conf
-		[ -f $dir/conflicts.txt ] && for cpuser in `cat $dir/conflicts.txt 2> /dev/null`; do
+		[ -f $dir/conflicts.txt ] && for cpuser in $(cat $dir/conflicts.txt 2> /dev/null); do
 			echo -e "\n----------\n#${cpuser}\n#accounting.log:"
 			grep :${cpuser}$ /var/cpanel/accounting.log
 			echo -e "\n#userdatadomains:"
-			grep ': '${cpuser}== /etc/userdatadomains |awk -F": |==" ' {print $1,$2,$7}'
+			grep ': '${cpuser}== /etc/userdatadomains | awk -F": |==" ' {print $1,$2,$7}'
 			echo -e "\n#DNS:"
 			for i in $(egrep ': '${cpuser}$ /etc/userdomains | sort | sed -n 's/:.*//;/\*/!p'); do
-				echo -e \\t $i\\t $(echo `dig @8.8.8.8 NS +short $i | sed 's/\.$//g' | tail -2|sort`\ `dig @8.8.8.8 +short $i | grep -v [a-zA-Z] | tail -1`| grep -v \ \  | column -t )\\n\\t $(echo \#MX:\ `dig MX $i |egrep '^[a-zA-Z0-9].*(MX|A)'|awk '{print $NF}'` | sed -e 's/  / /g'  | column -t)\\n
+				echo -e \\t $i\\t $(echo $(dig @8.8.8.8 NS +short $i | sed 's/\.$//g' | tail -2 | sort)\ $(dig @8.8.8.8 +short $i | grep -v [a-zA-Z] | tail -1) | grep -v \ \  | column -t )\\n\\t $(echo \#MX:\ $(dig MX $i | egrep '^[a-zA-Z0-9].*(MX|A)' | awk '{print $NF}') | sed -e 's/  / /g' | column -t)\\n
 			done
 		done
-		[ -f $dir/conflicts.dom.txt ] && for dom in `cat $dir/conflicts.dom.txt 2> /dev/null`; do
+		[ -f $dir/conflicts.dom.txt ] && for dom in $(cat $dir/conflicts.dom.txt 2> /dev/null); do
 			echo -e "\n----------\n#${dom}\n#accounting.log:"
 			grep :${dom}: /var/cpanel/accounting.log
 			echo -e "\n#userdatadomains:"
-			grep ^${dom}\:\  /etc/userdatadomains |awk -F": |==" ' {print $1,$2,$7}'
+			grep ^${dom}\:\  /etc/userdatadomains | awk -F": |==" ' {print $1,$2,$7}'
 			echo -e "\n#DNS:"
-			echo -e \\t $dom\\t $(echo `dig @8.8.8.8 NS +short $dom | sed 's/\.$//g' | tail -2|sort`\ `dig @8.8.8.8 +short $dom | grep -v [a-zA-Z] | tail -1`| grep -v \ \  | column -t )\\n\\t $(echo \#MX:\ `dig MX $dom |egrep '^[a-zA-Z0-9].*(MX|A)'|awk '{print $NF}'` | sed -e 's/  / /g'  | column -t)\\n
+			echo -e \\t $dom\\t $(echo $(dig @8.8.8.8 NS +short $dom | sed 's/\.$//g' | tail -2 | sort)\ $(dig @8.8.8.8 +short $dom | grep -v [a-zA-Z] | tail -1) | grep -v \ \  | column -t )\\n\\t $(echo \#MX:\ $(dig MX $dom | egrep '^[a-zA-Z0-9].*(MX|A)' | awk '{print $NF}') | sed -e 's/  / /g' | column -t)\\n
 		done
 		) > $dir/conflict_details.txt
 		ec lightRed "There were $(cat $dir/conflicts.txt | wc -l) user conflicts and $(cat $dir/conflicts.dom.txt | wc -l) domain conflicts."

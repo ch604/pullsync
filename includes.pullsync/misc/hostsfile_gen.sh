@@ -4,8 +4,8 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 		ec yellow "Adding HostsCheck.php to migrated users..."
 		cp -a /root/includes.pullsync/text_files/hostsCheck.txt $dir/HostsCheck.php
 		for user in $userlist; do
-			local userhome_local=`grep ^$user: /etc/passwd | tail -n1 |cut -d: -f6`
-			docroots=`grep DocumentRoot /usr/local/apache/conf/httpd.conf |grep $userhome_local| awk '{print $2}'`
+			local userhome_local=$(grep ^$user: /etc/passwd | cut -d: -f6)
+			docroots=$(grep DocumentRoot /usr/local/apache/conf/httpd.conf | grep $userhome_local| awk '{print $2}')
 			for docroot in $docroots; do
 				cp -a $dir/HostsCheck.php $docroot/
 				chown $user. $docroot/HostsCheck.php
@@ -23,7 +23,7 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 		for domain in $domainlist; do
 			echo "http://$domain/HostsCheck.php" >> /usr/local/apache/htdocs/migration_test_urls.html
 		done
-		test_urls=`cat /usr/local/apache/htdocs/migration_test_urls.html |haste`
+		test_urls=$(cat /usr/local/apache/htdocs/migration_test_urls.html | haste)
 		#save hastbin url in $dir
 		echo $test_urls > $dir/test_urls
 	else
@@ -31,7 +31,7 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	fi
 
 	#upload hostsfile_alt to hastebin:
-	hostsfile_url=`cat $hostsfile_alt | haste`
+	hostsfile_url=$(cat $hostsfile_alt | haste)
 	echo $hostsfile_url > $dir/hostsfile_url
 
 	#generate reply
@@ -74,7 +74,7 @@ EOF
 
 
 	#send to paste server
-	reply_url=`cat $dir/pullsync_reply.txt | haste`
+	reply_url=$(cat $dir/pullsync_reply.txt | haste)
 	echo $reply_url > $dir/reply_url
 	ec green "Reply generated at $reply_url"
 }

@@ -17,7 +17,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 
 	# we need /etc/userdomains for the domainlist conversion, might as well get things now.
 	ec yellow "Transferring some config files over from old server to $dir"
-	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"`echo $filelist`" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"$(echo $filelist)" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 	[ ! -d $dir/var/cpanel/users ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 
 	case $synctype in
@@ -72,11 +72,11 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 				rsync_update="--update"
 			fi
 			if yesNo 'Add "cache" to the rsync --exclude line? This will exclude all cache folders from the sync. Only add this if explicitly requested or required for long running syncs! You should say NO if you are not sure.'; then
-				rsync_excludes=`echo --exclude=cache $rsync_excludes`
+				rsync_excludes=$(echo --exclude=cache $rsync_excludes)
 			fi
 			misc_ticket_note
 			lastpullsyncmotd
-			user_total=`echo $userlist |wc -w`
+			user_total=$(echo $userlist | wc -w)
 			parallel --jobs $jobnum -u 'rsync_homedir_wrapper {#} {} | tee -a $dir/log/looplog.{}.log' ::: $userlist
 			;;
 		email*)
@@ -86,7 +86,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			fi
 			misc_ticket_note
 			lastpullsyncmotd
-			user_total=`echo $userlist |wc -w`
+			user_total=$(echo $userlist | wc -w)
 			parallel --jobs $jobnum -u 'rsync_email {#} {}' ::: $userlist
 			;;
 		mysql)
@@ -98,9 +98,9 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			misc_ticket_note
 			lastpullsyncmotd
 			parallel_mysql_dbsync
-			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly, please recheck:" && cat $dir/dbdump_fails.txt
-			[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
-			[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually:" && cat $dir/dbmalware.txt
+			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly, please recheck (cat $dir/dbdump_fails.txt):" && cat $dir/dbdump_fails.txt | logit
+			[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped (cat $dir/matchingchecksums.txt):" && cat $dir/matchingchecksums.txt | logit
+			[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually (cat $dir/dbmalware.txt):" && cat $dir/dbmalware.txt | logit
 			for user in $userlist; do
 				eternallog $user
 			done
@@ -127,7 +127,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			optimizations
 			restorecontact
 			mysqlcalc
-			[ -f $dir/uninstallable.txt ] && ec red "Some items could not be installed! Please install these manually!" && cat $dir/uninstallable.txt
+			[ -f $dir/uninstallable.txt ] && ec red "Some items could not be installed! Please install these manually! (cat $dir/uninstallable.txt):" && cat $dir/uninstallable.txt | logit
 			;;
 	esac
 

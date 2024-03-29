@@ -15,7 +15,7 @@ getuserlist() { # get user list for different sync types
 		done | sort -u | egrep -vx "${badusers}")
 	#all users
 	elif [[ "$synctype" == "all" || "$synctype" == "email" ]] ; then
-		userlist=$(sssh "/bin/ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
+		userlist=$(sssh "\ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
 	# single user
 	elif [ "$synctype" == "single" ] ; then
 		ec white "What is the user you would like to migrate?"
@@ -39,7 +39,7 @@ getuserlist() { # get user list for different sync types
 		fi
 		# check for /root/userlist.txt
 		if [ -f /root/userlist.txt ] ;then
-			userlist_count=$(cat /root/userlist.txt |wc -w)
+			userlist_count=$(cat /root/userlist.txt | wc -w)
 		else
 			userlist_count=0
 		fi
@@ -60,13 +60,13 @@ getuserlist() { # get user list for different sync types
 			# no previous sync found, ask for all users
 			if [ ! "$autopilot" ]; then
 				if yesNo "No userlist found, sync all remote users?"; then
-					userlist=$(sssh "/bin/ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
+					userlist=$(sssh "\ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
 				else
 					ec lightRed "Error: No userlist was defined, quitting."
 					exitcleanup 4
 				fi
 			else
-				userlist=$(sssh "/bin/ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
+				userlist=$(sssh "\ls -A /var/cpanel/users/" | sort -u | egrep -v "^HASH" | egrep -vx "${badusers}")
 			fi
 		fi
 	fi
@@ -100,5 +100,5 @@ getuserlist() { # get user list for different sync types
 	#check for conflicts
 	accountconflicts
 	noncpanelitems
-	ec yellow "Counted $(echo $userlist |wc -w) users in list."
+	ec yellow "Counted $(echo $userlist | wc -w) users in list."
 }

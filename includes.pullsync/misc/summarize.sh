@@ -1,6 +1,6 @@
 summarize() { #summarize the migrations run on this server
 	ec yellow "Checking for previous migrations..."
-	local oldlist=(`ls -c /home/temp/ | grep "pullsync\." | grep -v "$starttime"`)
+	local oldlist=($(\ls -c /home/temp/ | grep "pullsync\." | grep -v "$starttime"))
 	if [ ! ${#oldlist[@]} = 0 ]; then
 		ec yellow "Detected ${#oldlist[@]} previous pullsync folders."
 		ec yellow "Putting summary of each in $dir/summary.txt..."

@@ -2,7 +2,7 @@ misc_ticket_note() { #ticket note for other sync types
 	ec lightPurple "Copy the following into your ticket:"
 	# start subshell
 	(
-	echo "started $scriptname $version at $starttime on `hostname` ($cpanel_main_ip)"
+	echo "started $scriptname $version at $starttime on $(hostname) ($cpanel_main_ip)"
 	echo "synctype is $synctype. source server is $ip."
 	echo "to reattach, run (screen -r $STY)."
 	if [[ ! "$synctype" = "versionmatching" ]]; then

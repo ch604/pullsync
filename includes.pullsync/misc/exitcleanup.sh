@@ -2,13 +2,13 @@ exitcleanup() { #accepts exit code to use as $1. removes temporary data, cleans 
 	#remove pullsync key from remote authorized keys on remote server
 	if [ -f $dir/ip.txt ] && [ -f $dir/keyname.txt ]; then
 		ec yellow "Removing remote pullsync ssh keys..."
-		local ip=`cat $dir/ip.txt`
+		local ip=$(cat $dir/ip.txt)
 		local sshargs="$sshargs -p$(cat $dir/port.txt) -i $(cat $dir/keyname.txt)"
-		[ ! "$ipswap" ] && sssh "sed -i /pullsync/d ~/.ssh/authorized_keys ; [ \`which firewall 2>/dev/null\` ] && firewall start"
+		[ ! "$ipswap" ] && sssh "sed -i /pullsync/d ~/.ssh/authorized_keys ; [ \$(which firewall 2>/dev/null) ] && firewall start"
 		# needs to be after ssh commands!
-		if [ `which csf 2> /dev/null` ]; then
+		if [ $(which csf 2> /dev/null) ]; then
 			csf -ar $ip 2>&1 | stderrlogit 4
-		elif [ `which apf 2> /dev/null` ]; then
+		elif [ $(which apf 2> /dev/null) ]; then
 			sed -i.pullsyncbak '/'$ip'/d' /etc/apf/allow_hosts.rules
 			apf -r &> /dev/null &
 		fi
@@ -40,13 +40,21 @@ EOF
 	[ "$1" = "9" ] && exit $1 # bail before printing if exiting because of autopilot
 	echo
 	ec white "Started $starttime"
-	ec white "Ended `date +%F.%T`"
-	ec lightGreen "Done!"
+	ec white "Ended $(date +%F.%T)"
 	if [ ! $1 ] && [ "$slackhook_url" ]; then #if no special exit code and slackhook set, ping slack
 		ec yellow "Posting completion to slack channel..."
-		[ -f $dir/error.log ] && slackhook ff3333 || slackhook
+		if [ -f $dir/error.log ] && grep -q ERROR $dir/error.log; then
+			slackhook ff3333
+		else
+			slackhook
+		fi
 	fi
-	[ -f $dir/error.log ] && ec red "There were errors of note! Make sure to check these! (cat $dir/error.log)"
+	ec lightGreen "Done!"
+	if [ -f $dir/error.log ] && grep -q ERROR $dir/error.log; then
+		ec red "There were errors of note! Make sure to check these! (cat $dir/error.log)"
+	elif [ -f $dir/error.log ]; then
+		ec lightRed "There were warnings and info logged in the error log. Make sure to check these. (cat $dir/error.log)"
+	fi
 	echo -en "\a" # sound the terimal bell
 	[[ "$1" ]] && echo "exit code: $1" | logit
 	#unset exported functions/variables
