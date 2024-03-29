@@ -48,3 +48,7 @@ done
 for f in /root/includes.pullsync/progress/*.sh; do
 	. $f
 done
+
+for f in /root/includes.pullsync/updatesync/*.sh; do
+	. $f
+done
