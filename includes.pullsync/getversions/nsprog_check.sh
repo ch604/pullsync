@@ -2,10 +2,10 @@ nsprog_check() { # local nameserver setting check
 	if [ ! "$synctype" = "single" ] ;then
 		# on non-single migrations, compare nameserver settings
 		ec yellow "Source server nameserver settings:"
-		source_nameservers=`grep ^NS[\ 0-9] $dir/etc/wwwacct.conf | grep -vE NS[\ 0-9][\ ]?$ | sort`
+		source_nameservers=$(grep ^NS[\ 0-9] $dir/etc/wwwacct.conf | grep -vE NS[\ 0-9][\ ]?$ | sort)
 		echo "$source_nameservers" | logit
 		ec yellow "Local nameserver settings:"
-		local_nameservers=`grep ^NS[\ 0-9] /etc/wwwacct.conf | grep -vE NS[\ 0-9][\ ]?$ | sort`
+		local_nameservers=$(grep ^NS[\ 0-9] /etc/wwwacct.conf | grep -vE NS[\ 0-9][\ ]?$ | sort)
 		echo "$local_nameservers" | logit
 		if [ ! "$source_nameservers" = "$local_nameservers" ]; then
 			if [ ! "$autopilot" ]; then
@@ -23,7 +23,7 @@ nsprog_check() { # local nameserver setting check
 
 		# check the nameserver binary
 		sssh "[ ! -x /scripts/setupnameserver ]" && sourcenstype=bind || sourcenstype=$(sssh "/scripts/setupnameserver --current" | awk '{print $4}')
-		localnstype=`/scripts/setupnameserver --current | awk '{print $4}'`
+		localnstype=$(/scripts/setupnameserver --current | awk '{print $4}')
 		if [ ! "$localnstype" = "$sourcenstype" ] ; then
 			ec yellow "Source server nameserver type:"
 			echo "$sourcenstype" | logit

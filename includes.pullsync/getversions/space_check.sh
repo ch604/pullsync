@@ -2,7 +2,7 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 	ec yellow "Comparing disk usage..."
 	# output df from source so it can be parsed
 	sssh "df -P /home/ | tail -1" > $dir/df.txt
-	if [ "$userlist" ] && sssh "[ -f $(cat $dir/df.txt | awk '{print $6}')quota.user -o -f $(cat $dir/df.txt | awk '{print $6}')aquota.user ]" && [ `sssh "which repquota 2> /dev/null"` ]; then
+	if [ "$userlist" ] && sssh "[ -f $(cat $dir/df.txt | awk '{print $6}')quota.user -o -f $(cat $dir/df.txt | awk '{print $6}')aquota.user ]" && [ $(sssh "which repquota 2> /dev/null") ]; then
 		# not versionmatching (userlist set) and can use repquota, store more accurate info
 		iusedrepquota=1
 		remote_used_space=0
@@ -19,7 +19,7 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 				local_used_space=0
 				repquota -a > $dir/repquota.a.local.txt
 				for user in $userlist mysql; do
-					for localquota in $(awk '/^'${user}'\ / {print $3}' $dir/repquota.a.local.txt); do
+					for localquota in $(awk '/^'${user}' / {print $3}' $dir/repquota.a.local.txt); do
 						local_used_space=$(( $local_used_space + $localquota ))
 					done
 				done
@@ -31,12 +31,12 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 		fi
 	else
 		# no repquota, just count the df line for /home
-		remote_used_space=`cat $dir/df.txt | awk '{print $3}'`
+		remote_used_space=$(awk '{print $3}' $dir/df.txt)
 		finaldiff=0
 	fi
 
 	# store more info about free space and about target
-	remote_free_space=`cat $dir/df.txt | awk '{print $4}'`
+	remote_free_space=$(awk '{print $4}' $dir/df.txt)
 	if [ $(echo $localhomedir | wc -w) = 1 ]; then
 		local_free_space=$(df -P /home | tail -n1 | awk '{print $4}')
 	else
@@ -46,8 +46,8 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 			local_free_space=$(( $local_free_space + $(df $each | tail -n1 | awk '{print $4}') ))
 		done
 	fi
-	remote_mysql_datadir=`sssh "mysql -BNe 'show variables like \"datadir\"'" | awk '{print $2}'`
-	remote_mysql_usage=`sssh "du -s $remote_mysql_datadir --exclude=eximstats" | awk '{print $1}'`
+	remote_mysql_datadir=$(sssh "mysql -BNe 'show variables like \"datadir\"'" | awk '{print $2}')
+	remote_mysql_usage=$(sssh "du -s $remote_mysql_datadir --exclude=eximstats" | awk '{print $1}')
 
 	# homedir disk usage, run on initial synctypes
 	if [[ "$synctype" == "single" || "$synctype" == "list" || "$synctype" == "domainlist" || "$synctype" == "all" || "$synctype" = "versionmatching" ]]; then

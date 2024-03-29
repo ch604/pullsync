@@ -4,8 +4,8 @@
 # based on initialsync by abrevick@liquidweb.com and various other migrations team members; thank you!
 # https://github.com/ch604/pullsync
 
-# last updated: Mar 21 2024
-version="8.3.6"
+# last updated: Mar 29 2024
+version="8.4.0"
 
 ############
 # root check
@@ -66,7 +66,7 @@ fi
 # check for newer version of script
 if [ $autoupdate = 1 ]; then
 	if host github.com &>/dev/null; then
-		server_version=$(curl -s -r0-250 https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.DEVmf]*\)"/\1/')
+		server_version=$(curl -s https://raw.githubusercontent.com/ch604/pullsync/master/pullsync.sh |grep ^version= | sed -e 's/^version="\([0-9.]*\)"/\1/')
 		echo "Detected server version as $server_version"
 		if [[ $server_version =~ $valid_version_format ]]; then # check for a valid version format
 			if [ ! $version = $(echo -e "$version\n$server_version" | sort -V | tail -1) ]; then
@@ -85,7 +85,7 @@ if [ $autoupdate = 1 ]; then
 				echo $version is equal or greater than server $server_version
 			fi
 		else
-			echo "Script version on github.com is not in expected format, problem with the server? Continuing afer a few seconds..."
+			echo "Script version on github.com is not in expected format, problem with the server? Continuing after a few seconds..."
 			echo "Detected version as $server_version"
 			sleep 3
 		fi
@@ -97,7 +97,7 @@ fi
 #start in screen
 if [ ! "${STY}" ]; then
 	echo "Warning! Not in screen! Attempting to restart in an interactive screen session..."
-	[ ! $(which screen 2> /dev/null) ] && yum -y -q install screen
+	[ ! $(which screen 2> /dev/null) ] && yum -y -q install screen &> /dev/null
 	[ ! $(which screen 2> /dev/null) ] && echo "I can't find screen!" && exit 70
 	chmod 755 /var/run/screen
 	sleep .25

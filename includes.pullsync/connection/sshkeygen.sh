@@ -18,7 +18,7 @@ sshkeygen() { #generate a unique ssh key and copy it to the source server.
 	else
 		# generate a key
 		mkdir -p -m600 /root/.ssh
-		[ -f /root/.ssh/pullsync*.pub ] && rm -f /root/.ssh/pullsync*
+		[ -f /root/.ssh/pullsync*.pub ] && \rm -f /root/.ssh/pullsync*
 		keyname=pullsync.$(tr -cd '[:alnum:]' < /dev/urandom | fold -w10 | head -n1)
 		ec yellow "Generating SSH key /root/.ssh/${keyname}..."
 		ssh-keygen -q -N "" -t rsa -f /root/.ssh/${keyname} -C "${keyname}"

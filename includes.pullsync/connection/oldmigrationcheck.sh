@@ -1,7 +1,7 @@
 oldmigrationcheck() { #always run during synctype_logic, to get old ip/port and pre-sync the config folder
 	ec yellow "Checking for previous migrations..."
 	# list the pullsync folders on the server into an array
-	local oldlist=($(ls -c /home/temp/ | grep "^pullsync\." | grep -v "$starttime" | head -n10))
+	local oldlist=($(\ls -c /home/temp/ | grep "^pullsync\." | grep -v "$starttime" | head -n10))
 	if [ ${#oldlist[@]} = 0 ]; then
 		# if no old migrations, skip the menu
 		local choice=0
@@ -31,7 +31,7 @@ oldmigrationcheck() { #always run during synctype_logic, to get old ip/port and 
 			[ -f $olddir/ip.txt ] && oldip=$(cat $olddir/ip.txt)
 			[ -f $olddir/starttime.txt ] && oldstarttime=$(cat $olddir/starttime.txt)
 			[ -f $olddir/port.txt ] && oldport=$(cat $olddir/port.txt)
-			[ -f $olddir/userlist.txt ] && oldusercount=$(cat $olddir/userlist.txt |wc -w) && someoldusers=$(cat $olddir/userlist.txt | tr '\n' ' '| cut -d' ' -f1-10)
+			[ -f $olddir/userlist.txt ] && oldusercount=$(cat $olddir/userlist.txt | wc -w) && someoldusers=$(cat $olddir/userlist.txt | tr '\n' ' ' | cut -d' ' -f1-10)
 			#if an old migration was selected, reuse the already copied temp data (to be deleted/updated upon actual connection)
 			ec yellow "Pre-populating config files from old directory..."
 			for folder in etc opt root usr var; do

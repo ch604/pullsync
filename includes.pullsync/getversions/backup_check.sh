@@ -1,7 +1,7 @@
 backup_check() { #detect if backups are enabled and optionally turn them on
 	ec yellow "Checking backup configuration..."
-		e# print is this a virtual server, usually you do not want cp backups.
-	if lscpu | grep -q ^Hypervisor\ vendor; then
+	# print is this a virtual server, usually you do not want cp backups.
+	if df | awk '{print $1}' | grep -qE 'vda[0-9]' || lscpu | grep -q ^Hypervisor\ vendor; then
 		ec lightBlue "This appears to be a virtual server."
 	else
 		ec blue "This appears to be a dedicated server."
@@ -13,7 +13,7 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 	remote_backups=$(awk -F\' '/^BACKUPENABLE:/ {print $2}' $dir/var/cpanel/backups/config)
 	if [ "$remote_backups" = "yes" ]; then
 		ec lightGreen "Remote cPanel backups are enabled."
-		if [ "$(ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ]; then
+		if [ "$(\ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ]; then
 			ec red "Remote server has a remote backup destination (s3)!" | errorlogit 3
 			say_ok
 		fi
@@ -43,7 +43,7 @@ backup_check() { #detect if backups are enabled and optionally turn them on
 					# copy over the backup config file
 					mv /var/cpanel/backups/config{,.pullsync}
 					cp -a "$dir/var/cpanel/backups/config" /var/cpanel/backups/
-					rm -f /var/cpanel/backups/config.cache
+					\rm -f /var/cpanel/backups/config.cache
 					ec green "Done!"
 				fi
 			fi

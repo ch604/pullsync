@@ -3,11 +3,11 @@ dnscheck(){ #skip on versionmatching, as there will be no $domainlist. check the
 		ec yellow "Checking Current DNS..."
 
 		#generate a traditional dns.txt file in the background
-		((parallel -j 75% 'echo {}\ `dig @8.8.8.8 NS +short {} | sed '\''s/\.$//g'\'' | tail -2 | sort`\ `dig @8.8.8.8 +short {} | grep -v [a-zA-Z] | tail -1`' ::: $domainlist | grep -v \ \  | column -t > $dir/dns.txt) & )
+		((parallel -j 75% 'echo {}\ $(dig @8.8.8.8 NS +short {} | sed '\''s/\.$//g'\'' | tail -2 | sort)\ $(dig @8.8.8.8 +short {} | grep -v [a-zA-Z] | tail -1)' ::: $domainlist | grep -v \ \  | column -t > $dir/dns.txt) & )
 		sleep 1
 
 		# set source_ips if not just checking DNS
-		[ "$ip" ] && source_ips=`sssh "/scripts/ipusage" | awk '{print $1}'` || source_ips="0.0.0.0"
+		[ "$ip" ] && source_ips=$(sssh "/scripts/ipusage" | awk '{print $1}') || source_ips="0.0.0.0"
 		if [ -f /var/cpanel/cpnat ]; then
 			target_ips=$(for i in $(/scripts/ipusage | awk '{print $1}'); do grep -Eq ^$i\ [0-9]+ /var/cpanel/cpnat && awk '/^'$i' / {print $2}' /var/cpanel/cpnat || echo $i; done)
 		else
@@ -48,7 +48,7 @@ dnscheck(){ #skip on versionmatching, as there will be no $domainlist. check the
 		for each in $(cat $dir/source_resolve.txt $dir/not_here_resolve.txt 2>/dev/null | sed "s,\x1B\[[0-9;]*[a-zA-Z],,g" | awk '{print $3 "\n" $4}' | sort -u); do
 			local registrar=$(nameserver_registrar $each)
 			echo "$each $(grep $each $dir/source_resolve.txt $dir/not_here_resolve.txt 2>/dev/null | wc -l) $(dig +short $each @8.8.8.8 | head -1) $registrar"
-		done | sort -rVk 2 | column -t| tee -a $dir/nameserver_summary.txt
+		done | sort -rVk 2 | column -t | tee -a $dir/nameserver_summary.txt
 		echo -e "\n"
 		ec yellow "A traditional dns.txt was generated at $dir/dns.txt if needed."
 

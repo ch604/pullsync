@@ -16,7 +16,7 @@ sslcert_check() { # print cert info for all ssls in httpd.conf
 				local enddate=$(date -d "$(awk -F= '/notAfter/ {print $2}' $crtout)" +"%s")
 				# determine if any certs are expired
 				[ "$enddate" -lt "$now" ] && local expiredcert=1
-				rm -f $crtout
+				\rm -f $crtout
 				i=$(($i + 1))
 		 	done
 		done
