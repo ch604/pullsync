@@ -48,6 +48,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			dnscheck
 			dnsclustering
 			printrdns
+			multihomedir_check
 			space_check
 			securityfeatures
 			unowneddbs
