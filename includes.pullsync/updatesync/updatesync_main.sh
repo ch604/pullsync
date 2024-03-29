@@ -26,8 +26,8 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> $log
-	for choice in $choices; do print_next_element options $choice >> $log; done
 	for choice in $choices; do
+		print_next_element options $choice >> $log
 		case $choice in
 			1) rsync_update="--update";;
 			2) rsync_excludes=$(echo --exclude=cache $rsync_excludes);;

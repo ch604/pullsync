@@ -69,16 +69,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			;;
 		homedir)
 			getuserlist
-			if yesNo 'Use --update flag for rsync? If files were updated on the destination server they wont be overwritten'; then
-				rsync_update="--update"
-			fi
-			if yesNo 'Add "cache" to the rsync --exclude line? This will exclude all cache folders from the sync. Only add this if explicitly requested or required for long running syncs! You should say NO if you are not sure.'; then
-				rsync_excludes=$(echo --exclude=cache $rsync_excludes)
-			fi
-			misc_ticket_note
-			lastpullsyncmotd
-			user_total=$(echo $userlist | wc -w)
-			parallel --jobs $jobnum -u 'rsync_homedir_wrapper {#} {} | tee -a $dir/log/looplog.{}.log' ::: $userlist
+			homedirsync_main
 			;;
 		email*)
 			getuserlist
