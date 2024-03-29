@@ -8,7 +8,7 @@ fpmconvert () { #imports the phpfpm settings and php version of the given user's
 			parentdom=$(grep -l \ $dom $dir/var/cpanel/userdata/$user/* | egrep -v -e '(cache|main|json|_SSL|yaml)$' | head -n1 | awk -F\/ '{print $NF}')
 		fi
 		newphpver=$(awk '/^phpversion:/ {print $2}' $dir/var/cpanel/userdata/$user/$parentdom)
-		! /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $newphpver && newphpver=$defaultea4profile
+		[ ! "$newphpver" = "inherit" ] && ! /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q ^$newphpver: && newphpver=$defaultea4profile
 		if [ $force -eq 1 ] || [ -f $dir/var/cpanel/userdata/$user/$dom.php-fpm.yaml ]; then
 			#run twice, to set non-inherit version and then turn on fpm
 			/usr/local/cpanel/bin/whmapi1 php_set_vhost_versions version=$newphpver php_fpm=1 vhost-0=$dom 2>&1 | stderrlogit 3

@@ -9,7 +9,7 @@ packagefunction(){ #$1 is position, $2 is username. this is where the actual pac
 	# package the remote account and locate it on the remote server
 	ec lightBlue "$progress Packaging $user..." | tee -a $dir/log/pkgacct.$user.log
 	sssh "/scripts/pkgacct $pkgacct_args $user $remote_tempdir" >> $dir/log/pkgacct.$user.log 2>&1
-	local cpmovefile=`sssh "find $remote_tempdir/ -maxdepth 1 -name cpmove-$user.tar.gz -mtime -1 |head -n1"`
+	local cpmovefile=$(sssh "find $remote_tempdir/ -maxdepth 1 -name cpmove-$user.tar.gz -mtime -1" | head -n1)
 	if [ $cpmovefile ]; then
 		# if the package was created, bring it to the target
 		ec lightPurple "$progress Rsyncing cpmove..."

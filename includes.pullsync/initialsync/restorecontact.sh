@@ -11,5 +11,5 @@ restorecontact() { #change the whm email address back to what was saved in pause
 	fi
 	# delete and replace the contactemail line
 	sed -i '/^CONTACT[PAGER|EMAIL].*/d' /etc/wwwacct.conf
-	echo -e "CONTACTPAGER `cat $dir/whmcontact.txt`\nCONTACTEMAIL `cat $dir/whmcontact.txt`" >> /etc/wwwacct.conf
+	echo -e "CONTACTPAGER $(cat $dir/whmcontact.txt)\nCONTACTEMAIL $(cat $dir/whmcontact.txt)" >> /etc/wwwacct.conf
 }

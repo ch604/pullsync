@@ -6,7 +6,7 @@ phpmenu(){ #menu to select how to run EA. auto selects option based on what is s
 			4 "Skip EA but match PHP settings anyway" off)
 	[ "$remoteea" = "EA4" ] && options[5]=on || options[8]=on
 	if [ "$(rpm --eval %rhel)" -ge 9 ] && [ "$remoteea" = "EA4" ] && ! sssh "/usr/local/cpanel/bin/rebuild_phpconf --available" | grep -q php8; then
-		options[5]=off && options[8]=on && cmd[8]=`echo "${cmd[8]}\n\nTarget is el9+ and source server does not have php8x! You should install the default EA4 profile!"`
+		options[5]=off && options[8]=on && cmd[8]=$(echo "${cmd[8]}\n\nTarget is el9+ and source server does not have php8x! You should install the default EA4 profile!")
 	fi
 
 	local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)

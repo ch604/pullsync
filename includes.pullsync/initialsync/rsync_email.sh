@@ -3,8 +3,8 @@ rsync_email() { # $1 is progress position, $2 is user. rsync just the mail folde
 	local user=$2
 	local progress="$1/$user_total | $user:"
 	if [ -f "$dir/etc/passwd" ]; then
-		local userhome_remote=`grep ^$user: $dir/etc/passwd | tail -n1 |cut -d: -f6`
-		local userhome_local=`eval echo ~${user}`
+		local userhome_remote=$(awk -F: '/^'$user':/ {print $6}' $dir/etc/passwd)
+		local userhome_local=$(eval echo ~${user})
 		# check if cpanel user exists
 		if [ -f $dir/var/cpanel/users/$user ] && [ -f /var/cpanel/users/$user ] && [ $userhome_local ] && [ $userhome_remote ] && [ -d $userhome_local ] && sssh "[ -d $userhome_remote ]"; then
 			ec lightGreen "$progress Rsyncing email..."

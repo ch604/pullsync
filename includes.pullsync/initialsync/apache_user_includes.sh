@@ -1,6 +1,6 @@
 apache_user_includes() { #scan for per-user includes in apache and import to target
 	local user=$1
-	local user_domains=$(grep ^DNS /var/cpanel/users/${user} |cut -d= -f2 |grep -v \*)
+	local user_domains=$(grep ^DNS /var/cpanel/users/${user} | cut -d= -f2 | grep -v \*)
 	[ -h $dir/usr/local/apache/conf/userdata ] && local udfolder="$dir/etc/apache2/conf.d/userdata" || local udfolder="$dir/usr/local/apache/conf/userdata"
 	local localudfolder="/etc/apache2/conf.d/userdata"
 	#if user has no includes folder for 2_4, fuggedaboudit
@@ -18,8 +18,8 @@ apache_user_includes() { #scan for per-user includes in apache and import to tar
 				/scripts/restartsrv_apache 2>&1 | stderrlogit 4
 				ec green "Added custom apache includes for $user"
 			else
-				rm -f $localudfolder/{std,ssl}/2_4/$user/$domain/*.conf
-				ec red "Tried to add custom apache includes for $user, but config test failed!" | errorlogit 3
+				\rm -f $localudfolder/{std,ssl}/2_4/$user/$domain/*.conf
+				ec red "Tried to add custom apache includes for $user, but config test failed!" | errorlogit 2
 				#rebuild httpd.conf to get rid of include line
 				/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
 				/scripts/restartsrv_apache 2>&1 | stderrlogit 4

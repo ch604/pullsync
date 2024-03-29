@@ -20,46 +20,46 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 
 	###### turn on things we want to turn on first
 	#ruby gems (3 4 5)
-	[ `sssh "which gem 2> /dev/null"` ] && [ `which gem 2> /dev/null` ] && options[5]=on && cmd[8]=`echo "${cmd[8]}\n(2) gem executable detected on both servers"`
+	[ $(sssh "which gem 2> /dev/null") ] && [ $(which gem 2> /dev/null) ] && options[5]=on && cmd[8]=$(echo "${cmd[8]}\n(2) gem executable detected on both servers")
 	#upcp (6 7 8)
-	[[ $localcpanel < $remotecpanel ]] && options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Local cPanel version lower than remote cPanel version"`
+	[[ $localcpanel < $remotecpanel ]] && options[8]=on && cmd[8]=$(echo "${cmd[8]}\n(3) Local cPanel version lower than remote cPanel version")
 	#CL (9 10 11)
-	if echo $local_os | grep -q ^Cloud && echo $remote_os | grep -q ^Cloud; then options[11]=on && cmd[8]=`echo "${cmd[8]}\n(4) CloudLinux detected on both servers"`; fi
+	if echo $local_os | grep -q ^Cloud && echo $remote_os | grep -q ^Cloud; then options[11]=on && cmd[8]=$(echo "${cmd[8]}\n(4) CloudLinux detected on both servers"); fi
 	#csf rules (15 16 17)
-	[ -e $dir/etc/csf/csf.allow ] && [ -e /etc/csf/csf.allow ] && options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) CSF detected on both servers"`
+	[ -e $dir/etc/csf/csf.allow ] && [ -e /etc/csf/csf.allow ] && options[17]=on && cmd[8]=$(echo "${cmd[8]}\n(6) CSF detected on both servers")
 	#timezone (18 19 20)
 	[ -f $dir/etc/sysconfig/clock ] && remotetimezonefile=$(awk -F\" '/^ZONE/ {print $2}' $dir/etc/sysconfig/clock) || remotetimezonefile=$(sssh "which timedatectl &>/dev/null && timedatectl" | awk '/zone:/ {print $3}')
 	[ -f /etc/sysconfig/clock ] && localtimezonefile=$(awk -F\" '/^ZONE/ {print $2}' /etc/sysconfig/clock) || localtimezonefile=$(which timedatectl &>/dev/null && timedatectl | awk '/zone:/ {print $3}')
-	remotetimezone=`sssh "date +%z"`
-	localtimezone=`date +%z`
+	remotetimezone=$(sssh "date +%z")
+	localtimezone=$(date +%z)
 	if ! [ -z "${remotetimezone}" -o -z "${localtimezone}" -o -z "${remotetimezonefile}" -o -z "${localtimezonefile}" ]; then
 		if [ ! "${localtimezone}" = "${remotetimezone}" ] && [ -f "/usr/share/zoneinfo/${remotetimezonefile}" ]; then
 			options[20]=on
-			cmd[8]=`echo "${cmd[8]}\n(7) Timezones do not match (L=${localtimezone}, R=${remotetimezone}) and can be matched"`
+			cmd[8]=$(echo "${cmd[8]}\n(7) Timezones do not match (L=${localtimezone}, R=${remotetimezone}) and can be matched")
 		fi
 	fi
 	#sql_mode (21 22 23)
 	if echo $local_os | grep -q AlmaLinux; then
 		options[23]=off
-		cmd[8]=`echo "${cmd[8]}\n(8) Target server is AlmaLinux, not matching sql_mode"`
+		cmd[8]=$(echo "${cmd[8]}\n(8) Target server is AlmaLinux, not matching sql_mode")
 	fi
 	#pgsql (24 25 26)
 	if [ "$postgres" ] && [ ! -d /var/lib/pgsql ]; then
 		options[26]=on
-		cmd[8]=`echo "${cmd[8]}\n(9) Postgres detected on source and not target"`
+		cmd[8]=$(echo "${cmd[8]}\n(9) Postgres detected on source and not target")
 	fi
 	#exim26 (27 28 29)
 	remote_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' $dir/etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
 	local_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' /etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
-	[ "$remote_exim_ports" != "$local_exim_ports" ] && ! grep -q ^exim-26 /etc/chkserv.d/chkservd.conf && options[29]=on && cmd[8]=`echo "${cmd[8]}\n(10) Exim ports do not match (L=$local_exim_ports, R=$remote_exim_ports)"`
+	[ "$remote_exim_ports" != "$local_exim_ports" ] && ! grep -q ^exim-26 /etc/chkserv.d/chkservd.conf && options[29]=on && cmd[8]=$(echo "${cmd[8]}\n(10) Exim ports do not match (L=$local_exim_ports, R=$remote_exim_ports)")
 	#mysqlup (39 40 41)
-	[ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$remotemysql" ] && [ ! "$remotemysql" = "$localmysql" ] && /usr/local/cpanel/bin/whmapi1 installable_mysql_versions | grep -q \'${remotemysql}\' && options[41]=on && cmd[8]=`echo "${cmd[8]}\n(14) MySQL version is greater on source server (L=${localmysql}, R=${remotemysql}) and can be matched"`
+	[ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$remotemysql" ] && [ ! "$remotemysql" = "$localmysql" ] && /usr/local/cpanel/bin/whmapi1 installable_mysql_versions | grep -q \'${remotemysql}\' && options[41]=on && cmd[8]=$(echo "${cmd[8]}\n(14) MySQL version is greater on source server (L=${localmysql}, R=${remotemysql}) and can be matched")
 	#cpsolr (42 43 44)
 	if [ "$cpanelsolr" ] && [ ! "$(service cpanel-dovecot-solr status 2> /dev/null)" ]; then
 		if [ $local_mem -ge 1800 ]; then
-			options[44]=on && cmd[8]=`echo "${cmd[8]}\n(15) Remote server has cPanels solr installed, and local server has 2G mem or greater"`
+			options[44]=on && cmd[8]=$(echo "${cmd[8]}\n(15) Remote server has cPanels solr installed, and local server has 2G mem or greater")
 		else
-			cmd[8]=`echo "${cmd[8]}\n(15) Remote server has cPanels solr installed, but local server has less than 2G mem; install at your own risk"`
+			cmd[8]=$(echo "${cmd[8]}\n(15) Remote server has cPanels solr installed, but local server has less than 2G mem; install at your own risk")
 		fi
 	fi
 	#mysql settings (45 46 47)
@@ -76,45 +76,45 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 		local_sql_mc=$(mysql -Nse 'select @@max_connections' 2>/dev/null)
 		if [ ${remote_sql_ibps} -gt ${local_sql_ibps} ] || [ ${remote_sql_ibpi} -gt ${local_sql_ibpi} ] || [ ${remote_sql_toc} -gt ${local_sql_toc} ] || [ ${remote_sql_kbs} -gt ${local_sql_kbs} ] || [ ${remote_sql_mc} -gt ${local_sql_mc} ]; then
 			options[47]=on
-			cmd[8]=`echo "${cmd[8]}\n(16) One or more critical MySQL variables are higher on source than on target, local MySQL version is greater or equal to source, and local memory is greater or equal to source; critical variables are innodb buffer pool size/instances, table open cache, key buffer size, and max connections."`
+			cmd[8]=$(echo "${cmd[8]}\n(16) One or more critical MySQL variables are higher on source than on target, local MySQL version is greater or equal to source, and local memory is greater or equal to source; critical variables are innodb buffer pool size/instances, table open cache, key buffer size, and max connections.")
 		fi
 	fi
 
 	###### now that defaults have been set, it is safe to unset needless array elements, starting from the back
-	cmd[8]=`echo "${cmd[8]}\n\nThe following options were removed:\n"`
+	cmd[8]=$(echo "${cmd[8]}\n\nThe following options were removed:\n")
 	#mysql settings (45 46 47)
 	if [ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$localmysql" ] && [ $(( $local_mem + 500 )) -ge $remote_mem ]; then
 		#variables were already created in the same test of the previous stanza
 		if [ ${remote_sql_ibps} -le ${local_sql_ibps} ] && [ ${remote_sql_ibpi} -le ${local_sql_ibpi} ] && [ ${remote_sql_toc} -le ${local_sql_toc} ] && [ ${remote_sql_kbs} -le ${local_sql_kbs} ]; then
-			unset options[47] options[46] options[45] && cmd[8]=`echo "${cmd[8]}\n(16) Critical MySQL settings already match or are greater on target; critical variables are innodb buffer pool size/instances, table open cache, and key buffer size."`
+			unset options[47] options[46] options[45] && cmd[8]=$(echo "${cmd[8]}\n(16) Critical MySQL settings already match or are greater on target; critical variables are innodb buffer pool size/instances, table open cache, and key buffer size.")
 		fi
 	else
-		unset options[47] options[46] options[45] && cmd[8]=`echo "${cmd[8]}\n(16) Local server has lower version of MySQL or less ram than source, will not automatically set MySQL variables"`
+		unset options[47] options[46] options[45] && cmd[8]=$(echo "${cmd[8]}\n(16) Local server has lower version of MySQL or less ram than source, will not automatically set MySQL variables")
 	fi
 	#cpsolr (42 43 44)
 	if [ "$cpanelsolr" ]; then
-		[ "$(service cpanel-dovecot-solr status 2> /dev/null)" ] && unset options[44] options[43] options[42] && cmd[8]=`echo "${cmd[8]}\n(15) cPanels solr already installed"`
+		[ "$(service cpanel-dovecot-solr status 2> /dev/null)" ] && unset options[44] options[43] options[42] && cmd[8]=$(echo "${cmd[8]}\n(15) cPanels solr already installed")
 	else
-		unset options[44] options[43] options[42] && cmd[8]=`echo "${cmd[8]}\n(15) Remote server does not use cPanels solr"`
+		unset options[44] options[43] options[42] && cmd[8]=$(echo "${cmd[8]}\n(15) Remote server does not use cPanels solr")
 	fi
 	#mysqlup (39 40 41)
-	([ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$localmysql" ] || [ "$remotemysql" = "$localmysql" ] || ! /usr/local/cpanel/bin/whmapi1 installable_mysql_versions | grep -q \'${remotemysql}\') && unset options[41] options[40] options[39] && cmd[8]=`echo "${cmd[8]}\n(14) MySQL versions match, or remote version not installable (L=${localmysql}, R=${remotemysql})"`
+	([ "$(echo -e "$remotemysql\n$localmysql" | sort -rV | head -1)" = "$localmysql" ] || [ "$remotemysql" = "$localmysql" ] || ! /usr/local/cpanel/bin/whmapi1 installable_mysql_versions | grep -q \'${remotemysql}\') && unset options[41] options[40] options[39] && cmd[8]=$(echo "${cmd[8]}\n(14) MySQL versions match, or remote version not installable (L=${localmysql}, R=${remotemysql})")
 	#mysql access hosts (36 37 38)
-	[ ! -s ${dir}/var/cpanel/mysqlaccesshosts ] && unset options[38] options[37] options[36] && cmd[8]=`echo "${cmd[8]}\n(13) MySQL access hosts not set on source"`
+	[ ! -s ${dir}/var/cpanel/mysqlaccesshosts ] && unset options[38] options[37] options[36] && cmd[8]=$(echo "${cmd[8]}\n(13) MySQL access hosts not set on source")
 	#lfd alerts (30 31 32)
-	[ ! -e /etc/csf/csf.conf ] && unset options[32] options[31] options[30] && cmd[8]=`echo "${cmd[8]}\n(11) CSF/LFD not detected on target"`
+	[ ! -e /etc/csf/csf.conf ] && unset options[32] options[31] options[30] && cmd[8]=$(echo "${cmd[8]}\n(11) CSF/LFD not detected on target")
 	#pgsql (24 25 26)
-	[ "$postgres" ] && [ -d /var/lib/pgsql ] && unset options[26] options[25] options[24] && cmd[8]=`echo "${cmd[8]}\n(9) Postgres already installed on target"`
-	[ ! "$postgres" ] && unset options[26] options[25] options[24] && cmd[8]=`echo "${cmd[8]}\n(9) Postgres not detected on source"`
+	[ "$postgres" ] && [ -d /var/lib/pgsql ] && unset options[26] options[25] options[24] && cmd[8]=$(echo "${cmd[8]}\n(9) Postgres already installed on target")
+	[ ! "$postgres" ] && unset options[26] options[25] options[24] && cmd[8]=$(echo "${cmd[8]}\n(9) Postgres not detected on source")
 	#timezone (18 19 20)
-	[ "${localtimezone}" = "${remotetimezone}" ] || [ -z "${remotetimezone}" -o -z "${localtimezone}" -o -z "${remotetimezonefile}" -o -z "${localtimezonefile}" ] && unset options[20] options[19] options[18] && cmd[8]=`echo "${cmd[8]}\n(7) Some timezone variables could not be set, or timezones already match"`
+	[ "${localtimezone}" = "${remotetimezone}" ] || [ -z "${remotetimezone}" -o -z "${localtimezone}" -o -z "${remotetimezonefile}" -o -z "${localtimezonefile}" ] && unset options[20] options[19] options[18] && cmd[8]=$(echo "${cmd[8]}\n(7) Some timezone variables could not be set, or timezones already match")
 	#csf allow (15 16 17)
-	[ ! -e $dir/etc/csf/csf.allow ] || [ ! -e /etc/csf/csf.allow ] && unset options[17] options[16] options[15] && cmd[8]=`echo "${cmd[8]}\n(6) CSF not detected on one or more servers"`
+	[ ! -e $dir/etc/csf/csf.allow ] || [ ! -e /etc/csf/csf.allow ] && unset options[17] options[16] options[15] && cmd[8]=$(echo "${cmd[8]}\n(6) CSF not detected on one or more servers")
 	#CL (9 10 11)
-	! echo $local_os | grep -q ^Cloud || ! echo $remote_os | grep -q ^Cloud && unset options[11] options[10] options[9] && cmd[8]=`echo "${cmd[8]}\n(4) CloudLinux not detected on one or more servers"`
+	! echo $local_os | grep -q ^Cloud || ! echo $remote_os | grep -q ^Cloud && unset options[11] options[10] options[9] && cmd[8]=$(echo "${cmd[8]}\n(4) CloudLinux not detected on one or more servers")
 	#ruby gems (3 4 5)
-	! [ `sssh "which gem 2> /dev/null"` ] || ! [ `which gem 2> /dev/null` ] && unset options[5] options[4] options[3] && cmd[8]=`echo "${cmd[8]}\n(2) gem executable not detected on one or more servers"`
-	cmd[8]=`echo "${cmd[8]}\n\nPlease keep this information in mind when selecting options. Pressing Cancel will be the same as saying 'no' to all options."`
+	! [ $(sssh "which gem 2> /dev/null") ] || ! [ $(which gem 2> /dev/null) ] && unset options[5] options[4] options[3] && cmd[8]=$(echo "${cmd[8]}\n(2) gem executable not detected on one or more servers")
+	cmd[8]=$(echo "${cmd[8]}\n\nPlease keep this information in mind when selecting options. Pressing Cancel will be the same as saying 'no' to all options.")
 
 	###### ready to print the menu!
 	sleep 1

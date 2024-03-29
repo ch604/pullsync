@@ -18,11 +18,11 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 		7 "Don't use dbscan on database copy" on
 		8 "Don't backup databases before transfer" off)
 
-	[ -s /root/dirty_accounts.txt ] && options[8]=on && cmd[9]=`echo "${cmd[9]}\n(3) Found /root/dirty_accounts.txt"`
+	[ -s /root/dirty_accounts.txt ] && options[8]=on && cmd[9]=$(echo "${cmd[9]}\n(3) Found /root/dirty_accounts.txt")
 	for user in $userlist; do
 		[[ ! "$(sssh "stat /home/$user/public_html" | awk -F'[(|/|)]' '/Uid/ {print $2, $6, $9}')" =~ 751\ +$user\ +nobody ]] && local fixmatch=1
 	done
-	[ $fixmatch ] && cmd[9]=`echo "${cmd[9]}\n(5) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)"` && unset fixmatch
+	[ $fixmatch ] && cmd[9]=$(echo "${cmd[9]}\n(5) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)") && unset fixmatch
 
 	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> $log
@@ -30,7 +30,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	for choice in $choices; do
 		case $choice in
 			1) rsync_update="--update";;
-			2) rsync_excludes=`echo --exclude=cache $rsync_excludes`;;
+			2) rsync_excludes=$(echo --exclude=cache $rsync_excludes);;
 			3) malwarescan=1; download_malscan;;
 			4) runmarill=1; download_marill;;
 			5) fixperms=1; download_fixperms;;
@@ -45,7 +45,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	clear
 	ec lightPurple "Copy the following into your ticket:"
 	(
-	echo "started $scriptname $version at $starttime on `hostname` ($cpanel_main_ip)"
+	echo "started $scriptname $version at $starttime on $(hostname) ($cpanel_main_ip)"
 	echo "synctype is $synctype. source server is $ip."
 	echo -e "to reattach, run (screen -r $STY).\n"
 	[ "$rsync_update" = "--update" ] && echo "* used --update for rsync"
@@ -73,7 +73,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	fi
 
 	# set variables for progress display
-	user_total=`echo $userlist |wc -w`
+	user_total=$(echo $userlist | wc -w)
 	> $dir/final_complete_users.txt
 	start_disk=0
 	homemountpoints=$(for each in $(echo $localhomedir); do findmnt -nT $each | awk '{print $1}'; done | sort -u)
@@ -94,7 +94,7 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	# sync extra dbs
 	if [ -f /root/db_include.txt ]; then
 		ec yellow "Syncing /root/db_include.txt..."
-		dblist_restore=`cat /root/db_include.txt`
+		dblist_restore=$(cat /root/db_include.txt)
 		sanitize_dblist
 		parallel_mysql_dbsync
 	fi

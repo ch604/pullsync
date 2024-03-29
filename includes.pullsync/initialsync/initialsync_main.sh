@@ -1,7 +1,7 @@
 initialsync_main() { #the meaty heart of pullsync. performs the pre and post migration tasks for initially syncing accounts, including calling version matching menus and commands and cleanup and post-sync commands. this houses the breaking point between the attended and unattended sections.
 
 	# version matching menu stanza
-	if  [ "$synctype" == "list" ] || [ "$synctype" == "domainlist" ] || [ "$synctype" == "all" ];then # no single or skeletons
+	if  [ "$synctype" == "list" ] || [ "$synctype" == "domainlist" ] || [ "$synctype" == "all" ]; then # no single or skeletons
 		ec lightGreen "Here is what we found to install:"
 		for prog in $proglist; do
 			#see if $prog is set and echo it for version matching
@@ -62,7 +62,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	ec lightPurple "Copy the following into your ticket:"
 	# start subshell
 	(
-	echo "started $scriptname $version at $starttime on `hostname` ($cpanel_main_ip)"
+	echo "started $scriptname $version at $starttime on $(hostname) ($cpanel_main_ip)"
 	echo "synctype is $synctype. source server is $ip."
 	echo "to reattach, run (screen -r $STY)."
 	if  [ "$ded_ip_check" = "1" ] || [ "$single_dedip" = "yes" ]; then echo restored accounts to dedicated IPs; else echo restored accounts to main shared IP; fi
@@ -78,7 +78,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $upcp ] && echo "* ran upcp"
 		[ $upgrademysql ] && echo "* upgraded mysql"
 		[ $rubymatch ] && echo "* matched ruby gems"
-		[ "$java" ] && echo "* installed java"
+		[ "$java" ] && echo "* installed java $javaver"
 		[ "$tomcat" ] && echo "* installed ea-tomcat85"
 		[ "$postgres" ] && echo "* installed postgresql"
 		[ "$includeschanges" ] && echo "* replaced files in /usr/local/apache/conf/includes/"
@@ -88,7 +88,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $matchhandler ] && echo "* matched php handlers"
 		[ $fpmconvert ] && echo "* converted arriving accounts to fpm"
 		[ "$ffmpeg" ] && echo "* installed ffmpeg"
-		[ "$imagick" ] && echo "* installed imagemagick, imagick, and magickwand"
+		[ "$imagick" ] && echo "* installed imagemagick and imagick"
 		[ "$memcache" ] && echo "* installed memcached-full"
 		[ "$apc" ] && echo "* installed apc/apcu"
 		[ "$sodium" ] && echo "* installed sodium"
@@ -116,7 +116,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ $memcache ] && echo "* installed memcache and its php connectors"
 		[ $fpmdefault ] && echo "* set all sites to use php-fpm"
 		[ $basicoptimize ] && echo "* turned on keepalive, mod_deflate, and mod_expires"
-		[ $security_tweaks ] && echo "* turned on serversecure plus tweaks"
+		[ $security_tweaks ] && echo "* turned on security tweaks"
 		[ $pagespeed ] && echo "* installed mod_pagespeed"
 		[ $do_mysqlcalc ] && echo "* calculated best ibps/kbs for mysql"
 		echo -e "\nadded server security:"
@@ -141,7 +141,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	say_ok
 
 	# THIS IS THE START OF THE UNATTENDED SECTION
-	handsoffepoch=`date +%s`
+	handsoffepoch=$(date +%s)
 	[ $addmotd ] && echo "Migration initial sync has been run with pullsync, and is awaiting a final sync" >> /etc/motd
 	lastpullsyncmotd
 
@@ -178,7 +178,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	# sync unowned databases
 	if [ "$syncunowneddbs" ] && [ -f /root/db_include.txt ]; then
 		ec yellow "Syncing /root/db_include.txt..."
-		dblist_restore=`cat /root/db_include.txt`
+		dblist_restore=$(cat /root/db_include.txt)
 		sanitize_dblist
 		parallel_mysql_dbsync
 	fi
@@ -197,13 +197,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 				fi
 			done
 			# make sure user has all its databases
-			if [[ -f $dir/var/cpanel/databases/$user.json ]]; then
-				dblist=`cat $dir/var/cpanel/databases/$user.json | python -c 'import sys,json; dbs=json.load(sys.stdin)["MYSQL"]["dbs"].keys() ; print("\n".join(dbs))' | grep -v \*`
-			elif [[ -f $dir/var/cpanel/databases/$user.yaml ]]; then
-				dblist=`cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["MYSQL"]["dbs"].keys() ; print("\n".join(dbs))' | grep -v \*`
-			else
-				dblist=`sssh "mysql -Nse 'show databases'" | grep ^${user:0:8}\_ | grep -v \*`
-			fi
+			dblist=$(user_mysql_listgen $user)
 			for db in $dblist; do
 				if ! mysql -Nse 'show databases' | grep -q ^${db}$; then
 					ec lightRed "Database $db is missing!" | tee -a $dir/missingthings.txt
@@ -246,7 +240,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 	fi
 
 	# change x3 themes to paper_lantern
-	if [ "$(cat /usr/local/cpanel/version | cut -d. -f2)" -ge "60" ]; then
+	if [ "$(cut -d. -f2 /usr/local/cpanel/version)" -ge "60" ]; then
 		ec yellow "Correcting themes for 11.60+ compatibility..."
 		for user in $userlist; do
 			if [ "$(/usr/local/cpanel/bin/whmapi1 accountsummary user=$user | awk '/theme:/ {print $2}')" = "x3" ]; then

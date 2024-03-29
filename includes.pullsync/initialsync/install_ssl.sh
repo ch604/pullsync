@@ -1,6 +1,6 @@
 install_ssl() { #install ssls for restored account. $1 is username.
 	local user=$1
-	local user_domains=`grep ^DNS /var/cpanel/users/${user} |cut -d= -f2 |grep -v \*`
+	local user_domains=$(awk -F= '/^DNS/ {print $2}' /var/cpanel/users/${user} | grep -v \*)
 	for domain in ${user_domains}; do
 		# check for ssl from old server
 		if [ -f ${dir}/var/cpanel/userdata/${domain}_SSL ]; then

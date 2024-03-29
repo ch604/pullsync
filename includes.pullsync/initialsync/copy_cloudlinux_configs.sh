@@ -3,7 +3,7 @@ copy_cloudlinux_configs() { #adjust php and lve settings on target to match sour
 	#doesnt work if no one is in the cage! add everyone
 	cagefsctl --enable-all
 	cagefsctl --force-update
-	if [ `which selectorctl 2> /dev/null` ] && [ `sssh "which selectorctl 2> /dev/null"` ]; then
+	if [ $(which selectorctl 2> /dev/null) ] && [ $(sssh "which selectorctl 2> /dev/null") ]; then
 		#altphp present on both servers
 		ec yellow " altphp..."
 		#detect disabled versions on source
@@ -24,7 +24,7 @@ copy_cloudlinux_configs() { #adjust php and lve settings on target to match sour
 		#list php versions available through ea4 by number only
 		local available_ea4=$(/usr/local/cpanel/bin/rebuild_phpconf --available | tr -dc '0-9\n')
 	fi
-	if [ `which lvectl 2> /dev/null` ] && [ `sssh "which lvectl 2> /dev/null"` ]; then
+	if [ $(which lvectl 2> /dev/null) ] && [ $(sssh "which lvectl 2> /dev/null") ]; then
 		#lvectl available on both servers
 		ec yellow " lve..."
 		#detect default lve settings and adjust target

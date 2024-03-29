@@ -4,7 +4,7 @@ lower_ttls() { # should have a domainlist at this point, called from getuserlist
 	sssh "rsync -aqH /var/named $remote_tempdir/ --exclude=data --exclude=chroot"
 	# we have /var/named from source server, run our seds locally to make things easier, then copy them back to original server.
 	if [ -f $dir/domainlist.txt ]; then
-		domainlist=`cat $dir/domainlist.txt`
+		domainlist=$(cat $dir/domainlist.txt)
 		mkdir -p $dir/var/named
 		> $dir/rsynczones.txt
 		for domain in $domainlist; do
@@ -17,7 +17,7 @@ lower_ttls() { # should have a domainlist at this point, called from getuserlist
 			if [ -f $dir/var/named/${domain}.db ]; then
 				sed -i -e 's/^\$TTL.*/\$TTL 300/g' $dir/var/named/${domain}.db
 				# use whitespace or ; to delimit serial, to avoid editing other random 10 digit strings around the file
-				sed -i -e '/(\s|^)[0-9]{10}(\s|$|;)/s/[0-9]{10}/'`date +%Y%m%d%H`'/g' $dir/var/named/${domain}.db
+				sed -i -e '/(\s|^)[0-9]{10}(\s|$|;)/s/[0-9]{10}/'$(date +%Y%m%d%H)'/g' $dir/var/named/${domain}.db
 				# A record reducer
 				sed -i -E -e 's/^([^[:blank:]]+[[:blank:]]+)[0-9]+([[:blank:]]+IN[[:blank:]]+A[[:blank:]]+[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+.*$)/\1300\2/g' $dir/var/named/${domain}.db
 			fi
