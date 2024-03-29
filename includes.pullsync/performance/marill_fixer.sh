@@ -1,5 +1,5 @@
 marill_fixer() { #attempt to fix common marill errors
-	for dom in $(cat $dir/marill_fails.txt | cut -d\( -f1 | awk -F"//" '{print $NF}' | sed '/^$/d'); do
+	for dom in $(cut -d\( -f1 $dir/marill_fails.txt | awk -F"//" '{print $NF}' | sed '/^$/d'); do
 		ec white "Working on $dom..."
 		local loopcount=1 #count the number of passes
 		unset loopbreak #exit flag

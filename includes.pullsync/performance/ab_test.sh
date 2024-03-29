@@ -20,6 +20,6 @@ ab_test(){ #test domain $1 with $2 concurrent requests for $3 seconds (usage: ab
 
 	# print output and log
 	ec lightBlue "Test complete! RPS: $rps, 95%: ${response_time}ms, Err: $failed_reqs"
-	echo -e "\n\`ab -c $reqs -t $secs -H \""${*}"\" $dom\`\nRequests per second: $rps\nErrors: $failed_reqs\n95% response time: ${response_time}ms" >> $dir/abresults.txt
+	echo -e "\n\$(ab -c $reqs -t $secs -H \""${*}"\" $dom)\nRequests per second: $rps\nErrors: $failed_reqs\n95% response time: ${response_time}ms" >> $dir/abresults.txt
 	rm -f $file
 }
