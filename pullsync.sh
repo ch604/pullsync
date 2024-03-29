@@ -5,7 +5,7 @@
 # https://github.com/ch604/pullsync
 
 # last updated: Mar 29 2024
-version="8.4.4"
+version="8.4.5"
 
 ############
 # root check

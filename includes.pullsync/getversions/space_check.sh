@@ -12,7 +12,7 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 				remote_used_space=$(( $remote_used_space + $remotequota ))
 			done
 		done
-		if [[ "$synctype" == "prefinal" || "$synctype" == "final" || "$synctype" == "update" || "$synctype" == "homedir" ]]; then
+		if [[ "$synctype" =~ "final" || "$synctype" == "update" || "$synctype" == "homedir" || "$synctype" =~ "email" ]]; then
 			if [ -f $(df -P /home/ | tail -1 | awk '{print $6}')aquota.user -o -f $(df -P /home/ | tail -1 | awk '{print $6}')quota.user ]; then
 				#final/update sync check target acct usage
 				iusedlocalrepquota=1
@@ -66,7 +66,7 @@ space_check() { #check disk usage on local and remote servers, and make sure the
 				[ ! "$autopilot" ] && rd || exitcleanup 9
 			fi
 		fi
-	elif [[ "$synctype" == "prefinal" || "$synctype" == "final" || "$synctype" == "update" || "$synctype" == "homedir" ]]; then
+	elif [[ "$synctype" =~ "final" || "$synctype" == "update" || "$synctype" == "homedir" || "$synctype" =~ "email" ]]; then
 		#if repquota was used, compare needed target space
 		ec white "Remote used space: $(echo "scale=1; $remote_used_space / 1024 / 1024" | bc) Gb "
 		ec white "Local free space : $(echo "scale=1; $local_free_space / 1024 / 1024" | bc) Gb "

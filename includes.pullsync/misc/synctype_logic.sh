@@ -81,13 +81,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 			;;
 		email*)
 			getuserlist
-			if yesNo "Use --update for rsync?"; then
-				rsync_update="--update"
-			fi
-			misc_ticket_note
-			lastpullsyncmotd
-			user_total=$(echo $userlist | wc -w)
-			parallel --jobs $jobnum -u 'rsync_email {#} {}' ::: $userlist
+			emailsync_main
 			;;
 		mysql)
 			getuserlist

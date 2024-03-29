@@ -1,12 +1,13 @@
-finalprogress() { #same as syncprogress(), but for final syncs.
+finalprogress() { #same as syncprogress(), but for final and update syncs. accepts $2 optionally as the parallel function to watch for.
+	[ "$2" ] && local function="$2" || local function="finalfunction"
 	# embrace nothingness
 	clear
 	local c=$(tput el) #variable to clear to end of line
 	while kill -0 $1 2> /dev/null; do
 		#read refresh delay file every loop, ensure sanity
 		refreshdelay=$(cat $dir/refreshdelay); [[ ! $refreshdelay =~ ^[0-9]+$ || $refreshdelay -gt 60 ]] && refreshdelay=3
-		# get a list of running parallel processes (finalfunction), printing only the unique command numbers and usernames
-		local runningprocs=$(ps ax | grep finalfunction | egrep -v '(parallel|grep)' | awk '{print $(NF-2), $(NF-1)}' | sort -u)
+		# get a list of running parallel processes (finalfunction by default), printing only the unique command numbers and usernames
+		local runningprocs=$(ps ax | grep $function | egrep -v '(parallel|grep)' | awk '{print $(NF-2), $(NF-1)}' | sort -u)
 		# put that list into processprogress()
 		processprogress
 		# disk progress
