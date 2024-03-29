@@ -41,7 +41,7 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	# run them for a remote server
 	echo "Versions on $(sssh "hostname") $ip:" |tee -a $dir/versionsRemote.txt
 	remotehttp=$(sssh "eval $httpcmd")
-        remotemysql=$(sssh "eval $mysqlcmd")
+	remotemysql=$(sssh "eval $mysqlcmd")
 	remotemysqlrelease=$(sssh "mysql -Nse \"select @@version_comment\"" | awk '{print $1}')
 	echo $remotemysqlrelease | grep -qi -e MariaDB -e Percona || remotemysqlrelease="MySQL"
 	remotephp=$(sssh "eval $phpcmd")
@@ -49,9 +49,9 @@ getversions() { #this is the other omnibus of pullsync, checks for installed app
 	[ "$remoteea" = "EA4" ] && remotephphandler=$(sssh "eval $ea4phphandlercmd") || remotephphandler=$(sssh "eval $phphandlercmd")
 	remotecpanel=$(cat $dir/usr/local/cpanel/version)
 	remote_os=$(sssh "eval $os_cmd")
-        remote_mem=$(sssh "eval $mem_cmd")
-        remote_proct=$(sssh "eval $proc_type_cmd")
-        remote_procc=$(sssh "eval $proc_count_cmd")
+	remote_mem=$(sssh "eval $mem_cmd")
+	remote_proct=$(sssh "eval $proc_type_cmd")
+	remote_procc=$(sssh "eval $proc_count_cmd")
 
 	echo "	Remote Http      : $remotehttp
 	Remote Php       : $remotephp

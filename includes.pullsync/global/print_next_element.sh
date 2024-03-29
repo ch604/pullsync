@@ -1,4 +1,4 @@
-print_next_element(){ #prints the next element in an array. used to save the description of options passed from dialog. usage: `print_next_element arrayname valuetocheckfor`
+print_next_element(){ #prints the next element in an array. used to save the description of options passed from dialog. usage: $(print_next_element arrayname valuetocheckfor)
 	# import the array by name
 	eval haystack=\( \"\${$1[@]}\" \)
 	local needle=${2}

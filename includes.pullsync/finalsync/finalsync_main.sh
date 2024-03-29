@@ -32,14 +32,14 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		#turn malware scan on if there were hits during initial sync
 		[ -s /root/dirty_accounts.txt ] && cmd[9]=$(echo "${cmd[9]}\n(9) Malware found in prior pullsync (/root/dirty_accounts.txt)") && options[26]=off
 		#turn on autossl if there are autossls on source
-		for crt in $(ls $dir/var/cpanel/ssl/installed/certs/*.crt 2> /dev/null); do openssl x509 -in $crt -issuer -noout; done | grep -q -e "cPanel, Inc." -e "Let's Encrypt" && cmd[9]=$(echo "${cmd[9]}\n(11) Source has AutoSSL issued certs") && options[32]=on
+		for crt in $(\ls $dir/var/cpanel/ssl/installed/certs/*.crt 2> /dev/null); do openssl x509 -in $crt -issuer -noout; done | grep -q -e "cPanel, Inc." -e "Let's Encrypt" && cmd[9]=$(echo "${cmd[9]}\n(11) Source has AutoSSL issued certs") && options[32]=on
 		#check for need of fixperms
 		for user in $userlist; do
 			[[ ! "$(sssh "stat /home/$user/public_html" | awk -F'[(|/|)]' '/Uid/ {print $2, $6, $9}')" =~ 75[01]\ +$user\ +(nobody|$user) ]] && local fixmatch=1
 		done
 		[ $fixmatch ] && cmd[9]=$(echo "${cmd[9]}\n(13) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)") && unset fixmatch
 		#copy remote backup dests if anuy exist
-		[ "$(ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ] && cmd[9]=$(echo "${cmd[9]}\n(15) Source using remote backup destinations") && options[44]=on
+		[ "$(\ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ] && cmd[9]=$(echo "${cmd[9]}\n(15) Source using remote backup destinations") && options[44]=on
 		local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 		clear
 		echo $choices >> $log
@@ -153,7 +153,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	fi
 
 	# set variables for progress display
-	user_total=$(echo $userlist |wc -w)
+	user_total=$(echo $userlist | wc -w)
 	> $dir/final_complete_users.txt
 	start_disk=0
 	homemountpoints=$(for each in $(echo $localhomedir); do findmnt -nT $each | awk '{print $1}'; done | sort -u)
@@ -191,8 +191,8 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	#option to bail if errors, otherwise do the dns updates
 	if [ ! "$autopilot" ]; then
 		if [ -f $dir/missing_dbs.txt ] || [ -f $dir/dbdump_fails.txt ]; then
-			[ -f $dir/missing_dbs.txt ] && ec red "Some databases were missing during final sync and were created and imported (see $dir/missing_dbs.txt and $dir/missing_dbgrants.txt)" && cat $dir/missing_dbs.txt
-			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly during the final sync and should be redumped (see $dir/dbdump_fails.txt)" && cat $dir/dbdump_fails.txt
+			[ -f $dir/missing_dbs.txt ] && ec red "Some databases were missing during final sync and were created and imported (cat $dir/missing_dbs.txt $dir/missing_dbgrants.txt)" && cat $dir/missing_dbs.txt | logit
+			[ -f $dir/dbdump_fails.txt ] && ec red "Some databases failed to dump properly during the final sync and should be redumped (cat $dir/dbdump_fails.txt)" && cat $dir/dbdump_fails.txt | logit
 			if yesNo "Continue with the DNS update or IP swap (if selected)?"; then
 				copybackdns
 			else
@@ -212,7 +212,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		if [ "$maintpage" ]; then
 			ec yellow "Killing maintenance page engine..."
 			sssh "killall /root/maintenance &> /dev/null"
-			sssh "rm -f /root/maintenance &> /dev/null"
+			sssh "\rm -f /root/maintenance &> /dev/null"
 		fi
 		ec yellow "Restarting Services..."
 		if echo $port_80_prog | grep -qvE 'lsws|lshttpd|litespeed'; then #only start httpd if no lsws
@@ -287,7 +287,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $autossl ] && ec white "Turned on AutoSSL"
 	[ $copyremotebackups ] && ec white "Copied remote backup configuration from source server"
 	[ $removemotd ] && ec white "Removed MOTD"
-	[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt
+	[ -f $dir/matchingchecksums.txt ] && ec green "Some tables had matching checksums and were skipped:" && cat $dir/matchingchecksums.txt | logit
 	[ -f $dir/missing_dbs.txt ] && ec red "Some databases were missing during final sync and were created and imported (cat $dir/missing_dbs.txt; cat $dir/missing_dbgrants.txt)"
 	[ -f $dir/dbmalware.txt ] && ec red "Some databases may have malware, which usually indicates that the CMS is totally hosed. Please check manually (cat $dir/dbmalware.txt)"
 	[ -s $dir/error.log ] && ec red "There is content in $dir/error.log! (cat $dir/error.log)" && cat $dir/error.log

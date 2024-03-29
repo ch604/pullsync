@@ -90,7 +90,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			exitcleanup 402;;
 		i)	remove_HostsCheck;;
 		j)	uninstall;;
-		k)	userlist=`/bin/ls -A /var/cpanel/users | egrep -v "^HASH" | egrep -vx "${badusers}"`
+		k)	userlist=$(\ls -A /var/cpanel/users | egrep -v "^HASH" | egrep -vx "${badusers}")
 			getlocaldomainlist
 			cpnat_check
 			dnscheck
@@ -122,8 +122,8 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			exitcleanup 405;;
 		wc)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
 			say_ok
-                        useallusers
-                        getlocaldomainlist
+			useallusers
+			getlocaldomainlist
 			> $hostsfile_alt
 			for user in $userlist; do
 				hosts_file $user &> /dev/null

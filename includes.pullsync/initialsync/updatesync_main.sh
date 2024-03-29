@@ -110,13 +110,13 @@ updatesync_main() { #update sync logic. like a finalsync_main() but without stop
 	# if tomcat was installed or exists, restart tomcat instances
 	[ -f /usr/local/cpanel/scripts/ea-tomcat85 ] && ec yellow "Restarting tomcat instances..." && /usr/local/cpanel/scripts/ea-tomcat85 all restart &> /dev/null
 
-        # marill
-        if [ $runmarill ]; then
-                getlocaldomainlist
-                > $hostsfile_alt
-                for user in $userlist; do
-                        hosts_file $user &> /dev/null
-                done
-                marill_gen
-        fi
+	# marill
+	if [ $runmarill ]; then
+		getlocaldomainlist
+		> $hostsfile_alt
+		for user in $userlist; do
+			hosts_file $user &> /dev/null
+		done
+		marill_gen
+	fi
 }

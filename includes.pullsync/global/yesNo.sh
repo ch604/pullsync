@@ -8,12 +8,9 @@ yesNo() { #generic yesNo function, usage: if yesNo "yes?"; then ...
 		echo "$(ts) $yn" >> $log
 		case $yn in
 			# return true or false
-			yes|Yes|YES|y|Y)
-				return 0  ;;
-			no|No|n|N|NO)
-				return 1  ;;
-			*)
-				ec lightRed "Please enter y or n."
+			yes|Yes|YES|y|Y) return 0;;
+			no|No|n|N|NO) return 1;;
+			*) ec lightRed "Please enter y or n.";;
 		esac
 	done
 }

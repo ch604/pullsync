@@ -8,5 +8,5 @@ haste() { #upload stdin to a hastebin, return the url as stdout. usage: myurl=$(
 	local pbfile=$(mktemp)
 	cat - > $pbfile ;
 	curl -X POST -s --data-binary @${pbfile} https://${hastebin_url}/documents | awk -F '"' -v url=$hastebin_url '{print "https://" url "/raw/"$4}'
-	rm -f $pbfile
+	\rm -f $pbfile
 }

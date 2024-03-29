@@ -6,7 +6,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	[ "${ethdev}" = "" ] && ethdev=eth0
 	local localethdev=$(awk '/^ETHDEV / {print $2}' /etc/wwwacct.conf)
 	[ "${localethdev}" = "" ] && localethdev=eth0
-	local expectedips=$(echo "$(cut -d\: -f1 ${dir}/etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' $dir/etc/sysconfig/network-scripts/ifcfg-${ethdev})" | tr ' ' '\n')
+	local expectedips=$(echo "$(cut -d: -f1 ${dir}/etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' $dir/etc/sysconfig/network-scripts/ifcfg-${ethdev})" | tr ' ' '\n')
 	ec red "Changing IPs on source machine and stopping networking."
 	ec lightRed "THE SOURCE SERVER WILL THEN REBOOT AFTER 5 MINUTES."
 
@@ -91,7 +91,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 	(killall sshd; service network stop; service network start; /scripts/restartsrv_ipaliases; /scripts/restartsrv_sshd)
 	ec green "Done!"
 	ec yellow "Attempting to clear arp automatically..."
-	local newips=$(echo "$(cut -d\: -f1 /etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' /etc/sysconfig/network-scripts/ifcfg-${localethdev})" | tr ' ' '\n')
+	local newips=$(echo "$(cut -d: -f1 /etc/ips) $(awk -F= '/^IPADDR=/ {print $2}' /etc/sysconfig/network-scripts/ifcfg-${localethdev})" | tr ' ' '\n')
 	for each in $newips; do
 		ec white " $each"
 		arping -q -c2 -I $localethdev $each
@@ -108,7 +108,7 @@ ip_swap() { #automatically remove ips from the source server and assign them to 
 		ec green "I found all the IPs I expected."
 	fi
 	ec yellow "While the script proceeds, please also clear ARP for these IPs:"
-	cut -d\: -f1 /etc/ips
+	cut -d: -f1 /etc/ips
 	say_ok
 
 	#post ipswap scripts to get everything lined up nice

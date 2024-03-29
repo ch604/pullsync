@@ -8,7 +8,7 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 		elif [ -f "$dir/var/cpanel/databases/$user.yaml" ]; then
 			local pgdbs=$(cat $dir/var/cpanel/databases/$user.yaml | python -c 'import sys,yaml; dbs=yaml.load(sys.stdin, Loader=yaml.FullLoader)["PGSQL"]["dbs"].keys() ; print("\n".join(dbs))')
 		fi
-		local pgdbcount=$(echo $pgdbs |wc -w)
+		local pgdbcount=$(echo $pgdbs | wc -w)
 		if [[ $pgdbcount -gt 0 ]]; then
 			for db in $pgdbs; do
 				ec blue "$progress Importing pgsql db $db..."
@@ -20,7 +20,7 @@ finalfunction(){ #$1 is position, $2 is username. this is where the actual final
 		fi
 	fi
 	if [ -f "/var/cpanel/datastore/$user/mailman-list-usage" ] && [ $(cat /var/cpanel/datastore/$user/mailman-disk-usage) -gt 0 ]; then
-		local mailinglists=$(cat /var/cpanel/datastore/$user/mailman-list-usage | cut -d: -f1)
+		local mailinglists=$(cut -d: -f1 /var/cpanel/datastore/$user/mailman-list-usage)
 		ec white "$progress Syncing mailman lists..."
 		for list in $mailinglists; do
 			# list settings in /usr/local/cpanel/3rdparty/mailman/lists/$list
