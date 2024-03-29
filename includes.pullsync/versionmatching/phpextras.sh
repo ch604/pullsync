@@ -4,7 +4,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 	if /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $niceremotephp; then
 		# remote php default available on target
 		ec yellow "Matching default PHP version to $niceremotephp..."
-		local newdefault=`/usr/local/cpanel/bin/rebuild_phpconf --available | awk -F: '/'$niceremotephp'/ {print $1}'`
+		local newdefault=$(/usr/local/cpanel/bin/rebuild_phpconf --available | awk -F: '/'$niceremotephp'/ {print $1}')
 		/usr/local/cpanel/bin/rebuild_phpconf --default $newdefault
 	elif /usr/local/cpanel/bin/rebuild_phpconf --available | grep -q ea-php81; then
 		# php81 available on target
@@ -41,7 +41,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 	ec yellow "Comparing module lists..."
 	if [ $remoteea = "EA3" ]; then
 		# collect single php version modules from source, using matching php version from target
-		[ -f /opt/cpanel/ea-php${niceremotephp}/enable ] && local phpbin="/opt/cpanel/ea-php${niceremotephp}/root/usr/bin/php" || local phpbin="$(which php)"
+		[ -f /opt/cpanel/ea-php${niceremotephp}/enable ] && local phpbin="/opt/cpanel/ea-php${niceremotephp}/root/usr/bin/php" || local phpbin="$(which php 2> /dev/null)"
 		# list out modules
 		local target_modules=$(eval $phpbin -m 2> /dev/null | grep -v -e ^$ -e "\[" -e "(" | tr '\n' '|' | sed -e 's/|$//' -e 's/\ /\\\ /g')
 		local missing_modules=$(sssh "php -m 2> /dev/null" | egrep -v -e "^($target_modules)$" -e ^$ -e "\[" -e "\(")
@@ -80,12 +80,10 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 		unset phpfile localphpfile
 		if [ "$remoteea" = "EA3" ] && [ -f $dir/usr/local/lib/php.ini ]; then
 			phpfile=$dir/usr/local/lib/php.ini
-		elif echo $phplimitvers | grep -q $ver; then
-			if [ -f $dir/opt/cpanel/$ver/root/etc/php.d/local.ini ]; then
-				phpfile=$dir/opt/cpanel/$ver/root/etc/php.d/local.ini
-			elif [ -f $dir/opt/cpanel/$ver/root/etc/php.ini ]; then
-				phpfile=$dir/opt/cpanel/$ver/root/etc/php.ini
-			fi
+		elif [ -f $dir/opt/cpanel/$ver/root/etc/php.d/local.ini ]; then
+			phpfile=$dir/opt/cpanel/$ver/root/etc/php.d/local.ini
+		elif [ -f $dir/opt/cpanel/$ver/root/etc/php.ini ]; then
+			phpfile=$dir/opt/cpanel/$ver/root/etc/php.ini
 		fi
 
 		if [ -f /opt/cpanel/$ver/root/etc/php.d/local.ini ]; then
@@ -102,7 +100,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 				unset remotesetting localsetting
 				remotesetting=$(sed -n 's/^'${setting}'.*=\ \?\([0-9]\+[A-Z]\?\).*/\1/p' $phpfile)
 				localsetting=$(sed -n 's/^'${setting}'.*=\ \?\([0-9]\+[A-Z]\?\).*/\1/p' $localphpfile)
-				if echo $remotesetting | egrep -q '[0-9]+' && [ $(nonhuman $remotesetting) -gt $(nonhuman $localsetting) ]; then
+				if [ "$remotesetting" -a "$localsetting" ] && echo $remotesetting | egrep -q '[0-9]+' && [ $(nonhuman $remotesetting) -gt $(nonhuman $localsetting) ]; then
 					ec yellow " $setting ($localsetting to $remotesetting)"
 					sed -i "s/^\("${setting}"\ \?=\ \?\)[0-9]\+[A-Z]\?/\1"${remotesetting}"/" $localphpfile
 				fi
@@ -112,7 +110,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 				unset remotesetting localsetting
 				remotesetting=$(sed -n 's/^'${setting}'.*=\ \?\(.+\?\)/\1/p' $phpfile)
 				localsetting=$(sed -n 's/^'${setting}'.*=\ \?\(.+\?\)/\1/p' $localphpfile)
-				if echo $remotesetting | egrep -q '^(\"[A-Za-z01\/\_]+\"|[A-Za-z01\/\_]+)$' && [ "$(echo $remotesetting | tr -d \")" != "$(echo $localsetting | tr -d \")" ]; then
+				if [ "$remotesetting" -a "$localsetting" ] && echo $remotesetting | egrep -q '^(\"[A-Za-z01\/\_]+\"|[A-Za-z01\/\_]+)$' && [ "$(echo $remotesetting | tr -d \")" != "$(echo $localsetting | tr -d \")" ]; then
 					ec yellow " $setting ($localsetting to $remotesetting)"
 					sed -i "s/^\("${setting}"\ \?=\ \?\).*/\1$(echo $remotesetting | sed -e 's/\//\\\//g')/" $localphpfile
 				fi
@@ -125,7 +123,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 				sed -i "s/^\(error_reporting\ \?=\ \?\).*/\1$(echo $remoteerr | sed -e 's/\&/\\\&/g' -e 's/\ /\\\ /g')/" $localphpfile
 			fi
 		else
-			ec red "Unable to select a config file to compare php limits for $ver! That seems real bad!" | errorlogit 3
+			ec red "Unable to select a config file to compare and adjust php limits for $ver! It either wasn't installed on source or wasn't installed properly on target!" | errorlogit 3
 		fi
 	done
 }

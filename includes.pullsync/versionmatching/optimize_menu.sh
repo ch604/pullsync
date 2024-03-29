@@ -1,5 +1,5 @@
 optimize_menu(){ #run outside of matching_menu() in case version matching is not needed, but optimizations are wanted
-	local cmd=(dialog --clear --backtitle "pullsync" --title "Optimization Menu" --separate-output --checklist "Select options for server optimization. Sane options were selected based on your configuration:\n" 0 0 7)
+	local cmd=(dialog --clear --backtitle "pullsync" --title "Optimization Menu" --separate-output --checklist "Select options for server optimization. Sane options were selected based on your configuration:\n" 0 0 8)
 	local options=( 1 "Install mod_http2 for EA4" on
 			2 "Install memcached and modules" on
 			3 "Install nginx proxy for EA4 (EXPERIMENTAL)" off
@@ -12,11 +12,11 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	# turn things on front to back
 	#nginx on source (6 7 8)
 	if [ "$nginxfound" ]; then
-		options[8]=on && cmd[8]=`echo "${cmd[8]}\n(3) Nginx found on source server"`
+		options[8]=on && cmd[8]=$(echo "${cmd[8]}\n(3) Nginx found on source server")
 	fi
 	#security tweaks (15 16 17)
 	if grep -E -q ^SMTP_BLOCK\ ?=\ ?[\'\"]1[\'\"]$ $dir/etc/csf/csf.conf || grep -E -q ^smtpmailgidonly=1$ $dir/var/cpanel/cpanel.config; then
-		options[17]=on && cmd[8]=`echo "${cmd[8]}\n(6) Security tweaks recommended since smtp tweak enabled"`
+		options[17]=on && cmd[8]=$(echo "${cmd[8]}\n(6) Security tweaks recommended since smtp tweak enabled")
 	fi
 
 	# turn things off back to front

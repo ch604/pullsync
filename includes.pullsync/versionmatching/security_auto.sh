@@ -10,7 +10,7 @@ security_auto() { #run outside of matching_menu() in case version matching is no
 	fi
 
 	#mod_evasive
-	#if ! rpm --quiet -q ea-apache24-mod_evasive; then
-	#	enable_modevasive=1
-	#fi
+#	if ! rpm --quiet -q ea-apache24-mod_evasive; then
+#		enable_modevasive=1
+#	fi
 }

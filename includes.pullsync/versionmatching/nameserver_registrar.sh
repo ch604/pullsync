@@ -11,5 +11,5 @@ nameserver_registrar() { #takes $1 as a nameserver to find the registrar for. ru
 		echo $(awk -F: '/^\s*Registrar:/ {print $NF}' ${reg_junk} | tail -1 | sed 's/^\ //')
 	fi
 	# remove the temp file
-	rm -f ${reg_junk}
+	\rm -f ${reg_junk}
 }

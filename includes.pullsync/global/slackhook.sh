@@ -1,6 +1,6 @@
 slackhook() { #post details of finished migration to slack channel
 	[ ! "$slackhook_url" ] && return
-	hostname=`hostname`
+	hostname=$(hostname)
 	[ -z "$1" ] && color=7CD197 || color=$1 #set color to passed parameter, or green if unset
 	slackuser=${slackuser:-"migrations-team"}
 

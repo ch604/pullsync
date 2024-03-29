@@ -4,7 +4,7 @@ noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users,
 
 	#users
 	ec yellow " Users..."
-	noncpanelusers="$(cat $dir/etc/passwd | cut -d\: -f1 | egrep -v "(^${systemusers}$)" | egrep -v "(^$(echo $(\ls -A $dir/var/cpanel/users/) | tr ' ' '|')$)")"
+	noncpanelusers="$(cut -d: -f1 $dir/etc/passwd | egrep -v -e "(^${systemusers}$)" -e "(^$(echo $(\ls -A $dir/var/cpanel/users/) | tr ' ' '|')$)")"
 	for user in $noncpanelusers; do
 		if ! grep -q ^$user\: /etc/passwd; then
 			let a+=1
@@ -36,7 +36,7 @@ noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users,
 
 	#zonefiles
 	ec yellow " DNS records..."
-	for domain in $(awk -F\" '/^zone/ && !/\.arpa\"/ {print $2}' $dir/etc/named.conf | sort -u); do
+	for domain in $(awk -F\" '/^zone/ && !/\.arpa"/ {print $2}' $dir/etc/named.conf | sort -u); do
 		# print any zone domains that arent set up in userdata
 		if ! grep -qRE "\ $domain(:|$)" $dir/var/cpanel/userdata/; then
 			let c+=1
@@ -50,12 +50,12 @@ noncpanelitems() { #look for non-cpanel listening services, vhosts, linux users,
 	#enabled services
 	ec yellow " Enabled services..."
 	# get enabled services with systemctl or chkconfig
-	if [ "$(sssh 'which systemctl 2> /dev/null')" ]; then
+	if [ $(sssh 'which systemctl 2> /dev/null') ]; then
 		sssh "systemctl list-unit-files" | awk '$2 == "enabled" {print $1}' | egrep -v '(target|socket|path)$' | sed -e 's/\.service$//g' | egrep -v "(^${systemservices}$)" > $dir/remoterunlist.txt
 	else
 		sssh "chkconfig --list" | awk '$5 == "3:on" {print $1}' | egrep -v "(^${systemservices}$)" > $dir/remoterunlist.txt
 	fi
-	if [ "$(which systemctl 2> /dev/null)" ]; then
+	if [ $(which systemctl 2> /dev/null) ]; then
 		systemctl list-unit-files | awk '$2 == "enabled" {print $1}' | egrep -v '(target|socket|path)$' | sed -e 's/\.service$//g' > $dir/localrunlist.txt
 	else
 		chkconfig --list | awk '$5 == "3:on" {print $1}' > $dir/localrunlist.txt

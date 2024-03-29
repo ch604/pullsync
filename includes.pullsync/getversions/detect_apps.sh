@@ -19,15 +19,20 @@ detect_apps() { # look for common extra applications
 			javaver=$(echo $javafullver | cut -d. -f1)
 		fi
 		#trim java versions by os ver
-		if [ "$(rpm --eval %rhel)" -le 8 ]; then
+		if [ "$(rpm --eval %rhel)" -ge 9 ]; then
+			case $javaver in
+				17|21|22) :;;
+				*) javaver=17;;
+			esac
+		elif [ "$(rpm --eval %rhel)" -eq 8 ]; then
 			case $javaver in
 				8|11|17|21|22) :;;
 				*) javaver=11;;
 			esac
-		else
+		else #el7 or lower
 			case $javaver in
-				11|17|21|22) :;;
-				*) javaver=11;;
+				8|11) :;;
+				*) javaver=8;;
 			esac
 		fi
 	fi

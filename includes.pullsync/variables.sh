@@ -7,18 +7,18 @@ jobnum=3
 # delay time in seconds for refreshing the progress functions, speed this up if you like seeing everything, or slow it down if you like copying and pasting
 refreshdelay=3
 
-# potential prefixes for natted ip warning check. add more with pipe separator, like "172.16|192.168" for good sed regex.
+# potential prefixes for natted ip warning check. pipe separated for regex.
 natprefix="172.16|192.168|10."
 
-# excluded users when selecting all users.  filtered out by egrep -vx. add more like this "system|root|alan|eric". HASH* is added to the function below so the wildcard is added properly.
+# excluded users when selecting all users. pipe separated for regex. HASH* is added to the string separately, so the wildcard is added properly.
 badusers="system|root|nobody"
 
-# excluded when selecting all databases. filtered as above. ^logaholicDB and ^cptmpdb are added in the functions below.
+# excluded when selecting all databases. filtered as above. ^logaholicDB and ^cptmpdb are added separately. pipe separated for regex.
 baddbs="performance_schema|information_schema|cphulkd|eximstats|horde|leechprotect|modsec|mysql|roundcube|whmxfer|test|lost\+found|tmpdir|sys"
 
-# filter out stuff like error_log, backup-*.tar.gz. great for initial, final, and homedir syncs. add extra excludes to /root/rsync_exclude.txt.
+# filter out stuff like error_log, backup-*.tar.gz. great for initial, final, and homedir syncs. add extra one-off excludes to /root/rsync_exclude.txt.
 rsync_excludes='--exclude=error_log --exclude=backup-*.tar.gz --exclude=mail/new --exclude=.trash --exclude=.cagefs'
-[ -f /root/rsync_exclude.txt ] && rsync_excludes=`echo $rsync_excludes --exclude-from=/root/rsync_exclude.txt`
+[ -f /root/rsync_exclude.txt ] && rsync_excludes=$(echo $rsync_excludes --exclude-from=/root/rsync_exclude.txt)
 
 # database excludes for final and mysql only syncs can be added to /root/db_exclude.txt (one per line). good for large databases that you dont want to sync again, or dbs that you only sync a few tables for manually.
 # similarly, database includes for final and mysql only syncs can be added to /root/db_include.txt (one per line). great for syncing databases that dont belong to a cpanel user. this is added before the excludes and the baddbs filter as above.
@@ -113,9 +113,9 @@ filelist="/etc/apf
 "
 
 # ok, stop editing! the follwing are vars that should not change
-scriptname=`basename $0 .sh`
-starttime=`date +%F.%T`
-starttimeepoch=`date +%s`
+scriptname=$(basename $0 .sh)
+starttime=$(date +%F.%T)
+starttimeepoch=$(date +%s)
 dir="/home/temp/pullsync"
 noopdir="/home/temp/noop-pullsync"
 pidfile="$dir/pullsync.pid"

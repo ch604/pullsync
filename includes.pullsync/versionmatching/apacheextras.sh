@@ -7,10 +7,12 @@ apacheextras() { #run after successful ea, copies extra apache things not part o
 	else
 		local remotehttp_di=$(awk -F\" '/\"directoryindex\"/ {print $4}' $dir/etc/cpanel/ea4/ea4.conf)
 	fi
-	if [ "$remotehttpd_di" ]; then
+	localhttp_di=$(awk -F\" '/\"directoryindex\"/ {print $4}' /etc/cpanel/ea4/ea4.conf)
+	if [ "$remotehttpd_di" ] && [ ! "$remotehttp_di" = "$localhttp_di" ]; then
 		ec yellow "Copying DirectoryIndex priority..."
 		sed -i.pullsync.bak '/\"directoryindex\"\ \:/ s/\:\ \"[a-zA-Z0-9\ \.]*\"/\:\ \"'"$remotehttpd_di"'\"/' /etc/cpanel/ea4/ea4.conf
 		/scripts/rebuildhttpdconf 2>&1 | stderrlogit 3
+		#TODO this will always validate ok, httpd doesnt care if your DirectoryIndex is populated. leaving the rest of this function in here in case other adjustments are made in the future to ea4.conf or httpd.conf.
 		httpd -t 2>&1 | stderrlogit 4
 		if [ "${PIPESTATUS[0]}" = "0" ]; then
 			# config test was ok

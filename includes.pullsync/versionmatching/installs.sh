@@ -22,14 +22,14 @@ installs() { # install all of the things we found and enabled
 		fi
 		# check the output of the backup to ensure success
 		if echo $output | grep -q 'Backup Successful'; then
-			cpconfbackup=$(echo $output |awk '{print $3}')
+			cpconfbackup=$(echo $output | awk '{print $3}')
 			# copy over the backup
 			rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:$cpconfbackup $dir/
 			# combat tar timestamp errors from clock drift
 			sleep 2
 			if [ -f $dir/whm-config-backup-all-original.tar.gz ]; then
 				# rsync was successful, restore command selection based on version
-				if [ $(cat /usr/local/cpanel/version | cut -d. -f2) -ge 56 ]; then
+				if [ $(cut -d. -f2 /usr/local/cpanel/version) -ge 56 ]; then
 					/usr/local/cpanel/bin/cpconftool --restore=$dir/$(echo $cpconfbackup | cut -d\/ -f3) --modules=cpanel::smtp::exim,cpanel::system::whmconf &> $dir/tweaksettings.log
 					local backupexitcode2=$?
 				else
@@ -95,7 +95,7 @@ installs() { # install all of the things we found and enabled
 			/usr/local/cpanel/bin/whmapi1 disable_cpgreylist 2>&1 | stderrlogit 3
 			mv /var/cpanel/greylist $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
 			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/greylist /var/cpanel/
-			rm -f /var/cpanel/greylist/enabled
+			\rm -f /var/cpanel/greylist/enabled
 			/usr/local/cpanel/bin/whmapi1 enable_cpgreylist 2>&1 | stderrlogit 3
 			/usr/local/cpanel/bin/whmapi1 load_cpgreylist_config 2>&1 | stderrlogit 3
 		fi
@@ -104,7 +104,7 @@ installs() { # install all of the things we found and enabled
 			/usr/local/cpanel/bin/whmapi1 disable_cphulk 2>&1 | stderrlogit 3
 			mv /var/cpanel/hulkd $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
 			rsync $rsyncargs --bwlimit=$rsyncspeed $dir/var/cpanel/hulkd /var/cpanel/
-			rm -f /var/cpanel/hulkd/enabled
+			\rm -f /var/cpanel/hulkd/enabled
 			/usr/local/cpanel/bin/whmapi1 enable_cphulk 2>&1 | stderrlogit 3
 			/usr/local/cpanel/etc/init/startcphulkd 2>&1 | stderrlogit 3
 		fi
@@ -113,7 +113,7 @@ installs() { # install all of the things we found and enabled
 			mv /etc/alwaysrelay $dir/pre_whm_config_settings/ 2>&1 | stderrlogit 3
 			cp -a $dir/etc/alwaysrelay /etc/
 		fi
-		if [ "$(sssh "which dovecot 2> /dev/null")" ]; then # dovecot is the only available option in whm now, assume target has dovecot"
+		if [ $(sssh "which dovecot 2> /dev/null") ]; then # dovecot is the only available option in whm now, assume target has dovecot"
 			local source_ciphers=$(sssh "dovecot -a" | awk '/^ssl_cipher_list = / {print $3}')
 			local target_ciphers=$(dovecot -a | awk '/^ssl_cipher_list = / {print $3}')
 			if [ "$(echo $source_ciphers | tr ':' '\n' | sort)" != "$(echo $target_ciphers | tr ':' '\n' | sort)" ]; then
@@ -197,8 +197,8 @@ installs() { # install all of the things we found and enabled
 	# mysql settings
 	if [ $match_sqlmode ]; then
 		ec yellow "Matching sql_mode and innodb_strict_mode..."
-		cp -a /etc/my.cnf{,.syncbak} 2> /dev/null
-		cp -a /usr/my.cnf{,.syncbak} 2> /dev/null
+		[ -f /etc/my.cnf ] && cp -a /etc/my.cnf{,.syncbak}
+		[ -f /usr/my.cnf ] && cp -a /usr/my.cnf{,.syncbak}
 		# sqlmode
 		remotesqlmode="$(sssh "mysql -BNe 'show variables like \"sql_mode\"'" | awk '{print $2}')"
 		if [ -f /usr/my.cnf ] && grep -iq ^sql_mode /usr/my.cnf; then
@@ -225,25 +225,24 @@ installs() { # install all of the things we found and enabled
 		/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
 		ec white "Waiting for mysql to come back, please be patient..."
 		# sleep until mysql is back, up to 30 seconds
-		sleep 5
-		local t=5
+		local t=6
 		while [[ $t -gt 0 ]]; do
 			(( t -= 1 ))
+			sleep 5
 			mysqladmin status &> /dev/null
 			[[ $? -eq 0 ]] && break
 			if [[ $t -eq 0 ]]; then
 				ec lightRed "Mysql didnt come back, undoing..." | errorlogit 3
-				if [ -f /usr/my.cnf.syncbak ] -o [ -f /etc/my.cnf.syncbak ]; then
-					mv -f /usr/my.cnf{.syncbak,} 2> /dev/null
-					mv -f /etc/my.cnf{.syncbak,} 2> /dev/null
+				if [ -f /usr/my.cnf.syncbak ] || [ -f /etc/my.cnf.syncbak ]; then
+					[ -f /usr/my.cnf.syncbak ] && mv -f /usr/my.cnf{.syncbak,}
+					[ -f /etc/my.cnf.syncbak ] && mv -f /etc/my.cnf{.syncbak,}
 				else
-			       		ec lightRed "Mysql didnt come back! And I cant find my.cnf.syncbak! AAAAH" | errorlogit 1
+					ec lightRed "Mysql didnt come back! And I cant find my.cnf.syncbak! AAAAH" | errorlogit 1
 					exitcleanup
 				fi
 				/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
 				sleep 15
 			fi
-			sleep 5
 		done
 		if [ "$(mysql -BNe 'show variables like "sql_mode"' | awk '{print $2}')" = "$remotesqlmode" ]; then
 			# sql_mode variables match
@@ -264,14 +263,11 @@ installs() { # install all of the things we found and enabled
 	# java
 	if [ "$java" ]; then
 		ec yellow "Installing Java..."
-		if [ "$(rpm --eval %rhel)" -ge 9 ]; then
-			yum -y -q install java-17-openjdk 2>&1 | stderrlogit 4
-		elif [ "$(rpm --eval %rhel)" -eq 8 ]; then
-			yum -y -q install java-11-openjdk 2>&1 | stderrlogit 4
-		else
-			yum -y -q install java-1.8.0-openjdk 2>&1 | stderrlogit 4
-		fi
-
+		case $javaver in
+			8) yum -y -q install java-1.8.0-openjdk 2>&1 | stderrlogit 4;;
+			*) yum -y -q install java-$javaver-openjdk 2>&1 | stderrlogit 4;;
+		esac
+		[ ! $(which java 2> /dev/null) ] && ec red "Java $javaver failed to install!" | errorlogit 3 && unset solr pdftk
 	fi
 
 	# cpanel solr
@@ -322,11 +318,11 @@ installs() { # install all of the things we found and enabled
 		ec yellow "Matching critical MySQL variables..."
 		cp -a /etc/my.cnf{,.pullsync.variablechange.bak}
 		# compare ibps, ibpi, toc, kbs, and mc and set in /etc/my.cnf if source is greater than target by commenting out old variable and adding a new line
-		[ $local_sql_ibps -lt $remote_sql_ibps ] && ec yellow " innodb_buffer_pool_size ($( human $local_sql_ibps) to $(human $remote_sql_ibps))" && sed -i -e '/^innodb_buffer_pool_size/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_size='$remote_sql_ibps /etc/my.cnf
-		[ $local_sql_ibpi -lt $remote_sql_ibpi ] && ec yellow " innodb_buffer_pool_instances ($local_sql_ibpi to $remote_sql_ibpi)" && sed -i -e '/^innodb_buffer_pool_instances/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_instances='$remote_sql_ibpi /etc/my.cnf
-		[ $local_sql_toc -lt $remote_sql_toc ] && ec yellow " table_open_cache ($local_sql_toc to $remote_sql_toc)" && sed -i -e '/^table_open_cache/s/^/#/' -e '/\[mysqld\]/a table_open_cache='$remote_sql_toc /etc/my.cnf
-		[ $local_sql_kbs -lt $remote_sql_kbs ] && ec yellow " key_buffer_size ($(human $local_sql_kbs) to $(human $remote_sql_kbs))" && sed -i -e '/^key_buffer_size/s/^/#/' -e '/\[mysqld\]/a key_buffer_size='$remote_sql_kbs /etc/my.cnf
-		[ $local_sql_mc -lt $remote_sql_mc ] && ec yellow " max_connections ($local_sql_mc to $remote_sql_mc)" && sed -i -e '/^max_connections/s/^/#/' -e '/\[mysqld\]/a max_connections='$remote_sql_mc /etc/my.cnf
+		[ "$local_sql_ibps" ] && [ "$remote_sql_ibps" ] && [ $local_sql_ibps -lt $remote_sql_ibps ] && ec yellow " innodb_buffer_pool_size ($( human $local_sql_ibps) to $(human $remote_sql_ibps))" && sed -i -e '/^innodb_buffer_pool_size/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_size='$remote_sql_ibps /etc/my.cnf
+		[ "$local_sql_ibpi" ] && [ "$remote_sql_ibpi" ] && [ $local_sql_ibpi -lt $remote_sql_ibpi ] && ec yellow " innodb_buffer_pool_instances ($local_sql_ibpi to $remote_sql_ibpi)" && sed -i -e '/^innodb_buffer_pool_instances/s/^/#/' -e '/\[mysqld\]/a innodb_buffer_pool_instances='$remote_sql_ibpi /etc/my.cnf
+		[ "$local_sql_toc" ] && [ "$remote_sql_toc" ] && [ $local_sql_toc -lt $remote_sql_toc ] && ec yellow " table_open_cache ($local_sql_toc to $remote_sql_toc)" && sed -i -e '/^table_open_cache/s/^/#/' -e '/\[mysqld\]/a table_open_cache='$remote_sql_toc /etc/my.cnf
+		[ "$local_sql_kbs" ] && [ "$remote_sql_kbs" ] && [ $local_sql_kbs -lt $remote_sql_kbs ] && ec yellow " key_buffer_size ($(human $local_sql_kbs) to $(human $remote_sql_kbs))" && sed -i -e '/^key_buffer_size/s/^/#/' -e '/\[mysqld\]/a key_buffer_size='$remote_sql_kbs /etc/my.cnf
+		[ "$local_sql_mc" ] && [ "$remote_sql_mc" ] && [ $local_sql_mc -lt $remote_sql_mc ] && ec yellow " max_connections ($local_sql_mc to $remote_sql_mc)" && sed -i -e '/^max_connections/s/^/#/' -e '/\[mysqld\]/a max_connections='$remote_sql_mc /etc/my.cnf
 		# restart mysql once at the end
 		/scripts/restartsrv_mysql 2>&1 | stderrlogit 3
 		sleep 2
@@ -354,7 +350,7 @@ installs() { # install all of the things we found and enabled
 			phpextras
 			apacheextras
 		elif [ ! -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
-				ec red "Couldn't find migration.json! Skipping EA4..." | errorlogit 2
+			ec red "Couldn't find migration.json! Skipping EA4..." | errorlogit 2
 		else
 			# use the custom migrated profile
 			ec yellow "Running EA4..."
@@ -375,7 +371,6 @@ installs() { # install all of the things we found and enabled
 
 	# non-ea php settings matching
 	if [ $noeaextras ]; then
-		# run the php extras and apache extras without running ea
 		phpextras
 		apacheextras
 	fi
@@ -401,7 +396,7 @@ installs() { # install all of the things we found and enabled
 
 	# imagick
 	[ "$imagick" ] && ec yellow "Installing imagemagick in separate screen..." && screen -S imagick -d -m bash -c "yum -y -q install ImageMagick ImageMagick-devel pcre-devel &&
-for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -e php4 -e php5); do
+for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
 	printf '\\n' | /opt/cpanel/\$each/root/usr/bin/pecl install imagick
 	list=\$(grep -E -Rl ^extension=[\\\"]?imagick.so[\\\"]?$ /opt/cpanel/\$each/root/etc/php.d/)
 	count=\$(echo \"\$list\" | wc -l)
@@ -425,7 +420,7 @@ done"
 	# sodium; install via epel and pecl
 	[ "$sodium" ] && ec yellow "Installing PHP libsodium in a separate screen..." && screen -S sodium -d -m bash -c "yum --enablerepo=epel -y install libsodium libsodium-devel && for each in \$(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1 | grep -v -e php5 -e php4 ); do /opt/cpanel/$each/root/usr/bin/pecl install libsodium; done; /scripts/restartsrv_apache_php_fpm"
 
-	# solr; install via plbake and extensions via make
+	# solr; install via script and extensions via make
 	[ "$solr" ] && ec yellow "Installing solr in separate screen..." && screen -S solr -d -m bash -c "cd /usr/local/src &&
 rm -rf /usr/local/src/solr-*
 wget https://archive.apache.org/dist/lucene/solr/8.9.0/solr-8.9.0.tgz &&
@@ -494,6 +489,8 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 			yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox-0.12.6-1.centos$(rpm --eval %rhel).x86_64.rpm 2>&1 | stderrlogit 4
 		else
 			yum -y -q localinstall https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-3/wkhtmltox-0.12.6-3.almalinux$(rpm --eval %rhel).x86_64.rpm 2>&1 | stderrlogit 4
+		fi
+	fi
 
 	# pdftk
 	if [ "$pdftk" ]; then
@@ -509,8 +506,8 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 	# maldet
 	if [ "$maldet" ]; then
 		ec yellow "Installing maldet..."
-		rm -rf /usr/local/src/maldetect-*
-		rm -rf /usr/local/src/linux-malware-detect*
+		\rm -rf /usr/local/src/maldetect-*
+		\rm -rf /usr/local/src/linux-malware-detect*
 		pushd /usr/local/src/ 2>&1 | stderrlogit 4
 		# download and run install script
 		wget -q http://www.rfxn.com/downloads/maldetect-current.tar.gz
@@ -519,8 +516,8 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 		sh ./install.sh 2>&1 | stderrlogit 3
 		popd 2>&1 | stderrlogit 4
 		# if bin is missing, try symlink first
-		[ ! "$(which maldet 2> /dev/null)" ] && ln -s /usr/local/sbin/maldet /usr/local/bin/
-		if [ "$(which maldet 2> /dev/null)" ]; then
+		[ ! $(which maldet 2> /dev/null) ] && ln -s /usr/local/sbin/maldet /usr/local/bin/
+		if [ $(which maldet 2> /dev/null) ]; then
 			# install success, continue with config
 			maldet --update-ver 2>&1 | stderrlogit 3
 			# adjust config
@@ -590,7 +587,7 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 			else
 				yum -y -q install ea-ruby24-mod_passenger 2>&1 | stderrlogit 4
 			fi
-			/bin/ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
+			\ls -A /var/cpanel/features/ | grep -v disabled | while read list; do
 				/scripts/featuremod --feature passengerapps --value enable --list "$list"
 			done
 		fi

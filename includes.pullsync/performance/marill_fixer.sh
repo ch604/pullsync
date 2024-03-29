@@ -61,7 +61,7 @@ marill_fixer() { #attempt to fix common marill errors
 					:
 				elif echo "$output" | grep -q blank\ page; then
 					#blank page, if wp try disabling plugins
-					if grep -q -i wordpress $homedir/$relpath/index.php && [ -f $homedir/$relpath/wp-config.php ] && [ "$(which wp 2>/dev/null)" ]; then
+					if grep -q -i wordpress $homedir/$relpath/index.php && [ -f $homedir/$relpath/wp-config.php ] && [ $(which wp 2>/dev/null) ]; then
 						ec yellow " Blank page detected on wp site $dom. Attempting plugin cycle..."
 						for plugin in $(su - $user -s /bin/bash -c "wp --path=$relpath plugin list" | awk '$2=="active" {print $1  }'); do
 							su - $user -s /bin/bash -c "wp --path=$relpath plugin deactivate $plugin"

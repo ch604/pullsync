@@ -15,7 +15,7 @@ optimizations(){ #server optimizations separated from installs() in case version
 				*) ec red "I couldn't be sure if this was worker or prefork! Not changing MPM." | errorlogit 3;;
 			esac
 			[ -s $yumshell ] && yum -y -q shell $yumshell 2>&1 | stderrlogit 4
-			rm -f $yumshell
+			\rm -f $yumshell
 		fi
 	fi
 	#mod_http2
@@ -59,18 +59,18 @@ optimizations(){ #server optimizations separated from installs() in case version
 		perl -i -p -e 's/SAFECHAINUPDATE = "0"/SAFECHAINUPDATE = "1"/g' /etc/csf/csf.conf
 		perl -i -p -e 's/PT_ALL_USERS = "0"/PT_ALL_USERS = "1"/g' /etc/csf/csf.conf
 		perl -i -p -e 's/RESTRICT_SYSLOG = "0"/RESTRICT_SYSLOG = "2"/g' /etc/csf/csf.conf
-		/scripts/smtpmailgidonly off
-		csf -ra 2>&1 >/dev/null
+		/scripts/smtpmailgidonly off &> /dev/null
+		csf -ra &> /dev/null
 		#whm tweaks
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=cgihidepass value=1 2>&1 >/dev/null
-		[ $(awk -F= '/^minpwstrength=/ {print $2}' $dir/var/cpanel/cpanel.config) -lt 75 ] && /usr/local/cpanel/bin/whmapi1 setminimumpasswordstrengths default=75 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=referrerblanksafety value=1 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=referrersafety value=1 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=resetpass value=0 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=resetpass_sub value=0 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=proxysubdomains value=0 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=skipboxtrapper value=1 2>&1 >/dev/null
-		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=userdirprotect value=1 2>&1 >/dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=cgihidepass value=1 &> /dev/null
+		[ $(awk -F= '/^minpwstrength=/ {print $2}' $dir/var/cpanel/cpanel.config) -lt 75 ] && /usr/local/cpanel/bin/whmapi1 setminimumpasswordstrengths default=75 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=referrerblanksafety value=1 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=referrersafety value=1 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=resetpass value=0 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=resetpass_sub value=0 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=proxysubdomains value=0 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=skipboxtrapper value=1 &> /dev/null
+		/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=userdirprotect value=1 &> /dev/null
 		ec green "Done!"
 		#php tweaks
 		for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do
@@ -93,22 +93,24 @@ optimizations(){ #server optimizations separated from installs() in case version
 	fi
 	#memcache
 	if [ "$memcache" ]; then
-		if ! [ "`which memcached 2> /dev/null`" ]; then
+		if [ ! $(which memcached 2> /dev/null) ]; then
 			ec yellow "Installing memcached..."
 			yum -q -y install memcached 2>&1 | stderrlogit 4
 			if [ "$?" = "0" ]; then
 				ec green "Success!"
 			fi
 		fi
-		if [ "`which memcached 2> /dev/null`" ]; then
+		if [ $(which memcached 2> /dev/null) ]; then
+			ec yellow "Memcached installed! Enabling..."
 			if [ "$(rpm --eval %rhel)" -le 6 ]; then #el6
-				chkconfig memcached on
+				chkconfig memcached on 2>&1 | stderrlogit 4
 				echo "service[memcached]=11211,version,VERSION,/etc/init.d/memcached stop;/etc/init.d/memcached start" > /etc/chkserv.d/memcached
+				/etc/init.d/memcached start 2>&1 | stderrlogit 4
 			else #el7+
-				systemctl enable memcached.service
+				systemctl enable memcached.service 2>&1 | stderrlogit 4
 				echo "service[memcached]=11211,version,VERSION,systemctl restart memcached.service" > /etc/chkserv.d/memcached
+				systemctl start memcached.service 2>&1 | stderrlogit 4
 			fi
-			service memcached start
 			! grep -q memcached /etc/chkserv.d/chkservd.conf && echo "memcached:1" >> /etc/chkserv.d/chkservd.conf
 			/scripts/restartsrv_chkservd 2>&1 | stderrlogit 3
 			echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --enablerepo=EA4-experimental*" | sh 2>&1 | stderrlogit 4
