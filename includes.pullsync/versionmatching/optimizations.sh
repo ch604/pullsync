@@ -113,7 +113,7 @@ optimizations(){ #server optimizations separated from installs() in case version
 			fi
 			! grep -q memcached /etc/chkserv.d/chkservd.conf && echo "memcached:1" >> /etc/chkserv.d/chkservd.conf
 			/scripts/restartsrv_chkservd 2>&1 | stderrlogit 3
-			echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --enablerepo=EA4-experimental*" | sh 2>&1 | stderrlogit 4
+			echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --enablerepo=EA4-experimental* --skip-broken" | sh 2>&1 | stderrlogit 4
 		else
 			ec red "Memcache install failed!" | stderrlogit 3
 		fi
