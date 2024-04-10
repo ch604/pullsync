@@ -40,6 +40,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			autophpmenu
 			timezone_check
 			[ -d /var/lib/pgsql ] && unset postgres
+			[ ! -s /etc/apache2/conf.d/modsec2/whitelist.conf ] && [ -s $dir/usr/local/apache/conf/modsec2/whitelist.conf -o -s $dir/etc/apache2/conf.d/modsec2/whitelist.conf ] && modsecimport=1
 			do_optimize=1
 			optimize_auto
 			security_auto

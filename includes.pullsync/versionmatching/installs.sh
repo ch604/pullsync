@@ -378,6 +378,27 @@ installs() { # install all of the things we found and enabled
 	# tomcat
 	[ "$tomcat" ] && ec yellow "Installing Tomcat..." && yum -y -q install ea-tomcat85 2>&1 | stderrlogit 4
 
+	# modsec
+	if [ $modsecimport ]; then
+		ec yellow "Copying modsec2 whitelist.conf..."
+		modsecroot="/etc/apache2/conf.d/modsec2"
+		cp -a $modsecroot/whitelist.conf{,.pullsync.bak}
+		if [ -s $dir/usr/local/apache/conf/modsec2/whitelist.conf ]; then
+			cat $dir/usr/local/apache/conf/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
+		elif [ -s $dir/etc/apache2/conf.d/modsec2/whitelist.conf ]; then
+			cat $dir/etc/apache2/conf.d/modsec2/whitelist.conf >> $modsecroot/whitelist.conf
+		else
+			ec red "Neither EA3 or EA4 modsec2 whitelist from source had content!" | errorlogit 4
+		fi
+		/scripts/restartsrv_apache 2>&1 | stderrlogit 3
+		if [ ! "${PIPESTATUS[0]}" = "0" ]; then
+			# apache restart failed because of some addition to the whitelist, revert
+			ec red "Couldn't restart apache! Reverting changes..."
+			mv -f $modsecroot/whitelist.conf{.pullsync.bak,}
+			/scripts/restartsrv_apache 2>&1 | stderrlogit 3
+		fi
+	fi
+
 	# modremoteip/modcloudflare
 	if [ "$modremoteip" ]; then
 		ec yellow "Installing mod_remoteip plugin with cloudflare support..."

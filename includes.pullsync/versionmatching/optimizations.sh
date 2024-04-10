@@ -1,7 +1,7 @@
 optimizations(){ #server optimizations separated from installs() in case version matching is not needed
 	#install ea4-experimental just in case and disable
 	yum -y -q install ea4-experimental 2>&1 | stderrlogit 3
-	sed -i 's/^enabled=.*$/enabled=0/' /etc/yum.repos.d/EA4-experimental.repo
+	[ -f /etc/yum.repos.d/EA4-experimental.repo ] && sed -i 's/^enabled=.*$/enabled=0/' /etc/yum.repos.d/EA4-experimental.repo || ec yellow "ea4-experimental repo did not install, possibly on EL9. This is fine." | errorlogit 4
 	#mpm_event
 	if [ $mpmevent ]; then
 		ec yellow "Ensuring Event MPM..."
@@ -113,7 +113,11 @@ optimizations(){ #server optimizations separated from installs() in case version
 			fi
 			! grep -q memcached /etc/chkserv.d/chkservd.conf && echo "memcached:1" >> /etc/chkserv.d/chkservd.conf
 			/scripts/restartsrv_chkservd 2>&1 | stderrlogit 3
-			echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --enablerepo=EA4-experimental* --skip-broken" | sh 2>&1 | stderrlogit 4
+			if [ -f /etc/yum.repos.d/EA4-experimental.repo ]; then
+				echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --enablerepo=EA4-experimental* --skip-broken" | sh 2>&1 | stderrlogit 4
+			else
+				echo "yum -q -y install $(for each in $(/usr/local/cpanel/bin/rebuild_phpconf --available | cut -d: -f1); do echo -n "$each-php-memcache $each-php-memcached "; done) --skip-broken" | sh 2>&1 | stderrlogit 4
+			fi
 		else
 			ec red "Memcache install failed!" | stderrlogit 3
 		fi
@@ -121,7 +125,11 @@ optimizations(){ #server optimizations separated from installs() in case version
 	#mod_pagespeed
 	if [ $pagespeed ]; then
 		ec yellow "Installing mod_pagespeed..."
-		yum -q -y install ea-apache24-mod_version ea-apache24-mod_pagespeed --enablerepo=EA4-experimental* 2>&1 | stderrlogit 4
+		if [ -f /etc/yum.repos.d/EA4-experimental.repo ]; then
+			yum -q -y install ea-apache24-mod_version ea-apache24-mod_pagespeed --enablerepo=EA4-experimental* 2>&1 | stderrlogit 4
+		else
+			yum -q -y install ea-apache24-mod_version ea-apache24-mod_pagespeed 2>&1 | stderrlogit 4
+		fi
 		[ -f /usr/local/apache/conf/pagespeed.conf ] && sed -i '$ i\<Location \/wp-admin\/>\nModPagespeed Off\n<\/Location>' /usr/local/apache/conf/pagespeed.conf
 		[ -f /etc/apache2/conf.modules.d/510_pagespeed.conf ] && sed -i '$ i\<Location \/wp-admin\/>\nModPagespeed Off\n<\/Location>' /etc/apache2/conf.modules.d/510_pagespeed.conf
 		mkdir -p /var/cache/pagespeed /var/cache/mod_pagespeed
@@ -131,6 +139,10 @@ optimizations(){ #server optimizations separated from installs() in case version
 	#nginx proxy
 	if [ $nginxproxy ]; then
 		ec yellow "Installing Nginx proxy..."
-		yum -q -y install ea-nginx --enablerepo=EA4-experimental* 2>&1 | stderrlogit 4
+		if [ -f /etc/yum.repos.d/EA4-experimental.repo ]; then
+			yum -q -y install ea-nginx ea-nginx-http2 ea-nginx-gzip--enablerepo=EA4-experimental* 2>&1 | stderrlogit 4
+		else
+			yum -q -y install ea-nginx ea-nginx-http2 ea-nginx-gzip 2>&1 | stderrlogit 4
+		fi
 	fi
 }

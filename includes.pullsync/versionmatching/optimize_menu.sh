@@ -2,7 +2,7 @@ optimize_menu(){ #run outside of matching_menu() in case version matching is not
 	local cmd=(dialog --clear --backtitle "pullsync" --title "Optimization Menu" --separate-output --checklist "Select options for server optimization. Sane options were selected based on your configuration:\n" 0 0 8)
 	local options=( 1 "Install mod_http2 for EA4" on
 			2 "Install memcached and modules" on
-			3 "Install nginx proxy for EA4 (EXPERIMENTAL)" off
+			3 "Install nginx proxy for EA4" off
 			4 "Use FPM for all accounts (converts migrated domains!)" off
 			5 "Turn on keepalive, mod_expires, and mod_deflate" off
 			6 "Security tweaks" off

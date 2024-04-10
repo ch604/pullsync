@@ -9,7 +9,7 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 			6 "Copy CSF rules" off
 			7 "Match timezone data" off
 			8 "Match sql_mode and innodb_strict_mode" on
-			9 "Install PostgreSQL" off
+			9 "Import ModSec rules" off
 			10 "Open exim on port 26" off
 			11 "Turn off LFD alerts" on
 			12 "Install loadwatch" off
@@ -43,11 +43,8 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 		options[23]=off
 		cmd[8]=$(echo "${cmd[8]}\n(8) Target server is AlmaLinux, not matching sql_mode")
 	fi
-	#pgsql (24 25 26)
-	if [ "$postgres" ] && [ ! -d /var/lib/pgsql ]; then
-		options[26]=on
-		cmd[8]=$(echo "${cmd[8]}\n(9) Postgres detected on source and not target")
-	fi
+	#modsec (24 25 26)
+	[ ! -s /etc/apache2/conf.d/modsec2/whitelist.conf ] && [ -s $dir/usr/local/apache/conf/modsec2/whitelist.conf -o -s $dir/etc/apache2/conf.d/modsec2/whitelist.conf ] && options[26]=on && cmd[8]=$(echo "${cmd[8]}\n(9) Local modsec whitelist.conf empty")
 	#exim26 (27 28 29)
 	remote_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' $dir/etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
 	local_exim_ports=$(awk -F= '/^daemon_smtp_ports/ {print $2}' /etc/exim.conf | tr -d ' ' | tr ':' '\n' | sort)
@@ -103,9 +100,8 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 	[ ! -s ${dir}/var/cpanel/mysqlaccesshosts ] && unset options[38] options[37] options[36] && cmd[8]=$(echo "${cmd[8]}\n(13) MySQL access hosts not set on source")
 	#lfd alerts (30 31 32)
 	[ ! -e /etc/csf/csf.conf ] && unset options[32] options[31] options[30] && cmd[8]=$(echo "${cmd[8]}\n(11) CSF/LFD not detected on target")
-	#pgsql (24 25 26)
-	[ "$postgres" ] && [ -d /var/lib/pgsql ] && unset options[26] options[25] options[24] && cmd[8]=$(echo "${cmd[8]}\n(9) Postgres already installed on target")
-	[ ! "$postgres" ] && unset options[26] options[25] options[24] && cmd[8]=$(echo "${cmd[8]}\n(9) Postgres not detected on source")
+	#modsec (24 25 26)
+	[ -s /etc/apache2/conf.d/modsec2/whitelist.conf ] && unset options[26] options[25] options[24] && cmd[8]=$(echo "${cmd[8]}\n(9) Local modsec whitelist.conf contains data already")
 	#timezone (18 19 20)
 	[ "${localtimezone}" = "${remotetimezone}" ] || [ -z "${remotetimezone}" -o -z "${localtimezone}" -o -z "${remotetimezonefile}" -o -z "${localtimezonefile}" ] && unset options[20] options[19] options[18] && cmd[8]=$(echo "${cmd[8]}\n(7) Some timezone variables could not be set, or timezones already match")
 	#csf allow (15 16 17)
@@ -123,7 +119,6 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 	clear
 	echo $choices >> $log
 	for choice in $choices; do print_next_element options $choice >> $log; done
-	! echo $choices | grep -q -x 9 && unset postgres
 	for choice in $choices; do
 		case $choice in
 			1)	awk '/^CONTACTEMAIL / {print $2}' $dir/etc/wwwacct.conf > $dir/whmcontact.txt
@@ -135,6 +130,7 @@ matching_menu(){ #this is where a lot of the comparisons between the servers is 
 			6)	csfimport=1;;
 			7)	matchtimezone=1;;
 			8)	match_sqlmode=1;;
+			9)	modsecimport=1;;
 			10)	eximon26=1;;
 			11)	lfdemailsoff=1;;
 			12)	install_loadwatch=1;;

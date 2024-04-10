@@ -1,4 +1,10 @@
 install_security() { #install optional security settings
+	if [ $enable_modsec ]; then
+		ec yellow "Enabling OWASP ModSec ruleset..."
+		yum -y -q --skip-broken install ea-modsec-sdbm-util ea-modsec2-rules-owasp-crs 2>&1 | stderrlogit 3
+		/scripts/modsec_vendor enable OWASP3 2>&1 | stderrlogit 3
+	fi
+
 	if [ $enable_modevasive ]; then
 		ec yellow "Installing mod_evasive with default options..."
 		yum -y -q install ea-apache24-mod_evasive 2>&1 | stderrlogit 3
