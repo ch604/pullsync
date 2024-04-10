@@ -8,7 +8,7 @@ detect_apps() { # look for common extra applications
 	memcache=$(grep -e 'memcache' $psfile)
 	redis=$(grep -e 'redis-server' $psfile)
 	elasticsearch=$(grep -e 'elasticsearch' $psfile)
-	maldet=$(sssh "which maldet 2> /dev/null")
+	imunify=$(sssh "which maldet 2> /dev/null; rpm --quiet -q imunify-antivirus-cpanel && echo imunify")
 	[ $(awk -F= '/^skipspamassassin=/ {print $2}' $dir/var/cpanel/cpanel.config) = 0 ] && [ $(awk -F= '/^skipspamassassin=/ {print $2}' /var/cpanel/cpanel.config) = 1 ] && spamassassin=1
 	java=$(sssh "which java 2> /dev/null")
 	if [ "$java" ]; then
@@ -105,7 +105,7 @@ detect_apps() { # look for common extra applications
 	[ "$memcache" ] && grep -q -e 'memcache' $psfile2 && unset memcache && echo "memcache" >> $dir/skippedinstall.txt
 	[ "$redis" ] && which redis-server &> /dev/null && unset redis && echo "redis" >> $dir/skippedinstall.txt
 	[ "$elasticsearch" ] && service elasticsearch status &> /dev/null && unset elasticsearch && echo "elasticsearch" >> $dir/skippedinstall.txt
-	[ "$maldet" ] && which maldet &> /dev/null && unset maldet && echo "maldet" >> $dir/skippedinstall.txt
+	[ "$imunify" ] && rpm --quiet -q imunify-antivirus-cpanel &> /dev/null && unset imunify && echo "imunify" >> $dir/skippedinstall.txt
 	[ "$java" ] && which java &> /dev/null && unset java javaver && echo "java" >> $dir/skippedinstall.txt
 	[ "$solr" ] && /etc/init.d/solr status &> /dev/null && unset solr && echo "solr" >> $dir/skippedinstall.txt
 	[ "$wkhtmltopdf" ] && which wkhtmltopdf &> /dev/null && unset wkhtmltopdf && echo "wkhtmltopdf" >> $dir/skippedinstall.txt

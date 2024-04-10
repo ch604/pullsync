@@ -503,41 +503,13 @@ multielasticdump --direction=load --input=$dir/elastic --output=http://localhost
 		fi
 	fi
 
-	# maldet
-	if [ "$maldet" ]; then
-		ec yellow "Installing maldet..."
-		\rm -rf /usr/local/src/maldetect-*
-		\rm -rf /usr/local/src/linux-malware-detect*
-		pushd /usr/local/src/ 2>&1 | stderrlogit 4
-		# download and run install script
-		wget -q http://www.rfxn.com/downloads/maldetect-current.tar.gz
-		tar -zxf maldetect-current.tar.gz
-		cd maldetect-*
-		sh ./install.sh 2>&1 | stderrlogit 3
-		popd 2>&1 | stderrlogit 4
-		# if bin is missing, try symlink first
-		[ ! $(which maldet 2> /dev/null) ] && ln -s /usr/local/sbin/maldet /usr/local/bin/
-		if [ $(which maldet 2> /dev/null) ]; then
-			# install success, continue with config
-			maldet --update-ver 2>&1 | stderrlogit 3
-			# adjust config
-			sed -i -e 's/quarantine_hits=\"1\"/quarantine_hits=\"0\"/' -e 's/quarantine_clean=\"1\"/quarantine_clean=\"0\"/' -e 's/email_alert=\"1\"/email_alert=\"0\"/' -e 's/email_addr=\"you@domain.com\"/email_addr=\"\"/' /usr/local/maldetect/conf.maldet
-			maldet --update 2>&1 | stderrlogit 3
-			if [ -e /usr/local/cpanel/3rdparty/bin/clamscan ]; then
-				# link cpanel clamscan binaries
-				ln -s /usr/local/cpanel/3rdparty/bin/clamscan /usr/bin/clamscan
-				ln -s /usr/local/cpanel/3rdparty/bin/freshclam /usr/bin/freshclam
-				[ ! -d /var/lib/clamav ] && mkdir /var/lib/clamav
-				ln -s /usr/local/cpanel/3rdparty/share/clamav/main.cld /var/lib/clamav/main.cld
-				ln -s /usr/local/cpanel/3rdparty/share/clamav/daily.cld /var/lib/clamav/daily.cld
-				ln -s /usr/local/cpanel/3rdparty/share/clamav/bytecode.cld /var/lib/clamav/bytecode.cld
-			fi
-			# correct homedir scan in cron
-			sed -i 's/home?/hom?/g' /etc/cron.daily/maldet
-			ec green "Success!"
-		else
-			ec red "Install of maldet failed!" | errorlogit 3
-		fi
+	# imunify
+	if [ "$imunify" ]; then
+		ec yellow "Installing imunify-av..."
+		bash <(curl -s https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh) 2>&1 | stderrlogit 4
+		yum -y -q install imunify-antivirus-cpanel 2>&1 | stderrlogit 4
+		imunify-antivirus enable-plugin 2>&1 | stderrlogit 4
+		imunify-antivirus config update '{"ADMIN_CONTACTS": {"enable_icontact_notifications": true}}' 2>&1 | stderrlogit 4
 	fi
 
 	# spamassassin

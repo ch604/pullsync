@@ -92,7 +92,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 		[ "$memcache" ] && echo "* installed memcached-full"
 		[ "$apc" ] && echo "* installed apc/apcu"
 		[ "$sodium" ] && echo "* installed sodium"
-		[ "$maldet" ] && echo "* installed maldet"
+		[ "$imunify" ] && echo "* installed imunify-av"
 		[ "$spamassassin" ] && echo "* enabled spamassassin"
 		[ "$nodejs" ] && echo "* installed node.js and npm"
 		[ "$wkhtmltopdf" ] && echo "* installed wkhtmltopdf"
