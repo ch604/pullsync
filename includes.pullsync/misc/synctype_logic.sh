@@ -17,8 +17,7 @@ synctype_logic() { #case statement for performing server to server sync tasks. g
 
 	# we need /etc/userdomains for the domainlist conversion, might as well get things now.
 	ec yellow "Transferring some config files over from old server to $dir"
-	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:"$(echo $filelist)" $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
-	[ ! -d $dir/var/cpanel/users ] && rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
+	rsync -RL $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip$(for i in $filelist; do echo -n ":$i "; done) $dir/ --exclude=named.run --exclude=named.log --exclude=named.log-*.gz --exclude=chroot --delete 2>&1 | stderrlogit 4
 
 	case $synctype in
 		single|list|domainlist|all)
