@@ -1,9 +1,13 @@
-human() { #make a long number in bytes human readable
-	b=${1:-0}; d=''; s=0; S=(Bytes {K,M,G,T,E,P,Y,Z}B)
-	while ((b > 1024)); do
-		d="$(printf ".%02d" $((b % 1024 * 100 / 1024)))"
-		b=$((b / 1024))
-		let s++
+human() { #make a long number in bytes human readable with two significant digits
+	local bytes decimal index SI
+	bytes=${1:-0}
+	decimal=''
+	index=0
+	SI=(Bytes {K,M,G,T,E,P,Y,Z}B)
+	while ((bytes > 1024)); do
+		decimal="$(printf ".%02d" $((bytes % 1024 * 100 / 1024)))"
+		bytes=$((bytes / 1024))
+		((index++))
 	done
-	echo "$b$d ${S[$s]}"
+	echo "$bytes$decimal${SI[$index]}"
 }

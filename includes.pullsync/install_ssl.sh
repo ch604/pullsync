@@ -1,16 +1,16 @@
 install_ssl() { #install ssls for restored account. $1 is username.
-	local user=$1
-	local user_domains=$(awk -F= '/^DNS/ {print $2}' /var/cpanel/users/${user} | grep -v \*)
+	local user user_domains cert key cabundle
+	user=$1
+	user_domains=$(awk -F= '/^DNS/ {print $2}' /var/cpanel/users/${user} | grep -v "\*")
 	for domain in ${user_domains}; do
 		# check for ssl from old server
-		if [ -f ${dir}/var/cpanel/userdata/${domain}_SSL ]; then
-			certfile=$(awk '/^sslcertificatefile:/ {print $2}' ${dir}/var/cpanel/userdata/${domain}_SSL)
-			keyfile=$(awk '/^sslcertificatekeyfile:/ {print $2}'  ${dir}/var/cpanel/userdata/${domain}_SSL)
-			cabundle=$(awk '/^sslcacertificatefile:/ {print $2}' ${dir}/var/cpanel/userdata/${domain}_SSL)
-			if [ "${cabundle}" -a "${keyfile}" -a "${cabundle}" ]; then
-				# if all necessary files exist, install ssl through whmapi
+		if grep -q ^${domain}___ $dir/ssls.txt; then
+			cert=$(awk -F"___" '/^'${domain}'___/ {print $2}' $dir/ssls.txt)
+			key=$(awk -F"___" '/^'${domain}'___/ {print $3}' $dir/ssls.txt)
+			cabundle=$(awk -F"___" '/^'${domain}'___/ {print $4}' $dir/ssls.txt)
+			if [[ "${cert}" && "${key}" && "${cabundle}" ]]; then
 				ec white "Installing SSL certificate for ${domain}..."
-				/usr/local/cpanel/bin/whmapi1 installssl domain=${domain} crt=$(cat ${dir}/${certfile} | perl -MURI::Escape -ne 'print uri_escape($_)') key=$(cat ${dir}/${keyfile} | perl -MURI::Escape -ne 'print uri_escape($_)') cab=$(cat ${dir}/${cabundle} | perl -MURI::Escape -ne 'print uri_escape($_)') 2>&1 | stderrlogit 3
+				/usr/local/cpanel/bin/whmapi1 installssl domain=${domain} crt=${cert} key=${key} cab=${cabundle} 2>&1 | stderrlogit 3
 			fi
 		fi
 	done

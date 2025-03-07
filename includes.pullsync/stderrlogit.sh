@@ -7,8 +7,8 @@ stderrlogit() { #silently log to stderr log. level (1-4) should be passed as $1
 		4) local level=INFO; shift;;
 		*) local level=NONE;;
 	esac
-	while read line; do
+	while read -r line; do
 		# prepend the timestamp and level prefix, and append the line to the stderr log without printing to console
-		echo "$(ts) [$level] $line" >> $errlog
+		echo "$(ts) [$level] $line" >> "$stderrlog"
 	done
 }

@@ -1,15 +1,21 @@
 finalsync_main() { #resync data, optionally stopping services on the source server
+	local choices fixmatch
+	declare -a cmd options
 	#check a few things before starting
 	multihomedir_check
 	space_check
 	backup_check
 	unowneddbs
-	[ $enabledbackups ] && cpbackup_finish
+	if [ "$enabledbackups" ]; then
+		ec yellow "Finishing configuration of cPanel backups..."
+		# shellcheck disable=SC2086
+		parallel -j 100% -u 'cpbackup_finish {}' ::: $userlist
+	fi
 
 	#print the options menu and automatically align certain selections
 	if [ ! "$autopilot" ]; then
-		local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Final Sync Menu" --separate-output --checklist "Select options for the final sync. Sane options have been selected based on your source, but modify as needed.\n" 0 0 19)
-		local options=(	1 "Remove HostsCheck.php files" on
+		cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Final Sync Menu" --separate-output --checklist "Select options for the final sync. Sane options have been selected based on your source, but modify as needed.\n" 0 0 19)
+		options=(	1 "Remove HostsCheck.php files" on
 			2 "Stop services on source server (httpd, cpanel, and mail)" on
 			3 "Restart services after sync" on
 			4 "Add motd to source server while services stopped" on
@@ -32,15 +38,14 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		#turn malware scan on if there were hits during initial sync
 		[ -s /root/dirty_accounts.txt ] && cmd[9]=$(echo "${cmd[9]}\n(9) Malware found in prior pullsync (/root/dirty_accounts.txt)") && options[26]=off
 		#turn on autossl if there are autossls on source
-		for crt in $(\ls $dir/var/cpanel/ssl/installed/certs/*.crt 2> /dev/null); do openssl x509 -in $crt -issuer -noout; done | grep -q -e "cPanel, Inc." -e "Let's Encrypt" && cmd[9]=$(echo "${cmd[9]}\n(11) Source has AutoSSL issued certs") && options[32]=on
+		for crt in $dir/var/cpanel/ssl/installed/certs/*.crt; do openssl x509 -in $crt -issuer -noout; done | grep -q -e "cPanel, Inc." -e "Let's Encrypt" && cmd[9]=$(echo "${cmd[9]}\n(11) Source has AutoSSL issued certs") && options[32]=on
 		#check for need of fixperms
-		for user in $userlist; do
-			[[ ! "$(sssh "stat /home/$user/public_html" | awk -F'[(|/|)]' '/Uid/ {print $2, $6, $9}')" =~ 75[01]\ +$user\ +(nobody|$user) ]] && local fixmatch=1
-		done
-		[ $fixmatch ] && cmd[9]=$(echo "${cmd[9]}\n(13) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)") && unset fixmatch
+		parallel -j 100% --halt now,fail=1 'fixpermscheck {}' ::: $userlist &> /dev/null
+		fixmatch=$?
+		[ "$fixmatch" -ge 1 ] && cmd[9]=$(echo "${cmd[9]}\n(13) Some accounts have incorrect public_html permissions (you still need to turn this on if you want to run fixperms)")
 		#copy remote backup dests if anuy exist
 		[ "$(\ls $dir/var/cpanel/backups/*.backup_destination 2> /dev/null)" ] && cmd[9]=$(echo "${cmd[9]}\n(15) Source using remote backup destinations") && options[44]=on
-		local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+		choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 		clear
 		echo $choices >> $log
 		for choice in $choices; do print_next_element options $choice >> $log; done
@@ -99,7 +104,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	[ $maildelete ] && echo -e "\n* USED --delete ON THE MAIL FOLDER (BETA)"
 	[ $setremotemx ] && echo -e "\n* SET SOURCE SERVER TO REMOTE MX DESTINATION (BETA)"
 	[ $ipswap ]  && echo -e "\n* PERFORMED AUTOMATIC IP SWAP"
-	[ $(echo $userlist | wc -w) -gt 15 ] && echo -e "\ntruncated userlist ($(echo $userlist | wc -w)): $(echo $userlist | tr ' ' '\n' | head -15 | tr '\n' ' ')" || echo -e "\nuserlist ($(echo $userlist | wc -w)): $(echo $userlist | tr '\n' ' ')"
+	[ "$(echo $userlist | wc -w)" -gt 15 ] && echo -e "\ntruncated userlist ($(echo $userlist | wc -w)): $(echo $userlist | tr ' ' '\n' | head -15 | paste -sd' ')" || echo -e "\nuserlist ($(echo $userlist | wc -w)): $(echo $userlist | paste -sd' ')"
 	) | tee -a $dir/ticketnote.txt | logit
 	ec lightPurple "Stop copying now :D"
 
@@ -108,9 +113,14 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	ec lightBlue "Ready to begin the final sync!"
 	say_ok
 
+	#dont reboot on oom
+	ec yellow "Disabling panic/reboot on oom..."
+	[ "$(sysctl -n vm.panic_on_oom)" -eq 1 ] && sysctl vm.panic_on_oom=0 &> /dev/null
+
 	#update motd and clean up extra testing files
 	lastpullsyncmotd
-	[ $doremovehc ] && remove_HostsCheck
+	getreadyforparallel
+	[ "$doremovehc" ] && ec yellow "Erasing HostsCheck.php files in the background..." && (remove_HostsCheck & )
 
 	#stop services on the source server and start the maintenance engine, detect extra programs to restart for later
 	if [ "$stopservices" ]; then
@@ -145,36 +155,21 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 
 	# get target ready for db restores
 	prep_for_mysql_dbsync
-	if sssh "pgrep postgres &> /dev/null" && pgrep postgres &> /dev/null; then
-		dopgsync=1
-		mkdir -p -m600 $dir/pgdumps
-		mkdir -p -m600 $dir/pre_pgdumps/
-		sssh "mkdir -p -m600 $remote_tempdir 2> /dev/null"
-	fi
+	prep_for_pgsql_dbsync
 
-	# set variables for progress display
-	user_total=$(echo $userlist | wc -w)
-	> $dir/final_complete_users.txt
-	start_disk=0
-	homemountpoints=$(for each in $(echo $localhomedir); do findmnt -nT $each | awk '{print $1}'; done | sort -u)
-	for each in $(echo $homemountpoints); do
-		local z=$(df $each | tail -n1 | awk '{print $3}')
-		start_disk=$(( $start_disk + $z ))
-	done
-	expected_disk=$(( $start_disk + $finaldiff ))
-
-	# store refreshdelay so parallel can read it
-	echo "$refreshdelay" > $dir/refreshdelay
-
-	# ARE YOU READY HERE IT IS
 	ec yellow "Executing final sync..."
 	parallel --jobs $jobnum -u 'finalfunction {#} {} >$dir/log/looplog.{}.log' ::: $userlist &
-	finalprogress $!
+	syncprogress $! finalfunction
+	
+	# sync extra dbs
 	if [ -s /root/db_include.txt ]; then
 		ec yellow "Syncing /root/db_include.txt..."
 		dblist_restore=$(cat /root/db_include.txt)
 		sanitize_dblist
-		parallel_mysql_dbsync
+		echo "$dblist_restore" > $dir/dblist.txt
+		while read -r -u9 db; do
+			mysql_dbsync "$db"
+		done 9<$dir/dblist.txt
 	fi
 	ec green "Final syncs complete!"
 
@@ -216,7 +211,7 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		fi
 		ec yellow "Restarting Services..."
 		if echo $port_80_prog | grep -qvE 'lsws|lshttpd|litespeed'; then #only start httpd if no lsws
-			sssh "if [ \"\$(which service 2>/dev/null)\" ]; then service httpd start; else /etc/init.d/httpd start; fi"
+			sssh "/scripts/restartsrv_httpd"
 		fi
 		[ "$port_80_prog" ] && sssh "for each in $(echo $port_80_prog); do if [ \"\$(which service 2>/dev/null)\" ]; then service \$each start; else /etc/init.d/\$each start; fi; done"
 		sssh "for each in crond exim cpanel; do if [ \"\$(which service 2>/dev/null)\" ]; then service \$each start; else /etc/init.d/\$each start; fi; done"
@@ -228,41 +223,36 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 		sleep 5
 	else
 		ec yellow "Skipping restart of services."
-		[ "$maintpage" -a "$stopservices" ] && ec red "Maintenance page engine left running on source. This must be killed to start apache (killall /root/maintenance)."
+		[ "$maintpage" ] && [ "$stopservices" ] && ec red "Maintenance page engine left running on source. This must be killed to start apache (killall /root/maintenance)."
 	fi
 
 	#direct mail still attempting local delivery on source to target server
-	if [ $setremotemx ]; then
+	if [ "$setremotemx" ]; then
 		ec yellow "Setting domains on source server to remote mail routing..."
-		getlocaldomainlist
-		for dom in $domainlist; do
-			sssh "/usr/local/cpanel/scripts/xfertool --setupmaildest $dom remote" 2>&1 | stderrlogit 3
-		done
+		parallel -j 100% -u 'sssh "/usr/local/cpanel/scripts/xfertool --setupmaildest {} remote"' ::: $userlist 2>&1 | stderrlogit 3
 	fi
 
 	#start ip swap if selected
 	[ "$ipswap" ] && [ ! "$autopilot" ] && ip_swap
-#	[ "$stormipswap" ] && [ ! "$autopilot" ] && storm_ip_swap
 
 	#autossl
-	if [ $autossl ]; then
+	if [ "$autossl" ]; then
 		ec yellow "Enabling AutoSSL and running delayed checks in the background..."
-		/usr/local/cpanel/bin/whmapi1 set_autossl_provider provider=cPanel 2>&1 | stderrlogit 3
+		/usr/local/cpanel/bin/whmapi1 set_autossl_provider provider=LetsEncrypt x_terms_of_service_accepted='https://letsencrypt.org/documents/LE-SA-v1.4-April-3-2024.pdf' 2>&1 | stderrlogit 3
 		nohup sh -c 'sleep 300 && /usr/local/cpanel/bin/whmapi1 start_autossl_check_for_all_users' &> /dev/null & #300s allows time for propagation
 	fi
 
 	#marill
 	if [ $runmarill ]; then
 		getlocaldomainlist
-		> $hostsfile_alt
-		for user in $userlist; do
-			hosts_file $user &> /dev/null
-		done
+		: > $hostsfile_alt
+		ec yellow "Generating hosts file entries..."
+		parallel -j 100% 'hosts_file {}' ::: $userlist
 		marill_gen
 	fi
 
 	#remote backups
-	if [ $copyremotebackups ]; then
+	if [ "$copyremotebackups" ]; then
 		ec yellow "Copying remote cPanel backup destinations..."
 		cp -a $dir/var/cpanel/backups/*.backup_destination /var/cpanel/backups/
 	fi
@@ -272,7 +262,11 @@ finalsync_main() { #resync data, optionally stopping services on the source serv
 	/scripts/updatenameserverips
 
 	#motd cleanup
-	[ $removemotd ] && grep -q pullsync /etc/motd && sed -i '/pullsync/d' /etc/motd
+	[ "$removemotd" ] && grep -q pullsync /etc/motd && sed -i '/pullsync/d' /etc/motd
+
+	#re-enable reboot on oom
+	ec yellow "Re-enabling panic/reboot on oom..."
+	[ "$(sysctl -n vm.panic_on_oom)" -eq 0 ] && sysctl vm.panic_on_oom=1 &> /dev/null
 
 	#print notes and errors
 	ec yellow "== Actions Taken =="

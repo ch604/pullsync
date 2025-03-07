@@ -1,4 +1,5 @@
 finish_up() { #run after every clean exit through main(), performs tidying up functions and ensures certain items are set up
+	local nscount newip
 	ec yellow "Fixing mail permissions..."
 	screen -S mailperm -d -m /scripts/mailperm
 	ec yellow "Fixing cpanel quotas..."
@@ -12,18 +13,18 @@ finish_up() { #run after every clean exit through main(), performs tidying up fu
 		#reset the cpanel_main_ip variable if there was an ip swap
 		[ "$ipswap" ] && cpanel_main_ip=$(awk '/^ADDR [0-9]/ {print $2}' /etc/wwwacct.conf | tr -d '\n')
 		[ "$cpanel_main_ip" = "" ] && cpanel_main_ip=$(cat /var/cpanel/mainip)
-		adjust_dns_record $(hostname) $cpanel_main_ip
+		adjust_dns_record "$(hostname)" "$cpanel_main_ip"
 		if [ ! -f /var/cpanel/useclusteringdns ] && [ ! -d /var/cpanel/cluster/root/config/ ]; then #no clustering only
 			ec yellow "Setting up A records for nameservers..."
-			local nscount=1
+			nscount=1
 			for ns in $(/usr/local/cpanel/bin/whmapi1 get_nameserver_config | awk '/ - / {print $2}'); do
 				if [ -s /etc/ips ] && [ $nscount -ne 1 ]; then
-					local newip=$(grep -v ^$ /etc/ips | head -n$(($nscount - 1)) | tail -n1 | cut -d: -f1)
+					newip=$(grep -v ^$ /etc/ips | head -n$((nscount - 1)) | awk -F: 'END {print $1}')
 				else
-					local newip=$cpanel_main_ip
+					newip=$cpanel_main_ip
 				fi
-				adjust_dns_record $ns $newip
-				nscount=$(($nscount + 1))
+				adjust_dns_record "$ns" "$newip"
+				nscount=$((nscount + 1))
 			done
 		fi
 	fi

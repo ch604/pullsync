@@ -1,18 +1,22 @@
 homedirsync_main() { #wraps up the homedir sync function into finalprogress so you get a progress display
+	local choices
+	declare -a cmd options
 	# get some input for the process progress bars
 	multihomedir_check
 	space_check
 
-	local cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Homedir Sync Menu" --separate-output --checklist "Select options for the homedir sync." 0 0 5)
-	local options=( 1 "Use --update for rsync" on
-			2 "Exclude 'cache' from the rsync" off )
-	local choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+	cmd=(dialog --nocancel --clear --backtitle "pullsync" --title "Homedir Sync Menu" --separate-output --checklist "Select options for the homedir sync." 0 0 5)
+	options=( 1 "Use --update for rsync" on
+			2 "Exclude 'cache' from the rsync" off
+			3 "Use --delete on the mail folder" off )
+	choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	echo $choices >> $log
 	for choice in $choices; do
 		print_next_element options $choice >> $log
 		case $choice in
 			1) rsync_update="--update";;
 			2) rsync_excludes=$(echo --exclude=cache $rsync_excludes);;
+			3) maildelete=1;;
 			*) :;;
 		esac
 	done
@@ -21,20 +25,9 @@ homedirsync_main() { #wraps up the homedir sync function into finalprogress so y
 
 	# start unattended section
 	lastpullsyncmotd
+	getreadyforparallel
 
-	# set variables for progress display
-	user_total=$(echo $userlist | wc -w)
-	start_disk=0
-	homemountpoints=$(for each in $(echo $localhomedir); do findmnt -nT $each | awk '{print $1}'; done | sort -u)
-	for each in $(echo $homemountpoints); do
-		local z=$(df $each | tail -n1 | awk '{print $3}')
-		start_disk=$(( $start_disk + $z ))
-	done
-	expected_disk=$(( $start_disk + $finaldiff ))
-
-	# store the refreshdelay variable in a file for parallel to read
-	echo "$refreshdelay" > $dir/refreshdelay
-
+	ec yellow "Executing homedir sync..."
 	parallel --jobs $jobnum -u 'rsync_homedir_wrapper {#} {} >$dir/log/looplog.{}.log' ::: $userlist &
-	finalprogress $! rsync_email
+	syncprogress $! rsync_homedir_wrapper
 }

@@ -1,58 +1,36 @@
 configserver_installs() { # install configserver items if enabled on source
 	mkdir -p /usr/local/src
 
-	if [ "$cmc" ]; then
-		ec yellow "Installing ConfigServer ModSecurity Control (cmc)..."
-		wget -q -P /usr/local/src http://download.configserver.com/cmc.tgz
-		tar -xzf /usr/local/src/cmc.tgz -C /usr/local/src
-		pushd /usr/local/src/cmc 2>&1 | stderrlogit 4
-		sh install.sh 2>&1 | stderrlogit 3
-		[ ! ${PIPESTATUS[0]} -eq 0 ] && local cspluginfail=1
-		popd 2>&1 | stderrlogit 4
-	fi
-
-	if [ "$cmm" ]; then
-		ec yellow "Installing ConfigServer Mail Manage (cmm)..."
-		wget -q -P /usr/local/src http://download.configserver.com/cmm.tgz
-		tar -xzf /usr/local/src/cmm.tgz -C /usr/local/src
-		pushd /usr/local/src/cmm 2>&1 | stderrlogit 4
-		sh install.sh 2>&1 | stderrlogit 3
-		[ ! ${PIPESTATUS[0]} -eq 0 ] && local cspluginfail=1
-		popd 2>&1 | stderrlogit 4
-	fi
-
-	if [ "$cmq" ]; then
-		ec yellow "Installing ConfigServer Mail Queues (cmq)..."
-		wget -q -P /usr/local/src http://download.configserver.com/cmq.tgz
-		tar -xzf /usr/local/src/cmq.tgz -C /usr/local/src
-		pushd /usr/local/src/cmq 2>&1 | stderrlogit 4
-		sh install.sh 2>&1 | stderrlogit 3
-		[ ! ${PIPESTATUS[0]} -eq 0 ] && local cspluginfail=1
-		popd 2>&1 | stderrlogit 4
-	fi
-
-	if [ "$cse" ]; then
-		ec yellow "Installing ConfigServer Exlporer (cse)..."
-		wget -q -P /usr/local/src http://download.configserver.com/cse.tgz
-		tar -xzf /usr/local/src/cse.tgz -C /usr/local/src
-		pushd /usr/local/src/cse 2>&1 | stderrlogit 4
-		sh install.sh 2>&1 | stderrlogit 3
-		[ ! ${PIPESTATUS[0]} -eq 0 ] && local cspluginfail=1
-		popd 2>&1 | stderrlogit 4
-	fi
+	for each in cmc cmm cmq cse; do
+		if [ "${!each}" ]; then
+			ec yellow "$hg Installing $each"
+			rm -f /usr/local/src/${each}.tgz
+			wget -q -P /usr/local/src http://download.configserver.com/${each}.tgz
+			tar -xzf /usr/local/src/${each}.tgz -C /usr/local/src
+			(cd /usr/local/src/$each && sh install.sh 2>&1 | stderrlogit 3)
+			if [ ! -f /var/cpanel/apps/${each}.conf ]; then
+				writexx
+				local cspluginfail=1
+			else
+				writecm
+				echo "	$each installed from source" >> /etc/motd
+			fi
+			rm -f /usr/local/src/${each}.tgz
+		fi
+	done
 
 	if [ "$mailscanner" ]; then
 		ec yellow "Installing ConfigServer Mailscanner..."
-		/usr/local/cpanel/scripts/check_cpanel_rpms --fix --targets=clamav
+		rm -f /usr/local/src/msinstall.tar.gz
+		/usr/local/cpanel/scripts/check_cpanel_pkgs --fix --targets=clamav
 		wget -q -P /usr/local/src http://download.configserver.com/msinstall.tar.gz
 		tar -xzf /usr/local/src/msinstall.tar.gz -C /usr/local/src
-		pushd /usr/local/src/msinstall 2>&1 | stderrlogit 4
 		# use expect because the install is interactive
-		expect -c "spawn sh install.sh; expect \"Select an option [1]: \"; send \"\r\"; expect eof" 2>&1 | stderrlogit 3
-		[ ! ${PIPESTATUS[0]} -eq 0 ] && local cspluginfail=1
-		popd 2>&1 | stderrlogit 4
+		(cd /usr/local/src/msinstall && expect -c "spawn sh install.sh; expect \"Select an option [1]: \"; send \"\r\"; expect eof" 2>&1 | stderrlogit 3)
+		rm -f /usr/local/src/msinstall.tar.gz
 		if [ -d /usr/mailscanner ]; then
-			# install was successful, finidh up with crons and settings
+			writecm
+			echo "  MailScanner installed" >> /etc/motd
 			[ ! -f /scripts/postupcp ] && echo "#!/bin/sh" >> /scripts/postupcp
 			echo "perl /usr/mscpanel/mscheck.pl" >> /scripts/postupcp
 			chmod 700 /scripts/postupcp
@@ -64,11 +42,13 @@ configserver_installs() { # install configserver items if enabled on source
 			/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=skipboxtrapper value=1 2>&1 | stderrlogit 3
 			/usr/local/cpanel/bin/whmapi1 set_tweaksetting key=skipspamassassin value=1 2>&1 | stderrlogit 3
 			/usr/local/cpanel/bin/whmapi1 configureservice service=spamd enabled=0 monitored=0 2>&1 | stderrlogit 3
-
+		else
+			writexx
+			local cspluginfail=1
 		fi
 	fi
 
 	if [ $cspluginfail ]; then
-		ec red "Installation of one or more ConfigServer plugins failed!" | errorlogit 3
+		ec red "Installation of one or more ConfigServer plugins failed!" | errorlogit 3 root
 	fi
 }

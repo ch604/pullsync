@@ -11,20 +11,9 @@ emailsync_main() { #wraps up the email sync function into finalprogress so you g
 
 	# start unattended section
 	lastpullsyncmotd
+	getreadyforparallel
 
-	# set variables for progress display
-	user_total=$(echo $userlist | wc -w)
-	start_disk=0
-	homemountpoints=$(for each in $(echo $localhomedir); do findmnt -nT $each | awk '{print $1}'; done | sort -u)
-	for each in $(echo $homemountpoints); do
-		local z=$(df $each | tail -n1 | awk '{print $3}')
-		start_disk=$(( $start_disk + $z ))
-	done
-	expected_disk=$(( $start_disk + $finaldiff ))
-
-	# store the refreshdelay variable in a file for parallel to read
-	echo "$refreshdelay" > $dir/refreshdelay
-
-	parallel --jobs $jobnum -u 'rsync_email {#} {} >$dir/log/looplog.{}.log' ::: $userlist &
-	finalprogress $! rsync_email
+	ec yellow "Executing email sync..."
+	parallel --jobs $jobnum -u 'rsync_email_wrapper {#} {} >$dir/log/looplog.{}.log' ::: $userlist &
+	syncprogress $! rsync_email_wrapper
 }

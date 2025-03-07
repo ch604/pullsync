@@ -3,21 +3,13 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	if [ "$userlist" ]; then
 		ec yellow "Adding HostsCheck.php to migrated users..."
 		cp -a /root/includes.pullsync/text_files/hostsCheck.txt $dir/HostsCheck.php
-		for user in $userlist; do
-			local userhome_local=$(grep ^$user: /etc/passwd | cut -d: -f6)
-			docroots=$(grep DocumentRoot /usr/local/apache/conf/httpd.conf | grep $userhome_local| awk '{print $2}')
-			for docroot in $docroots; do
-				cp -a $dir/HostsCheck.php $docroot/
-				chown $user. $docroot/HostsCheck.php
-				chmod 644 $docroot/HostsCheck.php
-			done
-		done
+		parallel -j 100% 'parallel_hostscopy {}' ::: $userlist
 	else
 		ec red "Warning: Userlist variable not detected when creating test file!"
 	fi
 
 	#test urls
-	> /usr/local/apache/htdocs/migration_test_urls.html #blank original tests file
+	: > /usr/local/apache/htdocs/migration_test_urls.html #blank original tests file
 	if [ "$domainlist" ]; then
 		ec yellow "Generating migration test urls..."
 		for domain in $domainlist; do
@@ -39,8 +31,7 @@ hostsfile_gen() { #compiles a list of hosts file entries generated from hosts_fi
 	cp -a /root/includes.pullsync/text_files/pullsync_reply.txt $dir/pullsync_reply.txt
 
 	#edit reply
-	sed -i -e "s|http://\${ip}/hostsfile.txt|$hostsfile_url|" $dir/pullsync_reply.txt
-	sed -i -e "s|http://\${ip}/migration_test_urls.html|$test_urls|" $dir/pullsync_reply.txt
+	sed -i -e "s|http://\${ip}/hostsfile.txt|$hostsfile_url|" -e "s|http://\${ip}/migration_test_urls.html|$test_urls|" $dir/pullsync_reply.txt
 
 	#remove final sync message
 	if [ $remove_final_sync_message ]; then

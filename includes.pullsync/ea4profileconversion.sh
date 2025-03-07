@@ -3,15 +3,19 @@ ea4profileconversion() { #convert remote running EA3/4 profile
 	if [ "$remoteea" = "EA3" ]; then
 		# run profile conversion against remote ea3 yaml file
 		ec yellow "Setting up _main.yaml file for conversion..."
-		rsync -R $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/var/cpanel/easy/apache/ $dir/
-		grep -q '"SymlinkProtection":' $dir/var/cpanel/easy/apache/profile/_main.yaml && sed -i 's/\("SymlinkProtection":\).*/\1 1/g' $dir/var/cpanel/easy/apache/profile/_main.yaml || sed -i '/"optmods":/a \ \ \ \ "SymlinkProtection":\ 1' $dir/var/cpanel/easy/apache/profile/_main.yaml
+		srsync -R $ip:/var/cpanel/easy/apache/ $dir/
+		if grep -q '"SymlinkProtection":' $dir/var/cpanel/easy/apache/profile/_main.yaml; then
+			sed -i 's/\("SymlinkProtection":\).*/\1 1/g' $dir/var/cpanel/easy/apache/profile/_main.yaml
+		else
+			sed -i '/"optmods":/a \ \ \ \ "SymlinkProtection":\ 1' $dir/var/cpanel/easy/apache/profile/_main.yaml
+		fi
 		ec yellow "Converting EA3 profile to EA4..."
 		/scripts/convert_ea3_profile_to_ea4 $dir/var/cpanel/easy/apache/profile/_main.yaml /etc/cpanel/ea4/profiles/custom/migration.json 2>&1 | stderrlogit 3
 	elif [ "$remoteea" = "EA4" ]; then
 		# export remote ea4 profile and copy to target custom directory
 		ec yellow "Saving and copying configuration..."
 		sssh "mkdir -p /etc/cpanel/ea4/profiles/custom; /usr/local/bin/ea_current_to_profile --output=/etc/cpanel/ea4/profiles/custom/migration.json" 2>&1 | stderrlogit 3
-		rsync $rsyncargs --bwlimit=$rsyncspeed -e "ssh $sshargs" $ip:/etc/cpanel/ea4/profiles/custom/migration.json /etc/cpanel/ea4/profiles/custom/
+		srsync $ip:/etc/cpanel/ea4/profiles/custom/migration.json /etc/cpanel/ea4/profiles/custom/
 	fi
 
 	if [ -f /etc/cpanel/ea4/profiles/custom/migration.json ]; then
@@ -22,7 +26,7 @@ ea4profileconversion() { #convert remote running EA3/4 profile
 		ea=1
 	else
 		# no output from profile conversion task, skip ea4
-		ec red "Profile conversion failed! Skipping EA..." | errorlogit 3
+		ec red "Profile conversion failed! Skipping EA..." | errorlogit 3 root
 		unset ea
 	fi
 }
