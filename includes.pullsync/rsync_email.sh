@@ -17,7 +17,7 @@ rsync_email() { # $1 is progress position, $2 is user. rsync just the mail folde
 			# write to eternal log
 			eternallog $user
 		else
-			ec red "Warning: Cpanel user $user not found! Not rsycing." | errorlogit 2
+			ec red "Warning: Cpanel user $user not found! Not rsycing." | errorlogit 2 "$user"
 			echo $user >> $dir/did_not_restore.txt
 		fi
 	else

@@ -9,14 +9,14 @@ unowneddbs() { #check for dbs that are not owned by any cpanel user
 			grep -q -x "${db}" <<< "$remoteowneddbs" || ( ec lightRed "$db doesn't exist in remote cPanel but does in MySQL" && echo "$db" >> $dir/unowneddbs.txt )
 		done <<< "$remotedbs"
 	else
-		ec red "Remote dbindex.db.json not found, assuming all databases are NOT in cpanel..." | errorlogit 3
+		ec red "Remote dbindex.db.json not found, assuming all databases are NOT in cpanel..." | errorlogit 3 root
 		ec lightRed "$remotedbs"
 		echo "$remotedbs" >> $dir/unowneddbs.txt
 	fi
 
 	# if there are any unowned databases, print out
 	if [ -s $dir/unowneddbs.txt ] && [ ! "$autopilot" ]; then
-		ec yellow "Found unowned databases! (logged to $dir/unowneddbs.txt)" | errorlogit 3
+		ec yellow "Found unowned databases! (logged to $dir/unowneddbs.txt)" | errorlogit 3 root
 		# continue if these dbs are already in the include file, otherwise prompt tech to add/sync them
 		if [ $(diff -q <(sort $dir/unowneddbs.txt 2> /dev/null) <(sort /root/db_include.txt 2> /dev/null) &> /dev/null; echo $?) -eq 1 ]; then #files are different in either direction
 			# warn if there are already dbs in list
@@ -27,7 +27,7 @@ unowneddbs() { #check for dbs that are not owned by any cpanel user
 				local _dbfile=$(mktemp)
 				sort -u $dir/unowneddbs.txt /root/db_include.txt > $_dbfile
 				mv $_dbfile /root/db_include.txt
-				echo "Combined all unowned dbs (cat $dir/unowneddbs.txt) to /root/db_include.txt" | errorlogit 4
+				echo "Combined all unowned dbs (cat $dir/unowneddbs.txt) to /root/db_include.txt" | errorlogit 4 root
 			else
 				ec yellow "OK, don't forget you can add databases to /root/db_include.txt on your own to be synced during final/update/mysql syncs!"
 			fi
@@ -36,8 +36,8 @@ unowneddbs() { #check for dbs that are not owned by any cpanel user
 		fi
 	elif [ -s $dir/unowneddbs.txt ] && [ "$autopilot" ]; then
 		# we are on autopilot, dont do anything
-		ec yellow "Found unowned databases! (cat $dir/unowneddbs.txt)" | errorlogit 3
-		ec red "I'm on autopilot, so I'm not appending anything! Deal with these databases manually later!" | errorlogit 2
+		ec yellow "Found unowned databases! (cat $dir/unowneddbs.txt)" | errorlogit 3 root
+		ec red "I'm on autopilot, so I'm not appending anything! Deal with these databases manually later!" | errorlogit 2 root
 	else
 		ec green "No unowned databases found."
 	fi

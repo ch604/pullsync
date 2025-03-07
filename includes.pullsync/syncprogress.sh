@@ -58,7 +58,7 @@ syncprogress() { #prints the sync status every few seconds over the same window,
 				if [ "$recheck" = "9" ]; then
 					# restore has been stuck for 30 seconds with finished child, kill the parent
 					ec red "Killing stuck transfer_session ${active_restorepkg}..."
-					echo "killed $active_restorepkg pid $recheckpid: $(ps ax | grep view_transfer 2>/dev/null | grep -v grep)" | errorlogit 2
+					echo "killed $active_restorepkg pid $recheckpid: $(ps ax | grep view_transfer 2>/dev/null | grep -v grep)" | errorlogit 2 root
 					kill $recheckpid 2>&1 | stderrlogit 2
 					unset recheckpid recheck active_restorepkg # unset variables to escape this loop next time
 				fi

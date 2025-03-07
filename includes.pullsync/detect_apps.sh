@@ -43,7 +43,7 @@ detect_apps() { # look for common extra applications
 	postgres=$(grep postmaster "$psfile")
 	nodejs=$(sssh "which node 2> /dev/null")
 	npm=$(sssh "which npm 2> /dev/null")
-	[ "$nodejs" ] && [ "$npm" ] && npmlist=$(sssh "npm ls -g --depth=0" | tail -n+2 | awk '{print $2}' | cut -d@ -f1 | grep -v npm | grep [a-zA-Z])
+	[ "$nodejs" ] && [ "$npm" ] && npmlist=$(sssh "npm ls -g --depth=0" | tail -n+2 | awk '{print $2}' | cut -d@ -f1 | grep -v npm | grep "[a-zA-Z]")
 	tomcat=$(sssh "which tomcat 2> /dev/null; \ls /usr/local/cpanel/scripts/ea-tomcat85 2> /dev/null")
 	apc=$(grep -x -e apc -e apcu "$dir/remote_php_details.txt")
 	sodium=$(grep -x sodium "$dir/remote_php_details.txt")
@@ -103,7 +103,7 @@ detect_apps() { # look for common extra applications
 	done
 	[ -s "$dir/skippedinstall.txt" ] && ec lightRed "Some programs will not be installed due to target configuration (cat $dir/skippedinstall.txt):" && cat $dir/skippedinstall.txt | logit
 	if [ "${xcachefound}${varnishfound}${eaccelfound}${lswsfound}${mongodfound}${mssqlfound}${cxsfound}${rvsbfound}${domainmap}${turtlerules}${ffmpegphp}${eapodman}" ]; then
-		ec white "3rd party stuff found on the old server! (cat $dir/uninstallable.txt)" | errorlogit 4
+		ec white "3rd party stuff found on the old server! (cat $dir/uninstallable.txt)" | errorlogit 4 root
 		(
 		[ "$xcachefound" ] && echo "Xcache: $xcachefound"
 		[ "$varnishfound" ] && echo "Varnish: $varnishfound"

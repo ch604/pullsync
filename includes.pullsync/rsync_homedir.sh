@@ -17,7 +17,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 				if $(sssh "[ -h $userhome_remote/public_html ]") && [ ! -h $userhome_local/public_html ]; then
 					mkdir -p $dir/public_html_symlink_baks/$user
 					mv $userhome_local/public_html $dir/public_html_symlink_baks/$user/
-					ec brown "$progress Source public_html is symlink, moved $user's public_html to $dir/public_html_symlink_baks/$user/public_html." | errorlogit 4
+					ec brown "$progress Source public_html is symlink, moved $user's public_html to $dir/public_html_symlink_baks/$user/public_html." | errorlogit 4 "$user"
 				fi
 			fi
 			# collect quotas for rsync status printing; always try repquota even if its not installed, this will be sorted when printing. get mountpoint of the userhome in case /home2.
@@ -30,13 +30,13 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 			if [[ "$synctype" == "final" || "$synctype" == "update" ]] && [ $maildelete ]; then
 				# if using --delete on maildir
 				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes --exclude=mail -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
-				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
+				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2 "$user"
 				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/mail $userhome_local/ --delete &> $dir/log/rsync.${user}.log #mail --delete function
-				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
+				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2 "$user"
 			else
 				# normal rsync
 				rsync $rsyncargs --bwlimit=$rsyncspeed $rsync_update $rsync_excludes -e "ssh $sshargs" $ip:$userhome_remote/ $userhome_local/ &> $dir/log/rsync.${user}.log
-				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2
+				[ $? -ne 0 -a $? -ne 24 ] && ec red "$progress Rsync task for $user returned nonzero exit code! This may need to get resynced (cat $dir/log/rsync.${user}.log)!" | errorlogit 2 "$user"
 			fi
 
 			# optionally convert to FPM
@@ -55,7 +55,7 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 				[ -f $dir/etc/proftpd/$user ] && rsync $rsyncargs --bwlimit=$rsyncspeed $dir/etc/proftpd/$user /etc/proftpd/ 2>&1 | stderrlogit 3
 				remotehash=$(sssh "grep ^$user\: /etc/shadow" | cut -d: -f1-2)
 				if [ ! "${remotehash}" = "$(grep ^$user\: /etc/shadow | cut -d: -f1-2)" ]; then
-					ec brown "$progress Linux password changed, updating on target..." | errorlogit 4
+					ec brown "$progress Linux password changed, updating on target..." | errorlogit 4 "$user"
 					echo $remotehash | chpasswd -e 2>&1 | stderrlogit 3
 				fi
 				for dom in $(awk -F: '/ '${user}'$/ {print $1}' /etc/userdomains); do
@@ -74,16 +74,16 @@ rsync_homedir() { # $1 is user, $2 is progress. confirms restoration and rsyncs 
 
 			# suspend suspended accounts
 			if grep -q -E '^SUSPENDED[ ]?=[ ]?1' $dir/var/cpanel/users/$user; then
-				ec brown "$progress User is suspended on source server, suspending on target..." | errorlogit 4
+				ec brown "$progress User is suspended on source server, suspending on target..." | errorlogit 4 "$user"
 				/scripts/suspendacct $user 2>&1 | stderrlogit 4
 			fi
 		else
 			# restore failed
-			ec red "Warning: Cpanel user $user homedir paths not found! Not rsycing homedir." | errorlogit 2
+			ec red "Warning: Cpanel user $user homedir paths not found! Not rsycing homedir." | errorlogit 2 "$user"
 		fi
 	else
 		# problem with remote files
-		ec lightRed "Error: Password file from remote server not found at $dir/etc/passwd, can't sync homedir for $user! " | errorlogit 2
+		ec lightRed "Error: Password file from remote server not found at $dir/etc/passwd, can't sync homedir for $user! " | errorlogit 2 "$user"
 		echo $user >> $dir/did_not_restore.txt
 	fi
 }

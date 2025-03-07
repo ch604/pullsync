@@ -1,8 +1,10 @@
 main() { #the main menu dialog box and case statement. passes sync commands to synctype_logic() and describes the function lists of other commands.
+	local choice
+	declare -a cmd options
+	echo "pullsync version: $version" >> "$log"
 	# store variables for the menu
-	# old menu title: local cmd=(dialog --colors --nocancel --backtitle "pullsync" --title "Main Menu" --radiolist "  _____________  ______________________  ______   __________   ______\n  ___  __ \_  / / /__  /___  /__  ___/ \/ /__  | / /_  ____/   /__  /\n  __  /_/ /  / / /__  / __  / _____ \__  /__   |/ /_  /        __  / \n  _  ____// /_/ / _  /___  /______/ /_  / _  /|  / / /___      _  /  \n  /_/     \____/  /_____/_____/____/ /_/  /_/ |_/  \____/      /_/   \n\n$scriptname\nversion: $version\nStarted at $starttime\n\nGreetings, $sshClientIP. Choose your Destiny:" 0 0 26)
-	local cmd=(dialog --colors --nocancel --backtitle "pullsync" --title "Main Menu" --radiolist " ██▓███   █    ██  ██▓     ██▓      ██████▓██   ██▓ ███▄    █  ▄████▄     \n▓██░  ██▒ ██  ▓██▒▓██▒    ▓██▒    ▒██    ▒ ▒██  ██▒ ██ ▀█   █ ▒██▀ ▀█     \n▓██░ ██▓▒▓██  ▒██░▒██░    ▒██░    ░ ▓██▄    ▒██ ██░▓██  ▀█ ██▒▒▓█    ▄    \n▒██▄█▓▒ ▒▓▓█  ░██░▒██░    ▒██░      ▒   ██▒ ░ ▐██▓░▓██▒  ▐▌██▒▒▓▓▄ ▄██▒   \n▒██▒ ░  ░▒▒█████▓ ░██████▒░██████▒▒██████▒▒ ░ ██▒▓░▒██░   ▓██░▒ ▓███▀ ░   \n▒▓▒░ ░  ░░▒▓▒ ▒ ▒ ░ ▒░▓  ░░ ▒░▓  ░▒ ▒▓▒ ▒ ░  ██▒▒▒ ░ ▒░   ▒ ▒ ░ ░▒ ▒  ░   \n░▒ ░     ░░▒░ ░ ░ ░ ░ ▒  ░░ ░ ▒  ░░ ░▒  ░ ░▓██ ░▒░ ░ ░░   ░ ▒░  ░  ▒      \n░░        ░░░ ░ ░   ░ ░     ░ ░   ░  ░  ░  ▒ ▒ ░░     ░   ░ ░ ░           \n            ░         ░  ░    ░  ░      ░  ░ ░              ░ ░ ░         \n                                           ░ ░                ░           \n$scriptname version: $version\nStarted at $starttime\n\nGreetings, $sshClientIP. Choose your Destiny:" 0 0 26)
-	local options=(1 "Initial - Single cpanel account" off
+	cmd=(dialog --colors --nocancel --backtitle "pullsync" --title "Main Menu" --radiolist " ██▓███   █    ██  ██▓     ██▓      ██████▓██   ██▓ ███▄    █  ▄████▄     \n▓██░  ██▒ ██  ▓██▒▓██▒    ▓██▒    ▒██    ▒ ▒██  ██▒ ██ ▀█   █ ▒██▀ ▀█     \n▓██░ ██▓▒▓██  ▒██░▒██░    ▒██░    ░ ▓██▄    ▒██ ██░▓██  ▀█ ██▒▒▓█    ▄    \n▒██▄█▓▒ ▒▓▓█  ░██░▒██░    ▒██░      ▒   ██▒ ░ ▐██▓░▓██▒  ▐▌██▒▒▓▓▄ ▄██▒   \n▒██▒ ░  ░▒▒█████▓ ░██████▒░██████▒▒██████▒▒ ░ ██▒▓░▒██░   ▓██░▒ ▓███▀ ░   \n▒▓▒░ ░  ░░▒▓▒ ▒ ▒ ░ ▒░▓  ░░ ▒░▓  ░▒ ▒▓▒ ▒ ░  ██▒▒▒ ░ ▒░   ▒ ▒ ░ ░▒ ▒  ░   \n░▒ ░     ░░▒░ ░ ░ ░ ░ ▒  ░░ ░ ▒  ░░ ░▒  ░ ░▓██ ░▒░ ░ ░░   ░ ▒░  ░  ▒      \n░░        ░░░ ░ ░   ░ ░     ░ ░   ░  ░  ░  ▒ ▒ ░░     ░   ░ ░ ░           \n            ░         ░  ░    ░  ░      ░  ░ ░              ░ ░ ░         \n                                           ░ ░                ░           \n$scriptname version: $version\nStarted at $starttime\n\nGreetings, $sshClientIP. Choose your Destiny:" 0 0 26)
+	options=(1 "Initial - Single cpanel account" off
 	2 "Initial - List of cpanel users from /root/userlist.txt" off
 	3 "Initial - List of domains from /root/domainlist.txt" off
 	4 "Initial - All users" ON
@@ -29,10 +31,10 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 	sr "NoOp - Run ab remote (BETA)" off
 	0 "quit" off)
 	# exectute the menu and store the result
-	local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+	choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
 	# log the choice and its next element
-	echo $choice >> $log
-	print_next_element options $choice >> $log
+	echo "$choice" >> "$log"
+	print_next_element options "$choice" >> "$log"
 	# empty your mind
 	clear
 	# determine what to do next
@@ -67,20 +69,20 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 				remove_final_sync_message=1
 			fi
 			getlocaldomainlist
-			> $hostsfile_alt
-			for user in $userlist; do
-				hosts_file $user
-			done
+			: > "$hostsfile_alt"
+			ec yellow "Generating hosts file entries..."
+			# shellcheck disable=SC2086
+			parallel -j 100% 'hosts_file {}' ::: $userlist
 			hostsfile_gen
 			exitcleanup 400;;
 		g)	runmarill=1
 			download_marill
 			useallusers
 			getlocaldomainlist
-			> $hostsfile_alt
-			for user in $userlist; do
-				hosts_file $user &> /dev/null
-			done
+			: > "$hostsfile_alt"
+			ec yellow "Generating hosts file entries..."
+			# shellcheck disable=SC2086
+			parallel -j 100% 'hosts_file {}' ::: $userlist
 			marill_gen
 			exitcleanup 401;;
 		h)	useallusers
@@ -90,45 +92,46 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			exitcleanup 402;;
 		i)	remove_HostsCheck;;
 		j)	uninstall;;
-		k)	userlist=$(\ls -A /var/cpanel/users | egrep -v "^HASH" | egrep -vx "${badusers}")
+		k)	userlist=$(find /var/cpanel/users/ -maxdepth 1 -type f -printf "%f\n")
+			sanitize_userlist
 			getlocaldomainlist
 			cpnat_check
 			dnscheck
 			(echo "server $cpanel_main_ip current state:"
-			echo "current users ($(echo $userlist | wc -w)): $(echo $userlist)"
+			echo "current users ($(wc -w <<< "$userlist")): $userlist"
 			echo "current dns:"
-			cat $dir/dns.txt
+			cat "$dir/dns.txt"
 			echo ""
-			) > $dir/summary.txt
+			) > "$dir/summary.txt"
 			summarize
 			exitcleanup 403;;
 		wl)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
 			say_ok
 			useallusers
 			getlocaldomainlist
-			> $hostsfile_alt
-			for user in $userlist; do
-				hosts_file $user &> /dev/null
-			done
-			mkdir $dir/wptresults
+			: > "$hostsfile_alt"
+			ec yellow "Generating hosts file entries..."
+			# shellcheck disable=SC2086
+			parallel -j 100% 'hosts_file {}' ::: $userlist
+			mkdir "$dir/wptresults"
 			wpt_localwrapper
 			exitcleanup 405;;
 		wr)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
 			say_ok
 			useallusers
 			getlocaldomainlist
-			mkdir $dir/wptresults
+			mkdir "$dir/wptresults"
 			wpt_remotewrapper
 			exitcleanup 405;;
 		wc)	ec red "BETA FUNCTION! Don't run in production migrations unless you know whats up!"
 			say_ok
 			useallusers
 			getlocaldomainlist
-			> $hostsfile_alt
-			for user in $userlist; do
-				hosts_file $user &> /dev/null
-			done
-			mkdir $dir/wptresults
+			: > "$hostsfile_alt"
+			ec yellow "Generating hosts file entries..."
+			# shellcheck disable=SC2086
+			parallel -j 100% 'hosts_file {}' ::: $userlist
+			mkdir "$dir/wptresults"
 			wpt_compare
 			exitcleanup 405;;
 		ma)	synctype="email"
@@ -139,11 +142,11 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			ec yellow "Hey I'm gonna dos your server now. I'll run 5 concurrent connections for 10 seconds per domain, all against the local ip. This is gonna be problematic if the target is already hosting sites."
 			useallusers
 			getlocaldomainlist
-			yum -y -q install ea-apache24-tools 2>&1 | stderrlogit 4
-			> $hostsfile_alt
-			for user in $userlist; do
-				hosts_file $user &> /dev/null
-			done
+			yum -yq install ea-apache24-tools 2>&1 | stderrlogit 4
+			: > "$hostsfile_alt"
+			ec yellow "Generating hosts file entries..."
+			# shellcheck disable=SC2086
+			parallel -j 100% 'hosts_file {}' ::: $userlist
 			if yesNo "Are you sure you want to continue? DID YOU HEAR ME SAY DOS?"; then
 				ab_test_localwrapper
 			fi
@@ -153,7 +156,7 @@ main() { #the main menu dialog box and case statement. passes sync commands to s
 			ec yellow "Hey I'm gonna dos your source server now. I'll run 5 concurrent connections for 10 seconds per domain, ALL AGAINST LIVE DNS. YOU MIGHT MESS UP SOMEONES DAY REAL BAD IF YOU DO A LOT OF DOMAINS."
 			useallusers
 			getlocaldomainlist
-			yum -y -q install ea-apache24-tools 2>&1 | stderrlogit 4
+			yum -yq install ea-apache24-tools 2>&1 | stderrlogit 4
 			if yesNo "Are you sure you want to continue? DID YOU HEAR ME SAY DOS?"; then
 				ab_test_remotewrapper
 			fi

@@ -15,7 +15,7 @@ validate_license() {
 	# see if the main ip has an active license
 	curl -sS -L https://verify.cpanel.net/app/verify?ip=${licensetestip} > $dir/validate_license_output.txt
 	if ! grep -qE active\<br[\ ]?/\> $dir/validate_license_output.txt; then
-		ec red "The server seems to be cPanel, but the license is invalid! Please make sure that the IP ${licensetestip} is properly licensed before the end of the migration!" | errorlogit 2
+		ec red "The server seems to be cPanel, but the license is invalid! Please make sure that the IP ${licensetestip} is properly licensed before the end of the migration!" | errorlogit 2 root
 		say_ok
 	fi
 }

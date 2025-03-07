@@ -29,7 +29,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 			done
 		else #remote ea4, match every version individually
 			for ver in $(sssh "/usr/local/cpanel/bin/rebuild_phpconf --available" | cut -d: -f1); do
-				/usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $ver && /usr/local/cpanel/bin/whmapi1 php_set_handler version=$ver handler=$(sssh "/usr/local/cpanel/bin/rebuild_phpconf --current"  awk '/'$ver'/ {print $NF}') | stderrlogit 4 || ec red "$ver is missing on target server! Can't match its handler." | errorlogit 4
+				/usr/local/cpanel/bin/rebuild_phpconf --available | grep -q $ver && /usr/local/cpanel/bin/whmapi1 php_set_handler version=$ver handler=$(sssh "/usr/local/cpanel/bin/rebuild_phpconf --current"  awk '/'$ver'/ {print $NF}') | stderrlogit 4 || ec red "$ver is missing on target server! Can't match its handler." | errorlogit 4 root
 			done
 		fi
 	fi
@@ -47,7 +47,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 		local missing_modules=$(sssh "php -m 2> /dev/null" | egrep -v -e "^($target_modules)$" -e ^$ -e "\[" -e "\(")
 		if [ "$missing_modules" ]; then
 			# items remain in variable after egrep -v
-			ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2
+			ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2 root
 			echo $missing_modules | tee -a $dir/missing_php_modules.txt
 			echo "evaluated using $phpbin" | tee -a $dir/missing_php_modules.txt
 			ec red "If you are matching versions, you should address this after the sync!"
@@ -69,7 +69,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 		done
 		if [ -s $dir/missing_php_modules.txt ]; then
 			# file has size and therefore missing modules were found
-			ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2
+			ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2 root
 			cat $dir/missing_php_modules.txt
 			ec red "If you are matching versions, you should address this after the sync!"
 		fi
@@ -123,7 +123,7 @@ phpextras() { #run after ea4 to match handler, default version, and variables
 				sed -i "s/^\(error_reporting\ \?=\ \?\).*/\1$(echo $remoteerr | sed -e 's/\&/\\\&/g' -e 's/\ /\\\ /g')/" $localphpfile
 			fi
 		else
-			ec red "Unable to select a config file to compare and adjust php limits for $ver! It either wasn't installed on source or wasn't installed properly on target!" | errorlogit 3
+			ec red "Unable to select a config file to compare and adjust php limits for $ver! It either wasn't installed on source or wasn't installed properly on target!" | errorlogit 3 root
 		fi
 	done
 }

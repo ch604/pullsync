@@ -297,7 +297,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			missing_modules=$(sssh "php -m 2> /dev/null" | grep -Ev -e "^($target_modules)$" -e ^$ -e "\[" -e "\(")
 			if [ "$missing_modules" ]; then
 				# items remain in variable after grep -Ev
-				ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit_ 2 root
+				ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2 root
 				echo $missing_modules | tee -a $dir/missing_php_modules.txt
 				echo "evaluated using $phpbin" | tee -a $dir/missing_php_modules.txt
 				ec red "If you are matching versions, you should address this after the sync!"
@@ -319,7 +319,7 @@ initialsync_main() { #the meaty heart of pullsync. performs the pre and post mig
 			done
 			if [ -s $dir/missing_php_modules.txt ]; then
 				# file has size and therefore missing modules were found
-				ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit_ 2 root
+				ec red "PHP modules are missing from the target that were installed on source! (cat $dir/missing_php_modules.txt)" | errorlogit 2 root
 				cat $dir/missing_php_modules.txt
 				ec red "If you are matching versions, you should address this after the sync!"
 			fi

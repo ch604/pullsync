@@ -52,7 +52,7 @@ wpt_initcompare(){ #only see how many items were better on target vs source and 
 		ec green "Target server appears overall to have more wins than source! Grats~!"
 	fi
 	# if there were any non-As on target for certain values, make recommendations
-	[ $turnonkeepalive ] && ec lightGreen "I recommend turning on Keep Alive to increase scores." | errorlogit 4
-	[ $turnongzip ] && ec lightGreen "I recommend turning on gzip compression (mod_deflate) server-wide to increase scores." | errorlogit 4
-	[ $turnoncache ] && ec lightGreen "I recommend turning on browser cache (mod_expires) server-wide to increase scores." | errorlogit 4
+	[ $turnonkeepalive ] && ec lightGreen "I recommend turning on Keep Alive to increase scores." | errorlogit 4 root
+	[ $turnongzip ] && ec lightGreen "I recommend turning on gzip compression (mod_deflate) server-wide to increase scores." | errorlogit 4 root
+	[ $turnoncache ] && ec lightGreen "I recommend turning on browser cache (mod_expires) server-wide to increase scores." | errorlogit 4 root
 }

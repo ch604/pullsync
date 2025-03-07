@@ -1,5 +1,5 @@
 mysql_remote_profiles() { #check for remote profiles on both servers
-	if [ -f $dir/var/cpanel/mysql_status ] && grep -q "remote=1" $dir/var/cpanel/mysql_status; then
+	if [ -f "$dir/var/cpanel/mysql_status" ] && grep -q "remote=1" "$dir/var/cpanel/mysql_status"; then
 		ec red "Source server has remote mysql server. This is normally not a problem, just wanted to let you know."
 		sourceremotemysql=1
 	fi
@@ -10,7 +10,7 @@ mysql_remote_profiles() { #check for remote profiles on both servers
 		if [ ! -s /var/cpanel/mysqlaccesshosts ]; then
 			ec lightRed "Target server does not have any mysql access hosts set up!"
 			if yesNo "Do you want me to do that for you?"; then
-				for ip in $(whmapi1 listips --output=json | python -c 'import sys,json; data=json.load(sys.stdin); print("\n".join(list(map(lambda i:data["data"]["ip"][i]["ip"], range(len(data["data"]["ip"]))))))') $(hostname) $(hostname | cut -d. -f1); do
+				for i in $(whmapi1 listips --output=json | jq -r '.data.ip[].ip') $(hostname) $(hostname | cut -d. -f1); do
 					echo "$ip" >> /var/cpanel/mysqlaccesshosts
 				done
 				if whmapi1 listips | grep -q \ 192.168; then
@@ -21,7 +21,7 @@ mysql_remote_profiles() { #check for remote profiles on both servers
 				fi
 			else
 				ec Red "Suit yourself!"
-				ec Red "Dont forget to set up mysql access hosts and make sure grants are working!" | errorlogit 3
+				ec Red "Dont forget to set up mysql access hosts and make sure grants are working!" | errorlogit 3 root
 			fi
 		fi
 	fi

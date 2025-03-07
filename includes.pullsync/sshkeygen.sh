@@ -47,7 +47,7 @@ sshkeygen() { #generate a unique ssh key and copy it to the source server.
 		rd
 		if ! ssh -oConnectTimeout=10 $sshargs $ip "true" ; then
 			# fail here if we were unable to connect to the remote server.
-			ec lightRed "Error: Ssh connection to $ip failed, please check connection before retrying!" | errorlogit 1
+			ec lightRed "Error: Ssh connection to $ip failed, please check connection before retrying!" | errorlogit 1 root
 			exitcleanup 3
 		fi
 	fi

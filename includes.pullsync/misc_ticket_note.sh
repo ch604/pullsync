@@ -7,9 +7,13 @@ misc_ticket_note() { #ticket note for other sync types
 	echo "to reattach, run (screen -r $STY)."
 	if [[ ! "$synctype" = "versionmatching" ]]; then
 		#only run this part for non-versionmatching
-		[ $(echo $userlist | wc -w) -gt 15 ] && echo -e "\ntruncated userlist ($(echo $userlist | wc -w)): $(echo $userlist | head -15 | tr '\n' ' ')" || echo -e "\nuserlist ($(echo $userlist | wc -w)): $(echo $userlist | tr '\n' ' ')"
+		if [ "$(wc -w <<< "$userlist")" -gt 15 ]; then
+			echo -e "\ntruncated userlist ($(wc -w <<< "$userlist")): $(tr ' ' '\n' <<< "$userlist" | head -15 | paste -sd' ')"
+		else
+			echo -e "\nuserlist ($(wc -w <<< "$userlist")): $(paste -sd' ' <<< "$userlist")"
+		fi
 	fi
-	) | tee -a $dir/ticketnote.txt | logit # end subshell for tee to ticketnote
+	) | tee -a "$dir/ticketnote.txt" | logit # end subshell for tee to ticketnote
 	ec lightPurple "Stop copying now :D"
 	ec green "Ready to go!"
 	say_ok
