@@ -5,8 +5,7 @@ slackhook() { #post details of finished migration to slack channel
 	slackuser=${slackuser:-"migrations-team"}
 
 	#fail if cant connect to slack.com
-	timeout 1 bash -c 'cat < /dev/null > /dev/tcp/hooks.slack.com/443'
-	[ $? -ne 0 ] && return 1
+	timeout 1 bash -c 'cat < /dev/null > /dev/tcp/hooks.slack.com/443' || return 1
 
 	message=$(cat << EOF
 {

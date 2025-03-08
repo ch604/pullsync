@@ -1,11 +1,14 @@
 summarize() { #summarize the migrations run on this server
+	local oec
+	declare -a oldlist
 	ec yellow "Checking for previous migrations..."
-	local oldlist=($(\ls -c /home/temp/ | grep "pullsync\." | grep -v "$starttime"))
-	if [ ! ${#oldlist[@]} = 0 ]; then
+	# shellcheck disable=SC2010
+	mapfile -t oldlist < <(\ls -c /home/temp/ | grep "pullsync\." | grep -v "$starttime")
+	if [ "${#oldlist[@]}" -ne 0 ]; then
 		ec yellow "Detected ${#oldlist[@]} previous pullsync folders."
 		ec yellow "Putting summary of each in $dir/summary.txt..."
-		for each in ${oldlist[@]}; do
-			local oec=$(awk '/exit code: / {print $NF}' /home/temp/$each/pullsync.log)
+		for each in "${oldlist[@]}"; do
+			oec=$(awk '/exit code: / {print $NF}' /home/temp/$each/pullsync.log)
 			echo -e "---------------\n$each"
 			echo "started by $(cat /home/temp/$each/youdidthis)"
 			echo "synctype was $(awk '/synctype: / {print $NF}' /home/temp/$each/pullsync.log)"
@@ -41,7 +44,7 @@ summarize() { #summarize the migrations run on this server
 			echo "source port: $(cat /home/temp/$each/port.txt)"
 			echo "old userlist ($(cat /home/temp/$each/$userlist.txt | wc -w)): $(cat /home/temp/$each/userlist.txt | tr '\n' ' ')"
 			echo ""
-		done >> $dir/summary.txt
+		done >> "$dir/summary.txt"
 	else
 		ec yellow "No old migrations found! Come on, man!"
 	fi

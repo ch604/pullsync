@@ -1,4 +1,4 @@
-wpt_initcompare(){ #only see how many items were better on target vs source and assign a winner, run after initial sync with initsyncwpt set.
+wpt_initcompare() { #only see how many items were better on target vs source and assign a winner, run after initial sync with initsyncwpt set.
 	ec blue "Aggregating WPT results..."
 	for each in $(cat $dir/marilldomains.txt | grep -vF '*'); do
 		local dom=$(echo $each | cut -d: -f1)

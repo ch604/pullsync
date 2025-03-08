@@ -1,4 +1,4 @@
-wpt_localwrapper(){ #do webpagetest on all domains. list from from marilldomains.txt
+wpt_localwrapper() { #do webpagetest on all domains. list from from marilldomains.txt
 	echo -e "Letter grades are: First Byte Time, Keep-alive, Server Gzip, Image Compression, Browser Cache, CDN use.\nLine format is Median Load Time, Median TTFB, Letter Grades." | tee -a $dir/wptresults.txt
 	for each in $(cat $dir/marilldomains.txt | grep -vF '*'); do
 		# run wpt_speedtest on specified ip , with $jobnum runs in parallel

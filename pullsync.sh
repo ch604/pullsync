@@ -54,7 +54,7 @@ sshpid=${pid}
 sshloop=0
 while [ "$sshloop" = "0" ]; do
 	if strings "/proc/$sshpid/environ" | grep -q ^SSH_CLIENT; then
-		read -r sshClientIP sshClientSport sshClientDport <<< $(strings "/proc/$sshpid/environ" | awk -F= '/^SSH_CLIENT/ {print $2}')
+		read -r sshClientIP sshClientSport sshClientDport < <(strings "/proc/$sshpid/environ" | awk -F= '/^SSH_CLIENT/ {print $2}')
 		sshloop=1
 	else
 		sshpid=$(awk '/PPid/ {print $2}' "/proc/$sshpid/status")
