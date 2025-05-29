@@ -1,4 +1,4 @@
-rocessprogress() { #shared portion of the final/sync progress functions, pass cpanel user as $1. fills 5 rows of terminal space per process.
+processprogress() { #shared portion of the final/sync progress functions, pass cpanel user as $1. fills 5 rows of terminal space per process.
 	local user ind0 homedirfile ind1 ind2 mailcount prog2 dblist dbcount currentdb position prog3
 	user=$1
 	# tail the end of the log for that user if it exists
