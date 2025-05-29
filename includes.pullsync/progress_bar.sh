@@ -1,4 +1,4 @@
-progressbar() { #takes the current value $1 and total value $2. calculates the size of the current screen and prints a progress bar and %completion based on the input values.
+progress_bar() { #takes the current value $1 and total value $2. calculates the size of the current screen and prints a progress bar and %completion based on the input values.
 	local width progress finished left fill empty
 	width=$(($(tput cols) - 10))
 	if [ "$1" -gt "$2" ]; then
